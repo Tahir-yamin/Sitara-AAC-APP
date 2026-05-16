@@ -1,0 +1,68 @@
+Code Review: Sitara AAC Platform
+Project: AI-Orchestrated AAC for children (Google Antigravity Hackathon)
+Stack: Flutter (Android) + FastAPI (Python) + Google ADK + Gemini 2.0 Flash + SQLite
+
+Critical Issues
+#	File	Issue	Severity
+1	local_db_service.dart	Child session events stored unencrypted in SharedPreferences — readable on rooted Android	🔴 Critical
+2	antigravity_service.dart	No HTTP timeout on API calls — hangs indefinitely on poor connections	🔴 Critical
+3	game_screen.dart	No try/catch around evaluateSession() in 30s timer callback — crashes session silently	🔴 High
+4	agent.py	Missing startup validation — app starts with no API key, crashes only on first agent call	🔴 High
+5	antigravity_service.dart	Hardcoded GCP backend URL exposes project number in client bundle	🔴 High
+Medium Issues
+#	File	Issue	Severity
+6	agent.py L659-662	Fragile string slicing on LLM JSON output — use regex instead of split/index	🟡 Medium
+7	antigravity_service.dart	Unvalidated type cast in _parseActions() — if backend returns non-List, throws and crashes	🟡 Medium
+8	game_screen.dart	Unsafe cast in _applyAction() — rawCount as int fails if backend sends string	🟡 Medium
+9	agent.py	No rate limiting on /evaluate-session — 30s heartbeat can hammer endpoint	🟡 Medium
+10	requirements.txt	google-genai>=0.1.0 is too permissive — pin to specific version	🟡 Medium
+Low Issues
+#	File	Issue	Severity
+11	session_tracker.dart	_events list is unbounded — grows indefinitely during long sessions	🟢 Low
+12	agent.py	Hardcoded model name gemini-2.0-flash — should read from env var	🟢 Low
+13	agent.py	Firestore silent fallback not reflected in /health endpoint	🟢 Low
+Specific Fixes
+Fix 1 — HTTP timeout (antigravity_service.dart):
+
+// Before:
+final res = await http.post(Uri.parse(...), ...);
+
+// After:
+final res = await http.post(Uri.parse(...), ...).timeout(
+  const Duration(seconds: 10),
+  onTimeout: () => http.Response('{"timeout":true}', 408),
+);
+Fix 2 — API key startup validation (agent.py):
+
+# At module startup, before LlmAgent creation:
+if not GOOGLE_API_KEY:
+    raise RuntimeError("[CRITICAL] GOOGLE_API_KEY not set — refusing to start")
+Fix 3 — Robust JSON extraction (agent.py ~L659):
+
+import re
+match = re.search(r'```(?:json)?\s*(.*?)\s*```', response_text, re.DOTALL)
+if match:
+    clean = match.group(1)
+else:
+    clean = response_text.strip()
+Fix 4 — Safe cast in _parseActions (antigravity_service.dart):
+
+List<AdaptationAction> _parseActions(dynamic actionsJson) {
+  if (actionsJson is! List) return [];
+  return actionsJson
+    .whereType<Map<String, dynamic>>()
+    .map((a) => AdaptationAction.fromJson(a))
+    .toList();
+}
+What Looks Good
+A2A orchestration is correctly implemented — Therapy Director → Story Weaver delegation is real multi-agent, not simulated
+Quota/429 handling is well-thought-out — 60s cooldown + FixedRuleEngine fallback is production-grade
+Offline fallback on Flutter side is clean — _localFallback() returns sensible defaults
+Cultural design (Urdu/Roman Urdu bilingual TTS, Pakistan-specific context) is authentic
+Async/await throughout FastAPI is correct — no blocking I/O
+QC gate on Story Weaver output via _validate_quest() is good defensive architecture
+Baseline benchmark toggle for hackathon judging is clever
+Verdict: Request Changes
+Before Cloud Run deployment: fix items 1, 2, 3, 4 (critical). Before hackathon submission: fix 6, 7, 8 (crashes under edge cases). Items 9–13 are polish.
+
+The architecture is sound — the multi-agent ADK design is genuinely well-structured for a hackathon project. The gaps are mostly defensive hardening, not architectural flaws.

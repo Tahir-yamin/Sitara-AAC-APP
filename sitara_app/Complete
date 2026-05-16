@@ -1,0 +1,50 @@
+sitara/
+├── pubspec.yaml
+├── lib/
+│   ├── main.dart
+│   ├── app.dart
+│   ├── models/
+│   │   ├── child_profile.dart
+│   │   ├── symbol_card.dart
+│   │   ├── session_event.dart
+│   │   ├── quest.dart
+│   │   └── session_stats.dart
+│   ├── services/
+│   │   ├── antigravity_service.dart      ← CORE: All agent calls
+│   │   ├── session_tracker.dart          ← Tracks tap events
+│   │   ├── local_db_service.dart         ← SQLite/Hive offline storage
+│   │   └── tts_service.dart              ← Google TTS for Urdu audio
+│   ├── screens/
+│   │   ├── splash_screen.dart
+│   │   ├── onboarding_screen.dart        ← Child profile setup
+│   │   ├── home_screen.dart              ← Dashboard + start session
+│   │   ├── game_screen.dart              ← MAIN GAME (card grid)
+│   │   ├── quest_screen.dart             ← Story intro before game
+│   │   ├── reward_screen.dart            ← Celebration animations
+│   │   ├── parent_dashboard.dart         ← Progress reports
+│   │   └── trace_panel.dart              ← JUDGE PANEL: live AI reasoning
+│   ├── widgets/
+│   │   ├── symbol_card_widget.dart       ← Tappable card with image + label
+│   │   ├── progress_bar_widget.dart
+│   │   ├── agent_trace_widget.dart       ← Scrolling trace log
+│   │   └── reward_animation_widget.dart  ← Lottie/Rive animations
+│   └── data/
+│       ├── symbols_data.dart             ← 50 symbol cards hardcoded
+│       └── urdu_phrases.dart             ← Praise phrases + labels
+├── assets/
+│   ├── symbols/                          ← PNG symbol cards (Mulberry/PECS)
+│   │   ├── animals/
+│   │   ├── food/
+│   │   ├── family/
+│   │   ├── emotions/
+│   │   └── daily_routines/
+│   ├── animations/                       ← Lottie JSON files
+│   │   ├── star_burst.json
+│   │   ├── confetti.json
+│   │   └── sitara_character.json
+│   └── audio/                            ← Pre-generated TTS Urdu phrases
+│       ├── shabash.mp3
+│       ├── wah_wah.mp3
+│       └── bohat_acha.mp3
+└── test/
+    └── agent_service_test.dart

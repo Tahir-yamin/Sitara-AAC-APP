@@ -1,0 +1,14 @@
+.git
+.gitignore
+deploy_log.txt
+.firebaserc
+firebase.json
+build/
+.dart_tool/
+.idea/
+*.iml
+android/
+ios/
+linux/
+macos/
+windows/

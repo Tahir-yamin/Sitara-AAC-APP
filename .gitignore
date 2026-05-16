@@ -1,0 +1,32 @@
+# Python
+adk_backend/venv/
+adk_backend/__pycache__/
+adk_backend/*.pyc
+adk_backend/*.db
+adk_backend/sitara_sessions*.db
+adk_backend/models_full_list.txt
+
+# Flutter / Dart
+sitara_app/build/
+sitara_app/.dart_tool/
+sitara_app/.flutter-plugins
+sitara_app/.flutter-plugins-dependencies
+sitara_app/.packages
+sitara_app/pubspec.lock
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+*.pfx
+*.cer
+
+# Claude worktree metadata
+.claude/

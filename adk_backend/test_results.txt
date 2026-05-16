@@ -1,0 +1,48 @@
+﻿
+*** Sitara Backend Validation Suite ***
+Connecting to: http://localhost:8000
+
+============================================================
+  1. Health Check
+============================================================
+Status: 200
+{
+  "status": "running",
+  "agents": [
+    "therapy_director",
+    "story_weaver",
+    "progress_guardian"
+  ],
+  "model": "gemini-2.0-flash",
+  "framework": "google-adk"
+}
+Γ£à PASS
+
+============================================================
+  2. Evaluate Session ΓÇö Frustrated Child (4 consecutive failures)
+============================================================
+Status: 500
+Γ¥î FAIL: Expecting value: line 1 column 1 (char 0)
+
+============================================================
+  3. Evaluate Session ΓÇö High Success (ready for challenge)
+============================================================
+Status: 500
+Γ¥î FAIL: Expecting value: line 1 column 1 (char 0)
+
+============================================================
+  4. Generate Quest ΓÇö Story Weaver A2A
+============================================================
+Status: 500
+Γ¥î FAIL: Expecting value: line 1 column 1 (char 0)
+
+============================================================
+  5. Weekly Report ΓÇö Progress Guardian
+============================================================
+Status: 500
+Γ¥î FAIL: Expecting value: line 1 column 1 (char 0)
+
+============================================================
+  Validation complete. Check results above.
+============================================================
+
