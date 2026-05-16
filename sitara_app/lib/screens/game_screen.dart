@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
+import 'dart:math';
 import '../services/antigravity_service.dart';
 import '../services/session_tracker.dart';
 import '../widgets/symbol_card_widget.dart';
@@ -35,6 +36,30 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late AnimationController _rewardController;
   late AnimationController _cardShakeController;
 
+  // Dynamic praise pools — Roman Urdu + English so TTS reads them correctly
+  static const _praisesGood = [
+    'Shabash! 🌟',
+    'Bilkul sahi! ✅',
+    'Well done! 🎉',
+    'Bahut acha! 👏',
+    'Correct! Keep going! 💫',
+    'Wah! Sahi jawab! ⭐',
+  ];
+  static const _praisesGreat = [
+    'Wah wah! Kamaal! 🌟🌟',
+    'Excellent! Shandaar! 🏆',
+    'Amazing! Bahut khoob! 🎊',
+    'Super! Ek aur karo! 🔥',
+    'Brilliant! Masha Allah! ✨',
+  ];
+  static const _praisesAmazing = [
+    'Zabardast! You are on fire! 🔥🔥',
+    'Wah wah wah! Champion! 🏆🏆',
+    'Outstanding! Sher bacha! 🦁⭐',
+    'Incredible! Bahut bahut acha! 🎆',
+    'Superhero! Koi nahi tujh jaisa! 🦸',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -46,25 +71,27 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _cardShakeController = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 300));
 
-    _loadCards();
-    _startAgentCheck();
-    // Apply quest category if returning from QuestScreen
+    // Read initial_category from route args before first load to avoid double-load
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args = ModalRoute.of(context)?.settings.arguments as Map?;
       final cat = args?['initial_category'] as String?;
-      if (cat != null && cat != _currentCategory) {
-        _currentCategory = cat;
-        _loadCards();
-      }
+      if (cat != null) _currentCategory = cat;
+      _loadCards();
+      _startAgentCheck();
     });
   }
 
   void _loadCards() {
     if (!mounted) return;
-    final allCards = SymbolsData.getCardsByCategory(_currentCategory);
+    var allCards = SymbolsData.getCardsByCategory(_currentCategory);
+    if (allCards.isEmpty) {
+      _currentCategory = 'animals';
+      allCards = SymbolsData.getCardsByCategory(_currentCategory);
+    }
+    final picks = (List.of(allCards)..shuffle()).take(4).toList();
     setState(() {
-      _displayCards = (allCards..shuffle()).take(4).toList();
-      _targetCard = _displayCards.first;
+      _displayCards = picks;
+      _targetCard = picks[Random().nextInt(picks.length)];
     });
     _speakTarget();
   }
@@ -124,7 +151,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         setState(() {
           _displayCards = (SymbolsData.getCardsByCategory(_currentCategory)..shuffle())
               .take(count.clamp(2, 6)).toList();
-          _targetCard = _displayCards.first;
+          _targetCard = _displayCards[Random().nextInt(_displayCards.length)];
         });
         _speakTarget();
         break;
@@ -169,13 +196,23 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
 
     if (isCorrect) {
-      final praise = _currentStreak >= 3
-          ? 'Wah wah! $_currentStreak streak! 🔥'
-          : 'Shabash! 🌟';
+      final praise = _pickPraise(_currentStreak);
       _showReward(praise);
+      _tts.speak(praise.replaceAll(RegExp(r'[^\x00-\x7F]'), '').trim());
       Future.delayed(const Duration(seconds: 2), _loadCards);
     } else {
       _cardShakeController.forward(from: 0);
+    }
+  }
+
+  String _pickPraise(int streak) {
+    final rng = Random();
+    if (streak >= 6) {
+      return _praisesAmazing[rng.nextInt(_praisesAmazing.length)];
+    } else if (streak >= 3) {
+      return _praisesGreat[rng.nextInt(_praisesGreat.length)];
+    } else {
+      return _praisesGood[rng.nextInt(_praisesGood.length)];
     }
   }
 

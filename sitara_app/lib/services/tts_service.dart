@@ -29,13 +29,14 @@ class TtsService {
     await _tts.setPitch(1.1);
     _tts.setErrorHandler((msg) => debugPrint('TtsService error: $msg'));
 
-    // Check Urdu availability once at startup — result is cached
+    // Check Urdu availability once at startup (Android/iOS only)
     if (!kIsWeb) {
       _urduAvailable = await _tts.isLanguageAvailable('ur-PK') == true;
       if (!_urduAvailable) {
         debugPrint('TtsService: ur-PK not installed; will use Roman Urdu via en-US');
       }
     }
+    // On web: always use en-US (Web Speech API) — _urduAvailable stays false
 
     _ready = true;
   }
@@ -57,11 +58,17 @@ class TtsService {
     String nameEnglish, {
     String? nameRomanUrdu,
   }) async {
-    if (kIsWeb) return;
     await _ensureReady();
     if (!_ready) return;
 
     try {
+      if (kIsWeb) {
+        // Web: English only — avoids Web Speech API "interrupted" error on stop()
+        await _tts.setLanguage('en-US');
+        await _tts.speak(nameEnglish);
+        return;
+      }
+
       await _tts.stop();
 
       if (_urduAvailable) {
@@ -70,7 +77,6 @@ class TtsService {
         await _awaitCompletion();
         await Future.delayed(const Duration(milliseconds: 400));
       } else if (nameRomanUrdu != null && nameRomanUrdu.isNotEmpty) {
-        // Roman Urdu is readable by the English engine ("Billi" for بلی)
         await _tts.setLanguage('en-US');
         await _tts.speak(nameRomanUrdu);
         await _awaitCompletion();
@@ -86,11 +92,16 @@ class TtsService {
 
   /// Speaks a single phrase in the given language, falls back to en-US.
   Future<void> speak(String text, {String language = 'en-US'}) async {
-    if (kIsWeb) return;
     await _ensureReady();
     if (!_ready) return;
 
     try {
+      if (kIsWeb) {
+        await _tts.setLanguage('en-US');
+        await _tts.speak(text);
+        return;
+      }
+
       await _tts.stop();
 
       final langOk = language == 'en-US' ||

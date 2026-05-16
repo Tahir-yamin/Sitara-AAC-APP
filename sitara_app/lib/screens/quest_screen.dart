@@ -32,6 +32,7 @@ class _QuestScreenState extends State<QuestScreen>
     'family': '👨‍👩‍👧',
     'emotions': '😊',
     'daily_routines': '🌅',
+    'transport': '🚗',
   };
 
   // Difficulty → display info

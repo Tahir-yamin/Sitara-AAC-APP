@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/session_event.dart';
@@ -86,6 +87,7 @@ class LocalDbService {
     required String childName,
     String preferredCategory = 'animals',
   }) async {
+    if (kIsWeb) return;
     final key = _profileKey(childId);
     final existing = await _secure.read(key: key);
     final profile = existing != null
@@ -102,6 +104,7 @@ class LocalDbService {
   }
 
   Future<Map<String, dynamic>?> getChildProfile(String childId) async {
+    if (kIsWeb) return null;
     final key = _profileKey(childId);
     final raw = await _secure.read(key: key);
     return raw != null ? jsonDecode(raw) as Map<String, dynamic> : null;

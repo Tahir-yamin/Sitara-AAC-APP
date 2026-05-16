@@ -258,10 +258,8 @@ class AntigravityService extends ChangeNotifier {
     if (endpoint == 'evaluate-session') {
       return {
         'mode': 'offline',
-        'reasoning': '[𝐎𝐅𝐅𝐋𝐈𝐍𝐄 𝐌𝐎𝐃𝐄] Using local rules: high consecutive failures → switch category',
-        'actions': [
-          {'tool': 'switch_category', 'args': {'target_category': 'animals', 'reason': 'Offline fallback'}}
-        ]
+        'reasoning': '[𝐎𝐅𝐅𝐋𝐈𝐍𝐄 𝐌𝐎𝐃𝐄] No internet — preserving current category',
+        'actions': [],
       };
     }
     return {'reasoning': 'Offline mode', 'actions': []};

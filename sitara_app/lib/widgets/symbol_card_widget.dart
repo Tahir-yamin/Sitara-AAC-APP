@@ -54,6 +54,15 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
   bool get _isNetworkImage =>
       widget.card.imagePath.startsWith('http');
 
+  Widget _emojiFallback() => LayoutBuilder(
+    builder: (ctx, constraints) => Center(
+      child: Text(
+        widget.card.emoji,
+        style: TextStyle(fontSize: constraints.maxHeight * 0.65),
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -121,22 +130,12 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
                               ),
                             );
                           },
-                          errorBuilder: (ctx, e, s) => Center(
-                            child: Text(
-                              widget.card.emoji,
-                              style: const TextStyle(fontSize: 60),
-                            ),
-                          ),
+                          errorBuilder: (ctx, e, s) => _emojiFallback(),
                         )
                       : Image.asset(
                           widget.card.imagePath,
                           fit: BoxFit.contain,
-                          errorBuilder: (ctx, e, s) => Center(
-                            child: Text(
-                              widget.card.emoji,
-                              style: const TextStyle(fontSize: 60),
-                            ),
-                          ),
+                          errorBuilder: (ctx, e, s) => _emojiFallback(),
                         ),
                 ),
               ),

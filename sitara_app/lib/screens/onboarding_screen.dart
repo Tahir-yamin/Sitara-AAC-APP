@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/local_db_service.dart';
+import '../services/session_tracker.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -65,6 +68,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
       return;
     }
+    final slug = name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
+    final childId = '${slug}_${DateTime.now().millisecondsSinceEpoch}';
+
+    context.read<SessionTracker>().startNewSession(
+          childId: childId,
+          childName: name,
+        );
+    LocalDbService.instance.saveChildProfile(
+      childId: childId,
+      childName: name,
+    );
+
     Navigator.pushReplacementNamed(context, '/home',
         arguments: {'childName': name});
   }
