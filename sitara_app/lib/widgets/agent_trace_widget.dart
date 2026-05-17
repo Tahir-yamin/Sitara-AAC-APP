@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/antigravity_service.dart';
-import '../services/session_tracker.dart';
+
 
 class AgentTraceWidget extends StatelessWidget {
   final List<TraceEntry> traces;
@@ -11,7 +11,6 @@ class AgentTraceWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final service = context.watch<AntigravityService>();
-    final session = context.watch<SessionTracker>();
     
     return Container(
       height: 250, // Slightly taller to fit toggle
@@ -56,7 +55,7 @@ class AgentTraceWidget extends StatelessWidget {
                       child: Switch(
                         value: !service.useHeuristic,
                         onChanged: (val) => service.useHeuristic = !val,
-                        activeColor: Colors.greenAccent,
+                        activeThumbColor: Colors.greenAccent,
                         activeTrackColor: Colors.greenAccent.withValues(alpha: 0.3),
                         inactiveThumbColor: Colors.orangeAccent,
                         inactiveTrackColor: Colors.orangeAccent.withValues(alpha: 0.3),

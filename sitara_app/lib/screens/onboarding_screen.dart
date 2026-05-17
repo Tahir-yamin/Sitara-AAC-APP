@@ -16,14 +16,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _currentPage = 0;
   final _nameController = TextEditingController();
 
-  final List<_OnboardingPage> _pages = [
+  final List<_OnboardingPage> _pages = const [
     _OnboardingPage(
       emoji: '⭐',
       title: 'Welcome to Sitara!',
       subtitle: 'ستارہ کی دنیا میں خوش آمدید',
       body: 'A magical learning companion designed for non-verbal children. '
           "Sitara adapts to your child's pace — always patient, always kind.",
-      color: const Color(0xFF6C63FF),
+      color: Color(0xFF6C63FF),
     ),
     _OnboardingPage(
       emoji: '🎮',
@@ -32,7 +32,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: 'Our AI watches, listens, and gently adjusts the game — '
           'easier when frustrated, more exciting when ready. '
           'No pressure, just joy!',
-      color: const Color(0xFF43C59E),
+      color: Color(0xFF43C59E),
     ),
     _OnboardingPage(
       emoji: '📊',
@@ -41,7 +41,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: 'Weekly warm reports celebrate every milestone. '
           'See what your child loves, what they\'re mastering, '
           'and gentle suggestions for home.',
-      color: const Color(0xFFFF6584),
+      color: Color(0xFFFF6584),
     ),
   ];
 

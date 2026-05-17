@@ -215,14 +215,6 @@ class _ParentDashboardState extends State<ParentDashboard> {
     final adaptations = _agentService.traceLog
         .expand((t) => t.actions)
         .length;
-    final rewards = _agentService.traceLog
-        .expand((t) => t.actions)
-        .where((a) => a.contains('reward'))
-        .length;
-    final categoryChanges = _agentService.traceLog
-        .expand((t) => t.actions)
-        .where((a) => a.contains('category'))
-        .length;
 
     return GridView.count(
       crossAxisCount: 2,
@@ -537,7 +529,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
               : Icons.check_circle_outline,
         ),
         if (spikeAbandonment)
-          _Chip(
+          const _Chip(
             label: 'Spike Drop',
             color: Colors.orange,
             icon: Icons.trending_down_rounded,
