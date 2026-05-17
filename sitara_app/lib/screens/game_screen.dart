@@ -9,6 +9,7 @@ import '../widgets/symbol_card_widget.dart';
 import '../widgets/agent_trace_widget.dart';
 import '../data/symbols_data.dart';
 import '../models/symbol_card.dart';
+import '../models/phrase_pool.dart';
 import '../services/tts_service.dart';
 
 class GameScreen extends StatefulWidget {
@@ -25,6 +26,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   String _currentCategory = 'animals';
   List<SymbolCard> _displayCards = [];
   SymbolCard? _targetCard;       // Card the child should find
+  String? _feedbackCardId;       // ID of most-recently tapped card (for visual feedback)
+  bool _lastCorrect = false;     // Whether that tap was correct
   bool _showTracePanel = false;  // Toggle for judges
   Timer? _agentCheckTimer;
 
@@ -36,30 +39,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   // Animation controllers
   late AnimationController _rewardController;
   late AnimationController _cardShakeController;
-
-  // Dynamic praise pools — Roman Urdu + English so TTS reads them correctly
-  static const _praisesGood = [
-    'Shabash! 🌟',
-    'Bilkul sahi! ✅',
-    'Well done! 🎉',
-    'Bahut acha! 👏',
-    'Correct! Keep going! 💫',
-    'Wah! Sahi jawab! ⭐',
-  ];
-  static const _praisesGreat = [
-    'Wah wah! Kamaal! 🌟🌟',
-    'Excellent! Shandaar! 🏆',
-    'Amazing! Bahut khoob! 🎊',
-    'Super! Ek aur karo! 🔥',
-    'Brilliant! Masha Allah! ✨',
-  ];
-  static const _praisesAmazing = [
-    'Zabardast! You are on fire! 🔥🔥',
-    'Wah wah wah! Champion! 🏆🏆',
-    'Outstanding! Sher bacha! 🦁⭐',
-    'Incredible! Bahut bahut acha! 🎆',
-    'Superhero! Koi nahi tujh jaisa! 🦸',
-  ];
 
   @override
   void initState() {
@@ -182,6 +161,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
 
     setState(() {
+      _feedbackCardId = card.id;
+      _lastCorrect = isCorrect;
       if (isCorrect) {
         _sessionScore += 10 + _currentStreak * 2; // bonus for streak
         _currentStreak++;
@@ -197,23 +178,26 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
 
     if (isCorrect) {
-      final praise = _pickPraise(_currentStreak);
-      _showReward(praise);
-      _tts.speak(praise.replaceAll(RegExp(r'[^\x00-\x7F]'), '').trim());
+      final phrase = PhrasePool.pickPraise(streak: _currentStreak);
+      _speakPraiseUrdu(phrase);
+      _showReward(phrase.displayText);
+      Future.delayed(const Duration(milliseconds: 1800), () {
+        if (mounted) setState(() => _feedbackCardId = null);
+      });
       Future.delayed(const Duration(seconds: 2), _loadCards);
     } else {
       _cardShakeController.forward(from: 0);
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) setState(() => _feedbackCardId = null);
+      });
     }
   }
 
-  String _pickPraise(int streak) {
-    final rng = Random();
-    if (streak >= 6) {
-      return _praisesAmazing[rng.nextInt(_praisesAmazing.length)];
-    } else if (streak >= 3) {
-      return _praisesGreat[rng.nextInt(_praisesGreat.length)];
-    } else {
-      return _praisesGood[rng.nextInt(_praisesGood.length)];
+  Future<void> _speakPraiseUrdu(Phrase phrase) async {
+    try {
+      await _tts.speakPraise(phrase.ttsText, phrase.romanUrdu);
+    } catch (_) {
+      await _tts.speak(phrase.romanUrdu);
     }
   }
 
@@ -418,12 +402,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               itemCount: _displayCards.length,
               itemBuilder: (ctx, i) {
                 final card = _displayCards[i];
-                final isTarget = card.id == _targetCard?.id;
                 return SymbolCardWidget(
                   card: card,
-                  // Correct card: suppress widget TTS — _loadCards → _speakTarget handles it.
-                  // Wrong card:   speak so the child hears what they tapped (AAC feedback).
-                  speakOnTap: !isTarget,
+                  // TTS is handled manually via _speakPraiseUrdu / _speakTarget.
+                  speakOnTap: false,
+                  showCorrect: _feedbackCardId == card.id && _lastCorrect,
+                  showIncorrect: _feedbackCardId == card.id && !_lastCorrect,
                   onTap: () => _onCardTapped(card),
                 );
               },

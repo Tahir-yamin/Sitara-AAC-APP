@@ -113,6 +113,40 @@ class TtsService {
     }
   }
 
+  /// Speaks an Urdu praise phrase using the female ur-PK network voice.
+  /// Falls back to Roman Urdu via en-US if the Urdu voice is unavailable.
+  Future<void> speakPraise(String urduText, String romanUrduFallback) async {
+    await _ensureReady();
+    if (!_ready) return;
+
+    try {
+      if (kIsWeb) {
+        await _tts.setLanguage('en-US');
+        await _tts.speak(romanUrduFallback);
+        return;
+      }
+
+      await _tts.stop();
+
+      if (_urduAvailable) {
+        await _tts.setLanguage('ur-PK');
+        await _tts.setVoice({'name': 'ur-pk-x-urb-network', 'locale': 'ur-PK'});
+        await _tts.setPitch(1.1);
+        await _tts.setSpeechRate(0.45);
+        await _tts.speak(urduText);
+      } else {
+        await _tts.setLanguage('en-US');
+        await _tts.speak(romanUrduFallback);
+      }
+    } catch (e) {
+      debugPrint('TtsService.speakPraise error: $e');
+      try {
+        await _tts.setLanguage('en-US');
+        await _tts.speak(romanUrduFallback);
+      } catch (_) {}
+    }
+  }
+
   Future<void> stop() async {
     try {
       await _tts.stop();
