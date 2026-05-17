@@ -196,7 +196,7 @@ class _PageView extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [page.color.withOpacity(0.15), Colors.white],
+          colors: [page.color.withValues(alpha: 0.15), Colors.white],
         ),
       ),
       child: SafeArea(

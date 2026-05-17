@@ -157,10 +157,10 @@ class _ParentDashboardState extends State<ParentDashboard> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF43C59E).withOpacity(0.12),
+                    color: const Color(0xFF43C59E).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                        color: const Color(0xFF43C59E).withOpacity(0.4)),
+                        color: const Color(0xFF43C59E).withValues(alpha: 0.4)),
                   ),
                   child: const Row(
                     children: [
@@ -266,7 +266,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border:
-              Border.all(color: const Color(0xFF6C63FF).withOpacity(0.15)),
+              Border.all(color: const Color(0xFF6C63FF).withValues(alpha: 0.15)),
         ),
         child: const Center(
           child: Text(
@@ -293,7 +293,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: agentColor.withOpacity(0.2)),
+            border: Border.all(color: agentColor.withValues(alpha: 0.2)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -302,7 +302,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: agentColor.withOpacity(0.1),
+                  color: agentColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -357,7 +357,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: agentColor.withOpacity(0.08),
+                                    color: agentColor.withValues(alpha: 0.08),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(a,
@@ -384,15 +384,15 @@ class _ParentDashboardState extends State<ParentDashboard> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFF43C59E).withOpacity(0.08),
-            const Color(0xFF6C63FF).withOpacity(0.05),
+            const Color(0xFF43C59E).withValues(alpha: 0.08),
+            const Color(0xFF6C63FF).withValues(alpha: 0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-            color: const Color(0xFF43C59E).withOpacity(0.25), width: 1.5),
+            color: const Color(0xFF43C59E).withValues(alpha: 0.25), width: 1.5),
       ),
       child: Column(
         children: [
@@ -445,7 +445,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-            color: const Color(0xFF43C59E).withOpacity(0.2)),
+            color: const Color(0xFF43C59E).withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
@@ -480,7 +480,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF43C59E).withOpacity(0.1),
+            color: const Color(0xFF43C59E).withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -563,10 +563,10 @@ class _ParentDashboardState extends State<ParentDashboard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF6C63FF).withOpacity(0.2)),
+        border: Border.all(color: const Color(0xFF6C63FF).withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6C63FF).withOpacity(0.06),
+            color: const Color(0xFF6C63FF).withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           )
@@ -597,8 +597,8 @@ class _ParentDashboardState extends State<ParentDashboard> {
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: delta >= 0
-                    ? const Color(0xFF43C59E).withOpacity(0.1)
-                    : Colors.red.withOpacity(0.08),
+                    ? const Color(0xFF43C59E).withValues(alpha: 0.1)
+                    : Colors.red.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -682,10 +682,10 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.08),
+            color: color.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           )
@@ -728,9 +728,9 @@ class _Chip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.35)),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

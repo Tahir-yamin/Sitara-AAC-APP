@@ -34,7 +34,7 @@ jobs:
       # ── 4. Build Flutter Web ─────────────────────────────────────
       - name: Build Flutter Web
         working-directory: sitara_app
-        run: flutter build web --release --web-renderer html
+        run: flutter build web --release --no-wasm-dry-run
 
       # ── 5. Deploy to Firebase Hosting ────────────────────────────
       - name: Deploy to Firebase Hosting (Preview — PRs)

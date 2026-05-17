@@ -117,7 +117,7 @@ class _QuestScreenState extends State<QuestScreen>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              _difficultyColor.withOpacity(0.15),
+              _difficultyColor.withValues(alpha: 0.15),
               Colors.white,
             ],
           ),
@@ -151,10 +151,10 @@ class _QuestScreenState extends State<QuestScreen>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF6C63FF).withOpacity(0.1),
+                          color: const Color(0xFF6C63FF).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                              color: const Color(0xFF6C63FF).withOpacity(0.3)),
+                              color: const Color(0xFF6C63FF).withValues(alpha: 0.3)),
                         ),
                         child: const Row(
                           children: [
@@ -185,9 +185,9 @@ class _QuestScreenState extends State<QuestScreen>
                           height: 120,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: _difficultyColor.withOpacity(0.12),
+                            color: _difficultyColor.withValues(alpha: 0.12),
                             border: Border.all(
-                                color: _difficultyColor.withOpacity(0.3),
+                                color: _difficultyColor.withValues(alpha: 0.3),
                                 width: 3),
                           ),
                           child: Center(
@@ -261,7 +261,7 @@ class _QuestScreenState extends State<QuestScreen>
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: _difficultyColor.withOpacity(0.12),
+                                color: _difficultyColor.withValues(alpha: 0.12),
                                 blurRadius: 24,
                                 offset: const Offset(0, 8),
                               ),
@@ -302,7 +302,7 @@ class _QuestScreenState extends State<QuestScreen>
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            color: _difficultyColor.withOpacity(0.08),
+                            color: _difficultyColor.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
@@ -341,7 +341,7 @@ class _QuestScreenState extends State<QuestScreen>
                             fontWeight: FontWeight.w900,
                             fontFamily: 'Nunito'),
                         elevation: 8,
-                        shadowColor: _difficultyColor.withOpacity(0.5),
+                        shadowColor: _difficultyColor.withValues(alpha: 0.5),
                       ),
                       onPressed: _startGame,
                       child: const Text('Let\'s Go! 🚀'),

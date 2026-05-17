@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -81,10 +82,10 @@ class _SplashScreenState extends State<SplashScreen>
                     const SizedBox(height: 8),
                     Text(
                       'ستارہ  ·  Your Learning Star',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.85),
+                      style: GoogleFonts.notoNastaliqUrdu(
+                        color: Colors.white.withValues(alpha: 0.85),
                         fontSize: 16,
-                        fontFamily: 'Nunito',
+                        height: 1.5,
                       ),
                     ),
                   ],

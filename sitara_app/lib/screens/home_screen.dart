@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -64,10 +65,10 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 'ستارہ آپ کا انتظار کر رہی ہے!',
-                style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
+                style: GoogleFonts.notoNastaliqUrdu(
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: 14,
-                    fontFamily: 'Nunito'),
+                    height: 1.5),
               ),
               const SizedBox(height: 40),
 
@@ -124,7 +125,7 @@ class HomeScreen extends StatelessWidget {
                 child: Text(
                   'Powered by Google ADK  ·  Built with ❤️ for Pakistan',
                   style: TextStyle(
-                      color: Colors.white.withOpacity(0.35),
+                      color: Colors.white.withValues(alpha: 0.35),
                       fontSize: 11),
                   textAlign: TextAlign.center,
                 ),
@@ -175,7 +176,7 @@ class _PulsingStarState extends State<_PulsingStar>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(colors: [
-                const Color(0xFF6C63FF).withOpacity(0.3),
+                const Color(0xFF6C63FF).withValues(alpha: 0.3),
                 Colors.transparent,
               ]),
             ),
@@ -209,14 +210,14 @@ class _ActionCard extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [color, color.withOpacity(0.7)],
+            colors: [color, color.withValues(alpha: 0.7)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.4),
+              color: color.withValues(alpha: 0.4),
               blurRadius: 20,
               offset: const Offset(0, 8),
             )
@@ -237,13 +238,13 @@ class _ActionCard extends StatelessWidget {
                         fontFamily: 'Nunito')),
                 Text(subtitle,
                     style: TextStyle(
-                        color: Colors.white.withOpacity(0.85),
+                        color: Colors.white.withValues(alpha: 0.85),
                         fontSize: 14)),
               ],
             ),
             const Spacer(),
             Icon(Icons.arrow_forward_ios_rounded,
-                color: Colors.white.withOpacity(0.7), size: 20),
+                color: Colors.white.withValues(alpha: 0.7), size: 20),
           ],
         ),
       ),
@@ -270,9 +271,9 @@ class _SmallCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.12),
+          color: color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           children: [
