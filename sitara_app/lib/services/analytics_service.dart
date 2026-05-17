@@ -29,9 +29,9 @@ class AnalyticsService {
   Future<List<GameEvent>> getEvents({int? limitDays}) =>
       _db.getGameEvents(childId, limitDays: limitDays);
 
-  Future<int> getTodayMinutes() => _db.getTodayPlayMinutes();
+  Future<int> getTodayMinutes() => _db.getTodayPlayMinutes(childId);
 
-  Future<void> addMinutes(int minutes) => _db.addPlayMinutes(minutes);
+  Future<void> addMinutes(int minutes) => _db.addPlayMinutes(childId, minutes);
 
   Future<String> exportEventsAsJson({int? limitDays}) async {
     final events = await getEvents(limitDays: limitDays);

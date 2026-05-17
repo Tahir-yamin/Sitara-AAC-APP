@@ -147,7 +147,7 @@ class LocalDbService {
   // ─── GAME EVENTS ───────────────────────────────────────────────────────────
 
   String _gameEventsKey(String childId) => 'game_events_$childId';
-  String _dailyMinutesKey(String date) => 'daily_mins_$date';
+  String _dailyMinutesKey(String childId, String date) => 'daily_mins_${childId}_$date';
 
   Future<void> saveGameEvent(GameEvent event) async {
     final key = _gameEventsKey(event.childId);
@@ -170,13 +170,13 @@ class LocalDbService {
     return all.reversed.toList();
   }
 
-  Future<int> getTodayPlayMinutes() async {
-    final key = _dailyMinutesKey(_todayKey());
+  Future<int> getTodayPlayMinutes(String childId) async {
+    final key = _dailyMinutesKey(childId, _todayKey());
     return _p.getInt(key) ?? 0;
   }
 
-  Future<void> addPlayMinutes(int minutes) async {
-    final key = _dailyMinutesKey(_todayKey());
+  Future<void> addPlayMinutes(String childId, int minutes) async {
+    final key = _dailyMinutesKey(childId, _todayKey());
     final current = _p.getInt(key) ?? 0;
     await _p.setInt(key, current + minutes);
   }
