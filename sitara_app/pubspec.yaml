@@ -22,6 +22,9 @@ dependencies:
   # Charts for parent dashboard
   fl_chart: ^0.67.0
 
+  # Reward burst animation
+  confetti: ^0.7.0
+
   # Typography — Nunito via google_fonts (no font file needed)
   google_fonts: ^6.2.1
 
