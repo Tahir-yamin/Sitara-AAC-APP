@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:confetti/confetti.dart';
 import 'dart:async';
 import 'dart:math';
 import '../services/antigravity_service.dart';
@@ -39,6 +40,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   // Animation controllers
   late AnimationController _rewardController;
   late AnimationController _cardShakeController;
+  late ConfettiController _confettiController;
+  String? _rewardText;
 
   @override
   void initState() {
@@ -50,6 +53,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       vsync: this, duration: const Duration(milliseconds: 1500));
     _cardShakeController = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 300));
+    _confettiController = ConfettiController(duration: const Duration(milliseconds: 1500));
 
     // Read initial_category from route args before first load to avoid double-load
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -201,15 +205,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
   }
 
-  void _showReward(String praise) {
-    _rewardController.forward(from: 0);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(praise, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF6C63FF),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+  void _showReward(String displayText) {
+    _confettiController.play();
+    setState(() => _rewardText = displayText);
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) setState(() => _rewardText = null);
+    });
   }
 
   void _showBreakDialog() {
@@ -228,6 +229,160 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
+
+  Widget _buildGameBody() {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600),
+        child: Column(
+          children: [
+            // Score & streak bar — real-time feedback (Gameplay Engagement)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Category
+                  Row(children: [
+                    const Text('📂 ', style: TextStyle(fontSize: 14)),
+                    Text(
+                      _currentCategory.toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF6C63FF),
+                      ),
+                    ),
+                  ]),
+                  // Score
+                  Row(children: [
+                    const Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 20),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$_sessionScore',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF333333),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ]),
+                  // Streak
+                  Row(children: [
+                    Text(
+                      _currentStreak >= 3 ? '🔥' : '⚡',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '×$_currentStreak',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: _currentStreak >= 3
+                            ? const Color(0xFFFF6B35)
+                            : const Color(0xFF6C63FF),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ]),
+                ],
+              ),
+            ),
+
+            // ── Target prompt ─────────────────────────────────────────
+            if (_targetCard != null)
+              GestureDetector(
+                // Tap the prompt banner to repeat the voiceover
+                onTap: _speakTarget,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 3))
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Speaker icon — tappable hint
+                      const Icon(Icons.volume_up_rounded, color: Color(0xFF6C63FF), size: 24),
+                      const SizedBox(width: 10),
+
+                      // Urdu name (RTL) — Noto Nastaliq Urdu for correct script rendering
+                      Text(
+                        _targetCard!.nameUrdu,
+                        textDirection: TextDirection.rtl,
+                        style: GoogleFonts.notoNastaliqUrdu(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF6C63FF),
+                          height: 1.3,
+                        ),
+                      ),
+
+                      // Divider dot
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('·', style: TextStyle(fontSize: 22, color: Colors.grey)),
+                      ),
+
+                      // English name
+                      Text(
+                        _targetCard!.nameEnglish,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF555555),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Symbol card grid
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.all(16),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 1.0,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                ),
+                itemCount: _displayCards.length,
+                itemBuilder: (ctx, i) {
+                  final card = _displayCards[i];
+                  return SymbolCardWidget(
+                    card: card,
+                    // TTS is handled manually via _speakPraiseUrdu / _speakTarget.
+                    speakOnTap: false,
+                    showCorrect: _feedbackCardId == card.id && _lastCorrect,
+                    showIncorrect: _feedbackCardId == card.id && !_lastCorrect,
+                    onTap: () => _onCardTapped(card),
+                  );
+                },
+              ),
+            ),
+
+            // Antigravity trace panel (for judges)
+            if (_showTracePanel)
+              Semantics(
+                excludeSemantics: true,
+                child: AgentTraceWidget(traces: _agentService.traceLog),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -273,156 +428,43 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           ],
         ),
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: Column(
+      body: Stack(
         children: [
-          // Score & streak bar — real-time feedback (Gameplay Engagement)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Category
-                Row(children: [
-                  const Text('📂 ', style: TextStyle(fontSize: 14)),
-                  Text(
-                    _currentCategory.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF6C63FF),
-                    ),
-                  ),
-                ]),
-                // Score
-                Row(children: [
-                  const Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 20),
-                  const SizedBox(width: 4),
-                  Text(
-                    '$_sessionScore',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF333333),
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ]),
-                // Streak
-                Row(children: [
-                  Text(
-                    _currentStreak >= 3 ? '🔥' : '⚡',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '×$_currentStreak',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: _currentStreak >= 3
-                          ? const Color(0xFFFF6B35)
-                          : const Color(0xFF6C63FF),
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ]),
+          _buildGameBody(),
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              numberOfParticles: 30,
+              colors: const [
+                Color(0xFF6C63FF), Color(0xFF43C59E),
+                Color(0xFFFFB800), Color(0xFFFF6584),
               ],
+              shouldLoop: false,
             ),
           ),
-
-          // ── Target prompt ─────────────────────────────────────────
-          if (_targetCard != null)
-            GestureDetector(
-              // Tap the prompt banner to repeat the voiceover
-              onTap: _speakTarget,
+          if (_rewardText != null)
+            Center(
               child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 3))
-                  ],
+                  color: const Color(0xFF6C63FF).withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(24),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Speaker icon — tappable hint
-                    const Icon(Icons.volume_up_rounded, color: Color(0xFF6C63FF), size: 24),
-                    const SizedBox(width: 10),
-
-                    // Urdu name (RTL) — Noto Nastaliq Urdu for correct script rendering
-                    Text(
-                      _targetCard!.nameUrdu,
-                      textDirection: TextDirection.rtl,
-                      style: GoogleFonts.notoNastaliqUrdu(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFF6C63FF),
-                        height: 1.3,
-                      ),
-                    ),
-
-                    // Divider dot
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8),
-                      child: Text('·', style: TextStyle(fontSize: 22, color: Colors.grey)),
-                    ),
-
-                    // English name
-                    Text(
-                      _targetCard!.nameEnglish,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF555555),
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  _rewardText!,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.notoNastaliqUrdu(
+                    fontSize: 26,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    height: 1.6,
+                  ),
                 ),
               ),
-            ),
-
-          // Symbol card grid
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 1.0,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: _displayCards.length,
-              itemBuilder: (ctx, i) {
-                final card = _displayCards[i];
-                return SymbolCardWidget(
-                  card: card,
-                  // TTS is handled manually via _speakPraiseUrdu / _speakTarget.
-                  speakOnTap: false,
-                  showCorrect: _feedbackCardId == card.id && _lastCorrect,
-                  showIncorrect: _feedbackCardId == card.id && !_lastCorrect,
-                  onTap: () => _onCardTapped(card),
-                );
-              },
-            ),
-          ),
-
-          // Antigravity trace panel (for judges)
-          if (_showTracePanel)
-            Semantics(
-              excludeSemantics: true,
-              child: AgentTraceWidget(traces: _agentService.traceLog),
             ),
         ],
-      ),
-        ),
       ),
     );
   }
@@ -432,6 +474,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _agentCheckTimer?.cancel();
     _rewardController.dispose();
     _cardShakeController.dispose();
+    _confettiController.dispose();
     _tts.stop(); // Stop any in-progress utterance when leaving screen
     super.dispose();
   }
