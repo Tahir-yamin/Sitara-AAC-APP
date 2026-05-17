@@ -145,11 +145,12 @@
 * **Critical Bug Found & Fixed** (`a6d7afe` on `main`):
   * 🔴 **`getTodayPlayMinutes` / `addPlayMinutes` lacked `childId` parameter** — all children on a shared device were counting minutes against a single device-level key (`daily_mins_YYYY-MM-DD`). A child hitting the 15-min cap would immediately block sibling sessions.
   * ✅ **Fixed**: `_dailyMinutesKey` now takes `childId` → key becomes `daily_mins_${childId}_YYYY-MM-DD`. Both `LocalDbService` and `AnalyticsService` call signatures updated. `flutter analyze` — 0 issues; `flutter test` — 10/10 pass.
-* **Minor Dead Code Noted** (non-blocking, spawned cleanup task):
-  * `_rewardController` in `game_screen.dart` — declared, initialised, disposed but never used.
-  * `_cardShakeController.forward()` in `game_screen.dart` — called on incorrect tap but nothing reads the animation; shake is handled entirely by `SymbolCardWidget.showIncorrect`.
-* **Final State**: All 16 tasks verified from source. `main` branch is clean. Critical multi-child isolation bug patched. `flutter analyze` 0 issues, `flutter test` 10/10.
+* **Dead Code Removed** (`fdb1aae` on `main`):
+  * `_rewardController` — declared, initialised, disposed but never drove any animation. Fully removed.
+  * `_cardShakeController` — `.forward()` called on incorrect tap but nothing read the animation; shake handled entirely by `SymbolCardWidget.showIncorrect`. Fully removed.
+  * `flutter analyze` — 0 issues; `flutter test` — 10/10 pass post-removal.
+* **Final State**: All 16 tasks verified from source. `main` branch is clean. Critical multi-child isolation bug patched. Dead animation controllers removed. `flutter analyze` 0 issues, `flutter test` 10/10.
 
 ---
 
-*Ledger updated by Antigravity Agent on 2026-05-18T00:30:00+05:00.*
+*Ledger updated by Antigravity Agent on 2026-05-18T00:45:00+05:00.*
