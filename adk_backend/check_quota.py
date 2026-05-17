@@ -2,7 +2,7 @@ import os
 import google.generativeai as genai
 
 # Set API Key
-api_key = "YOUR_API_KEY_HERE"
+api_key = os.environ.get("GOOGLE_API_KEY", "YOUR_API_KEY_HERE")
 genai.configure(api_key=api_key)
 
 models_to_check = [

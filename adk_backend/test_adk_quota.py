@@ -6,7 +6,7 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
 # Set API Key for the environment
-os.environ["GOOGLE_API_KEY"] = "YOUR_API_KEY_HERE"
+os.environ["GOOGLE_API_KEY"] = os.environ.get("GOOGLE_API_KEY", "YOUR_API_KEY_HERE")
 
 async def test_model(model_name):
     print(f"\n--- Testing {model_name} ---")

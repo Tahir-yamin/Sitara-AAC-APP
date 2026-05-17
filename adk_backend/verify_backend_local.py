@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from agent import app
 
 # Set API Key for the environment
-os.environ["GOOGLE_API_KEY"] = "YOUR_API_KEY_HERE"
+os.environ["GOOGLE_API_KEY"] = os.environ.get("GOOGLE_API_KEY", "YOUR_API_KEY_HERE")
 
 # Tell TestClient NOT to raise exceptions so we can check the handler output
 client = TestClient(app, raise_server_exceptions=False)

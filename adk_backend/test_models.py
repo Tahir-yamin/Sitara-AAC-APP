@@ -1,6 +1,6 @@
 import asyncio
 import os
-os.environ['GOOGLE_API_KEY'] = 'YOUR_API_KEY_HERE'
+os.environ['GOOGLE_API_KEY'] = os.environ.get('GOOGLE_API_KEY', 'YOUR_API_KEY_HERE')
 
 async def main():
     from google.adk.agents import LlmAgent

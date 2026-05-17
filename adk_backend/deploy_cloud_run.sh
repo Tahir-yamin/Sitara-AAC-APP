@@ -14,7 +14,7 @@ gcloud run deploy $SERVICE_NAME \
     --region $REGION \
     --allow-unauthenticated \
     --set-env-vars "ENV=production" \
-    --set-env-vars "GOOGLE_API_KEY=$GOOGLE_API_KEY"
+    --set-secrets "GOOGLE_API_KEY=GOOGLE_API_KEY:latest"
 
 if [ $? -eq 0 ]; then
     echo "✅ Deployment successful!"

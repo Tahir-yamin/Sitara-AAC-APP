@@ -1,7 +1,7 @@
 import os
 from google.genai import Client
 
-api_key = "YOUR_API_KEY_HERE"
+api_key = os.environ.get("GOOGLE_API_KEY", "YOUR_API_KEY_HERE")
 client = Client(api_key=api_key)
 
 try:
