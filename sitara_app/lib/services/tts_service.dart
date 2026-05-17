@@ -168,6 +168,11 @@ class TtsService {
       }
 
       await _tts.stop();
+      
+      // Explicitly try to use Google TTS engine which has superior Urdu voices
+      try {
+        await _tts.setEngine('com.google.android.tts');
+      } catch (_) {}
 
       if (_urduAvailable) {
         await _setUrduProfile();
@@ -176,6 +181,14 @@ class TtsService {
         await _setEnglishProfile();
         await _tts.speak(romanUrduFallback);
       }
+      
+      // Reset engine to default after praise is done
+      await _awaitCompletion();
+      try {
+        await _tts.getDefaultEngine.then((engine) {
+          if (engine != null) _tts.setEngine(engine.toString());
+        });
+      } catch (_) {}
     } catch (e) {
       debugPrint('TtsService.speakPraise error: $e');
       try {

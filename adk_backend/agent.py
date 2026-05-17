@@ -252,9 +252,9 @@ NO clinical language. Warm and joyful tone.
 
 progress_guardian = LlmAgent(
     name="progress_guardian",
-    model="gemini-2.0-flash",
+    model="gemini-1.5-flash",
     instruction=PROGRESS_GUARDIAN_PROMPT,
-    description="Synthesizes session data into warm parent reports"
+    description="Generates warm, structured weekly progress reports for parents"
 )
 
 # ─── SESSION SERVICE (shared across all runners) ──────────────────
