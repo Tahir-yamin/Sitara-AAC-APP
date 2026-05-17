@@ -6,6 +6,8 @@ import 'dart:async';
 import 'dart:math';
 import '../services/antigravity_service.dart';
 import '../services/session_tracker.dart';
+import '../services/analytics_service.dart';
+import '../models/game_event.dart';
 import '../widgets/symbol_card_widget.dart';
 import '../widgets/agent_trace_widget.dart';
 import '../data/symbols_data.dart';
@@ -22,6 +24,7 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late AntigravityService _agentService;
   late SessionTracker _tracker;
+  late AnalyticsService _analytics;
   final _tts = TtsService();
 
   String _currentCategory = 'animals';
@@ -43,11 +46,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late ConfettiController _confettiController;
   String? _rewardText;
 
+  // Round & session caps
+  Timer? _roundTimer;
+  Timer? _sessionMinuteTimer;
+  int _todayMinutes = 0;
+  static const int _maxDailyMinutes = 15;
+  static const int _roundTimeoutSeconds = 60;
+  bool _sessionCapped = false;
+
   @override
   void initState() {
     super.initState();
     _agentService = context.read<AntigravityService>();
     _tracker = context.read<SessionTracker>();
+    _analytics = AnalyticsService(childId: _tracker.childId);
 
     _rewardController = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 1500));
@@ -62,6 +74,38 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       if (cat != null) _currentCategory = cat;
       _loadCards();
       _startAgentCheck();
+      _initSessionCaps();
+    });
+  }
+
+  Future<void> _initSessionCaps() async {
+    _todayMinutes = await _analytics.getTodayMinutes();
+    if (_todayMinutes >= _maxDailyMinutes) {
+      setState(() => _sessionCapped = true);
+      return;
+    }
+    _sessionMinuteTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      _todayMinutes++;
+      _analytics.addMinutes(1);
+      if (_todayMinutes >= _maxDailyMinutes) {
+        _sessionMinuteTimer?.cancel();
+        _analytics.log(
+          type: GameEventType.sessionCapHit,
+          properties: {'minutes_played': _todayMinutes},
+        );
+        setState(() => _sessionCapped = true);
+      }
+    });
+  }
+
+  void _resetRoundTimer() {
+    _roundTimer?.cancel();
+    _roundTimer = Timer(const Duration(seconds: _roundTimeoutSeconds), () {
+      _analytics.log(
+        type: GameEventType.interactionCapHit,
+        properties: {'category': _currentCategory, 'target': _targetCard?.id ?? ''},
+      );
+      _loadCards();
     });
   }
 
@@ -78,6 +122,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       _targetCard = picks[Random().nextInt(picks.length)];
     });
     _speakTarget();
+    _resetRoundTimer();
   }
 
   /// Announce the target card: "بلی … Billi … Cat"
@@ -102,6 +147,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           recentEvents: recentEvents,
         );
 
+        _analytics.log(
+          type: GameEventType.agentSessionEval,
+          properties: {'actions_count': actions.length, 'mode': _agentService.useHeuristic ? 'heuristic' : 'agentic'},
+        );
         for (final action in actions) {
           _applyAction(action);
         }
@@ -138,6 +187,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           _targetCard = _displayCards[Random().nextInt(_displayCards.length)];
         });
         _speakTarget();
+        _analytics.log(
+          type: GameEventType.difficultyAdjusted,
+          properties: {'cards_per_round': _displayCards.length, 'category': _currentCategory},
+        );
         break;
       case 'trigger_reward':
         _showReward(action.data['praise_phrase'] ?? 'Shabash!');
@@ -163,6 +216,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       category: _currentCategory,
       isSuccess: isCorrect,
     );
+    _analytics.log(
+      type: GameEventType.cardTapped,
+      properties: {'card_id': card.id, 'category': _currentCategory, 'correct': isCorrect},
+    );
 
     setState(() {
       _feedbackCardId = card.id;
@@ -180,6 +237,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       streak: _currentStreak,
       best: _bestStreak,
     );
+    _resetRoundTimer();
 
     if (isCorrect) {
       final phrase = PhrasePool.pickPraise(streak: _currentStreak);
@@ -206,6 +264,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _showReward(String displayText) {
+    _analytics.log(
+      type: GameEventType.rewardTriggered,
+      properties: {'text': displayText, 'streak': _currentStreak},
+    );
     _confettiController.play();
     setState(() => _rewardText = displayText);
     Future.delayed(const Duration(milliseconds: 1500), () {
@@ -214,6 +276,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _showBreakOverlay() {
+    _analytics.log(
+      type: GameEventType.breakShown,
+      properties: {'session_minutes': _todayMinutes, 'score': _sessionScore},
+    );
     showGeneralDialog(
       context: context,
       barrierDismissible: false,
@@ -457,6 +523,47 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               ),
             ),
+          if (_sessionCapped)
+            Positioned.fill(
+              child: Container(
+                color: const Color(0xFF6C63FF).withValues(alpha: 0.95),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('🌙', style: TextStyle(fontSize: 64)),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'آج کے لیے بس!',
+                        textDirection: TextDirection.rtl,
+                        style: TextStyle(fontSize: 28, color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        "That's enough for today!",
+                        style: TextStyle(fontSize: 16, color: Colors.white70),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '$_todayMinutes minutes played today',
+                        style: const TextStyle(fontSize: 14, color: Colors.white60),
+                      ),
+                      const SizedBox(height: 32),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF6C63FF),
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Go Home', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -465,6 +572,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     _agentCheckTimer?.cancel();
+    _roundTimer?.cancel();
+    _sessionMinuteTimer?.cancel();
     _rewardController.dispose();
     _cardShakeController.dispose();
     _confettiController.dispose();
