@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// QuestScreen — rendered when Therapy Director triggers 'generate_quest_via_story_weaver'.
 /// Receives quest JSON from game_screen via Navigator.pushNamed(context, '/quest', arguments: questData).
@@ -19,9 +20,9 @@ class QuestScreen extends StatefulWidget {
 
 class _QuestScreenState extends State<QuestScreen>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _slideAnim;
+  late AnimationController _entranceController;
   late Animation<double> _fadeAnim;
+  late Animation<Offset> _slideAnim;
 
   Map<String, dynamic> _questData = {};
 
@@ -45,15 +46,16 @@ class _QuestScreenState extends State<QuestScreen>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _entranceController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 400),
     );
-    _slideAnim = Tween<double>(begin: 60, end: 0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
-    _fadeAnim = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
-    _controller.forward();
+    _fadeAnim = CurvedAnimation(parent: _entranceController, curve: Curves.easeOut);
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.18),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic));
+    _entranceController.forward();
   }
 
   @override
@@ -67,7 +69,7 @@ class _QuestScreenState extends State<QuestScreen>
 
   @override
   void dispose() {
-    _controller.dispose();
+    _entranceController.dispose();
     super.dispose();
   }
 
@@ -78,7 +80,7 @@ class _QuestScreenState extends State<QuestScreen>
   String get _questTitle =>
       _questData['quest_title'] as String? ?? 'New Adventure!';
   String get _urduHook =>
-      _questData['urdu_hook'] as String? ?? 'Chalo!';
+      _questData['urdu_hook'] as String? ?? 'چلو!';
   String get _storyText =>
       _questData['story_text'] as String? ??
       'Sitara needs your help! Tap the right card to guide her!';
@@ -123,16 +125,11 @@ class _QuestScreenState extends State<QuestScreen>
           ),
         ),
         child: SafeArea(
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) => Opacity(
-              opacity: _fadeAnim.value,
-              child: Transform.translate(
-                offset: Offset(0, _slideAnim.value),
-                child: child,
-              ),
-            ),
-            child: Column(
+          child: FadeTransition(
+            opacity: _fadeAnim,
+            child: SlideTransition(
+              position: _slideAnim,
+              child: Column(
               children: [
                 // ─── TOP BAR ─────────────────────────────────────────
                 Padding(
@@ -229,13 +226,14 @@ class _QuestScreenState extends State<QuestScreen>
                         // Urdu hook
                         Text(
                           _urduHook,
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: _difficultyColor,
-                            fontFamily: 'Nunito',
-                          ),
+                          textDirection: TextDirection.rtl,
                           textAlign: TextAlign.center,
+                          style: GoogleFonts.notoNastaliqUrdu(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFFFFD700),
+                            height: 1.5,
+                          ),
                         ),
                         const SizedBox(height: 8),
 
@@ -353,6 +351,7 @@ class _QuestScreenState extends State<QuestScreen>
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
