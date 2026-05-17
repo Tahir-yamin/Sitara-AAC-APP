@@ -135,6 +135,21 @@
   * 🟢 **Minor noted (non-blocking)**: Dashboard daily bar is one-shot on `initState()` (no live-update during play); property key casing could be more consistent; `_todayMinutes` staleness is low-risk behind `_sessionCapped` guard.
 * **Final State**: All 16 tasks complete, reviewed, hardened, and documented. `main` branch is clean (`flutter analyze` 0 issues, 10/10 tests).
 
+#### ⏰ 00:30:00 (UTC+5) — Hard Test Pass: Remote Control Disabled + Critical Bug Fixed
+* **Action**: Systematic file-by-file audit of all 16 tasks on `main` + worktree (`youthful-archimedes-88ac5b`).
+* **Remote Control**: Set `"remoteControlAtStartup": false` in `~/.claude/settings.json` to prevent session cutoffs.
+* **All 16 Tasks Verified Against Source**:
+  * ✅ Track 1 (Tasks 1–4): `Semantics` wrappers confirmed in `symbol_card_widget.dart`, `home_screen.dart`, `onboarding_screen.dart`, `splash_screen.dart`; `ExcludeSemantics` on trace panel; `overflow`/`maxLines` on score bar.
+  * ✅ Track 2 (Tasks 5–11): `confetti: ^0.7.0` in `pubspec.yaml`; `PhrasePool` 3-tier logic confirmed; bounce+shake animation controllers in `SymbolCardWidget`; `_speakPraiseUrdu` female TTS wiring; `ConfettiWidget` reward burst; `_BreakOverlay` 24s auto-dismiss; `QuestScreen` entrance animation with gold Nastaliq hook.
+  * ✅ Track 3 (Tasks 12–16): `GameEvent` 10-type enum; `AnalyticsService`; two-clock session system; 7 event callsites; daily usage bar + dual export.
+* **Critical Bug Found & Fixed** (`a6d7afe` on `main`):
+  * 🔴 **`getTodayPlayMinutes` / `addPlayMinutes` lacked `childId` parameter** — all children on a shared device were counting minutes against a single device-level key (`daily_mins_YYYY-MM-DD`). A child hitting the 15-min cap would immediately block sibling sessions.
+  * ✅ **Fixed**: `_dailyMinutesKey` now takes `childId` → key becomes `daily_mins_${childId}_YYYY-MM-DD`. Both `LocalDbService` and `AnalyticsService` call signatures updated. `flutter analyze` — 0 issues; `flutter test` — 10/10 pass.
+* **Minor Dead Code Noted** (non-blocking, spawned cleanup task):
+  * `_rewardController` in `game_screen.dart` — declared, initialised, disposed but never used.
+  * `_cardShakeController.forward()` in `game_screen.dart` — called on incorrect tap but nothing reads the animation; shake is handled entirely by `SymbolCardWidget.showIncorrect`.
+* **Final State**: All 16 tasks verified from source. `main` branch is clean. Critical multi-child isolation bug patched. `flutter analyze` 0 issues, `flutter test` 10/10.
+
 ---
 
-*Ledger updated by Antigravity Agent on 2026-05-17T23:50:00+05:00.*
+*Ledger updated by Antigravity Agent on 2026-05-18T00:30:00+05:00.*
