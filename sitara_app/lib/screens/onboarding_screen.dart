@@ -150,19 +150,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             child: SizedBox(
               width: double.infinity,
               height: 56,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _pages[_currentPage].color,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  textStyle: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
+              child: Semantics(
+                label: 'Next onboarding step',
+                button: true,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _pages[_currentPage].color,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    textStyle: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: _next,
+                  child: Text(_currentPage < _pages.length - 1
+                      ? 'Next →'
+                      : 'Start Learning! ⭐'),
                 ),
-                onPressed: _next,
-                child: Text(_currentPage < _pages.length - 1
-                    ? 'Next →'
-                    : 'Start Learning! ⭐'),
               ),
             ),
           ),

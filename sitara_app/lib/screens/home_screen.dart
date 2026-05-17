@@ -48,12 +48,16 @@ class HomeScreen extends StatelessWidget {
                     ),
                     const Spacer(),
                     // Parent portal button
-                    IconButton(
-                      onPressed: () =>
-                          Navigator.pushNamed(context, '/parent'),
-                      icon: const Icon(Icons.bar_chart_rounded,
-                          color: Color(0xFFB8B0FF), size: 28),
-                      tooltip: 'Parent Dashboard',
+                    Semantics(
+                      label: 'Open parent dashboard',
+                      button: true,
+                      child: IconButton(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/parent'),
+                        icon: const Icon(Icons.bar_chart_rounded,
+                            color: Color(0xFFB8B0FF), size: 28),
+                        tooltip: 'Parent Dashboard',
+                      ),
                     ),
                   ],
                 ),
@@ -78,13 +82,17 @@ class HomeScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     children: [
-                      _ActionCard(
-                        emoji: '🎮',
-                        title: 'Play Now!',
-                        subtitle: 'Tap & learn with Sitara',
-                        color: const Color(0xFF6C63FF),
-                        onTap: () => Navigator.pushNamed(context, '/game',
-                            arguments: {'childName': childName}),
+                      Semantics(
+                        label: 'Start game session',
+                        button: true,
+                        child: _ActionCard(
+                          emoji: '🎮',
+                          title: 'Play Now!',
+                          subtitle: 'Tap & learn with Sitara',
+                          color: const Color(0xFF6C63FF),
+                          onTap: () => Navigator.pushNamed(context, '/game',
+                              arguments: {'childName': childName}),
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Row(

@@ -57,11 +57,14 @@ class _SplashScreenState extends State<SplashScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              AnimatedBuilder(
-                animation: _controller,
-                builder: (_, __) => Transform.scale(
-                  scale: _scaleAnim.value,
-                  child: const Text('⭐', style: TextStyle(fontSize: 100)),
+              Semantics(
+                excludeSemantics: true,
+                child: AnimatedBuilder(
+                  animation: _controller,
+                  builder: (_, __) => Transform.scale(
+                    scale: _scaleAnim.value,
+                    child: const Text('⭐', style: TextStyle(fontSize: 100)),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
