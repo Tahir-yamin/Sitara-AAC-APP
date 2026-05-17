@@ -41,8 +41,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   int _bestStreak = 0;
 
   // Animation controllers
-  late AnimationController _rewardController;
-  late AnimationController _cardShakeController;
   late ConfettiController _confettiController;
   String? _rewardText;
 
@@ -61,10 +59,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _tracker = context.read<SessionTracker>();
     _analytics = AnalyticsService(childId: _tracker.childId);
 
-    _rewardController = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 1500));
-    _cardShakeController = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 300));
     _confettiController = ConfettiController(duration: const Duration(milliseconds: 1500));
 
     // Read initial_category from route args before first load to avoid double-load
@@ -249,7 +243,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       });
       Future.delayed(const Duration(seconds: 2), _loadCards);
     } else {
-      _cardShakeController.forward(from: 0);
       Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted) setState(() => _feedbackCardId = null);
       });
@@ -575,8 +568,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _agentCheckTimer?.cancel();
     _roundTimer?.cancel();
     _sessionMinuteTimer?.cancel();
-    _rewardController.dispose();
-    _cardShakeController.dispose();
     _confettiController.dispose();
     _tts.stop(); // Stop any in-progress utterance when leaving screen
     super.dispose();
