@@ -428,7 +428,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
           // Antigravity trace panel (for judges)
           if (_showTracePanel)
-            AgentTraceWidget(traces: _agentService.traceLog),
+            Semantics(
+              excludeSemantics: true,
+              child: AgentTraceWidget(traces: _agentService.traceLog),
+            ),
         ],
       ),
         ),
