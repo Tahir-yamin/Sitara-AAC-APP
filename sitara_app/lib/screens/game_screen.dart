@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 import 'dart:math';
@@ -368,15 +369,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     const Icon(Icons.volume_up_rounded, color: Color(0xFF6C63FF), size: 24),
                     const SizedBox(width: 10),
 
-                    // Urdu name (RTL)
+                    // Urdu name (RTL) — Noto Nastaliq Urdu for correct script rendering
                     Text(
                       _targetCard!.nameUrdu,
                       textDirection: TextDirection.rtl,
-                      style: const TextStyle(
+                      style: GoogleFonts.notoNastaliqUrdu(
                         fontSize: 26,
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFF6C63FF),
-                        height: 1.1,
+                        color: const Color(0xFF6C63FF),
+                        height: 1.3,
                       ),
                     ),
 

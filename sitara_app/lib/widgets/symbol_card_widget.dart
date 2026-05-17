@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/symbol_card.dart';
 import '../services/tts_service.dart';
 
@@ -155,15 +156,15 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Urdu — large, RTL
+                    // Urdu — large, RTL, Noto Nastaliq Urdu for correct script rendering
                     Text(
                       widget.card.nameUrdu,
                       textDirection: TextDirection.rtl,
-                      style: TextStyle(
+                      style: GoogleFonts.notoNastaliqUrdu(
                         fontSize: 17,
                         fontWeight: FontWeight.w900,
                         color: _accent,
-                        height: 1.2,
+                        height: 1.4,
                       ),
                       textAlign: TextAlign.center,
                     ),
