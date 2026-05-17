@@ -89,6 +89,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       _analytics.addMinutes(1);
       if (_todayMinutes >= _maxDailyMinutes) {
         _sessionMinuteTimer?.cancel();
+        _roundTimer?.cancel();
         _analytics.log(
           type: GameEventType.sessionCapHit,
           properties: {'minutes_played': _todayMinutes},
