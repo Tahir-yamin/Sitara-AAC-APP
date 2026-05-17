@@ -199,13 +199,15 @@ class _PageView extends StatelessWidget {
         ),
       ),
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
+        child: LayoutBuilder(
+          builder: (ctx, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
               Text(page.emoji, style: const TextStyle(fontSize: 80)),
               const SizedBox(height: 32),
               Text(
@@ -233,7 +235,9 @@ class _PageView extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ],
-          ),
+                ),
+              ),
+            ),
           ),
         ),
       ),

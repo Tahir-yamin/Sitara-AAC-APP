@@ -288,7 +288,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           ],
         ),
       ),
-      body: Column(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Column(
         children: [
           // Score & streak bar — real-time feedback (Gameplay Engagement)
           Container(
@@ -426,6 +429,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           if (_showTracePanel)
             AgentTraceWidget(traces: _agentService.traceLog),
         ],
+      ),
+        ),
       ),
     );
   }
