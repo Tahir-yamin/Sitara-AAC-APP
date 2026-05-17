@@ -11,12 +11,18 @@ class SymbolCardWidget extends StatefulWidget {
   final VoidCallback onTap;
   /// When false, the widget skips its own TTS (e.g. game_screen handles it).
   final bool speakOnTap;
+  /// Triggers bounce animation + green flash when set to true.
+  final bool showCorrect;
+  /// Triggers shake animation + red flash when set to true.
+  final bool showIncorrect;
 
   const SymbolCardWidget({
     super.key,
     required this.card,
     required this.onTap,
     this.speakOnTap = true,
+    this.showCorrect = false,
+    this.showIncorrect = false,
   });
 
   @override
@@ -24,9 +30,14 @@ class SymbolCardWidget extends StatefulWidget {
 }
 
 class _SymbolCardWidgetState extends State<SymbolCardWidget>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _scaleController;
   late Animation<double> _scaleAnim;
+  late AnimationController _bounceController;
+  late Animation<double> _bounceAnim;
+  late AnimationController _shakeController;
+  late Animation<double> _shakeAnim;
+  Color? _flashColor;
   bool _isPressed = false;
 
   // Per-category accent colours
@@ -47,6 +58,38 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
     _scaleAnim = Tween(begin: 1.0, end: 0.93).animate(
       CurvedAnimation(parent: _scaleController, curve: Curves.easeOut),
     );
+
+    _bounceController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 350));
+    _bounceAnim = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.15), weight: 40),
+      TweenSequenceItem(tween: Tween(begin: 1.15, end: 1.0), weight: 60),
+    ]).animate(CurvedAnimation(parent: _bounceController, curve: Curves.easeOut));
+
+    _shakeController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 300));
+    _shakeAnim = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: -8.0), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: -8.0, end: 8.0), weight: 40),
+      TweenSequenceItem(tween: Tween(begin: 8.0, end: -8.0), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: -8.0, end: 0.0), weight: 20),
+    ]).animate(CurvedAnimation(parent: _shakeController, curve: Curves.linear));
+  }
+
+  @override
+  void didUpdateWidget(SymbolCardWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.showCorrect && !oldWidget.showCorrect) {
+      setState(() => _flashColor = Colors.greenAccent);
+      _bounceController.forward(from: 0);
+    }
+    if (widget.showIncorrect && !oldWidget.showIncorrect) {
+      setState(() => _flashColor = Colors.redAccent);
+      _shakeController.forward(from: 0);
+    }
+    if (!widget.showCorrect && !widget.showIncorrect) {
+      setState(() => _flashColor = null);
+    }
   }
 
   Color get _accent =>
@@ -89,23 +132,26 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
           setState(() => _isPressed = false);
         },
         child: AnimatedBuilder(
-          animation: _scaleAnim,
-          builder: (ctx, child) => Transform.scale(
-            scale: _scaleAnim.value,
-            child: child,
+          animation: Listenable.merge([_scaleAnim, _bounceAnim, _shakeAnim]),
+          builder: (ctx, child) => Transform.translate(
+            offset: Offset(_shakeAnim.value, 0),
+            child: Transform.scale(
+              scale: _scaleAnim.value * _bounceAnim.value,
+              child: child,
+            ),
           ),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 120),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: _flashColor?.withValues(alpha: 0.15) ?? Colors.white,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: _isPressed ? _accent : _accent.withValues(alpha: 0.28),
-                width: _isPressed ? 3.5 : 1.5,
+                color: _flashColor ?? (_isPressed ? _accent : _accent.withValues(alpha: 0.28)),
+                width: (_flashColor != null || _isPressed) ? 3.5 : 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: _accent.withValues(alpha: _isPressed ? 0.28 : 0.12),
+                  color: (_flashColor ?? _accent).withValues(alpha: _isPressed ? 0.28 : 0.12),
                   blurRadius: _isPressed ? 20 : 10,
                   offset: const Offset(0, 4),
                 ),
@@ -193,6 +239,8 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
   @override
   void dispose() {
     _scaleController.dispose();
+    _bounceController.dispose();
+    _shakeController.dispose();
     super.dispose();
   }
 }
