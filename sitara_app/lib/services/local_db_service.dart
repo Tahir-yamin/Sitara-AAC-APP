@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/session_event.dart';
+import '../models/game_event.dart';
 
 /// LocalDbService — JSON persistence via shared_preferences + secure storage.
 /// Child profiles (name, ID) are stored in Android Keystore via flutter_secure_storage.
@@ -30,6 +31,8 @@ class LocalDbService {
   String _eventsKey(String childId) => 'events_$childId';
   String _profileKey(String childId) => 'profile_$childId';
   String _insightsKey(String childId) => 'insights_$childId';
+  String _gameEventsKey(String childId) => 'game_events_$childId';
+  String _playMinutesKey(String date) => 'play_minutes_$date';
 
   // ─── SESSION EVENTS ────────────────────────────────────────────────────────
 
@@ -141,6 +144,48 @@ class LocalDbService {
         .reversed
         .toList();
     return all.take(limit).toList();
+  }
+
+  // ─── GAME EVENTS ───────────────────────────────────────────────────────────
+
+  Future<void> saveGameEvent(GameEvent event) async {
+    final key = _gameEventsKey(event.childId);
+    final existing = _p.getStringList(key) ?? [];
+    existing.add(jsonEncode(event.toJson()));
+    if (existing.length > 1000) existing.removeRange(0, existing.length - 1000);
+    await _p.setStringList(key, existing);
+  }
+
+  Future<List<GameEvent>> getGameEvents(String childId, {int? limitDays}) async {
+    final key = _gameEventsKey(childId);
+    final raw = _p.getStringList(key) ?? [];
+    final cutoff = limitDays != null
+        ? DateTime.now().subtract(Duration(days: limitDays))
+        : null;
+
+    final events = raw
+        .map((s) => GameEvent.fromJson(jsonDecode(s) as Map<String, dynamic>))
+        .where((e) => cutoff == null || e.timestamp.isAfter(cutoff))
+        .toList()
+        .reversed
+        .toList();
+    return events;
+  }
+
+  Future<int> getTodayPlayMinutes() async {
+    final today = DateTime.now();
+    final dateStr =
+        '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    return _p.getInt(_playMinutesKey(dateStr)) ?? 0;
+  }
+
+  Future<void> addPlayMinutes(int minutes) async {
+    final today = DateTime.now();
+    final dateStr =
+        '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final key = _playMinutesKey(dateStr);
+    final current = _p.getInt(key) ?? 0;
+    await _p.setInt(key, current + minutes);
   }
 
   // ─── STATS ─────────────────────────────────────────────────────────────────
