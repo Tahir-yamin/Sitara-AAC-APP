@@ -1,6 +1,6 @@
 # Sitara Game Improvements — Design Spec
 **Date:** 2026-05-17  
-**Author:** Tahir Yamin (via Claude Code brainstorming)  
+**Author:** Tahir Yamin — Google Antigravity Hackathon, Challenge 4  
 **Status:** Approved — ready for implementation  
 **Scope:** Three parallel improvement tracks: Accessibility → Game Feel → Analytics
 
@@ -149,9 +149,9 @@ All 6 screens: `game_screen.dart`, `home_screen.dart`, `quest_screen.dart`, `spl
 
 Session duration limits are grounded in peer-reviewed evidence:
 
-- Children with ASD aged 8–10 have an **attention span of 10–15 minutes** ([Diomampo et al., 2025, Journal of Education, Learning, and Management](https://consensus.app/papers/details/e5873420a4dc5e83b3860dbf4e2b25aa/?utm_source=claude_desktop)) → informs 15-minute total session cap
-- WHO/AAP and [Panjeti-Madan et al., 2023](https://consensus.app/papers/details/f52b2f9436d050b3a35f6eccd369a389/?utm_source=claude_desktop) recommend **≤60 minutes/day** total screen time for ages 3–8 → informs daily limit shown to parents
-- Longer screen time correlates with more severe ASD symptoms in younger children ([Dong et al., 2021, Frontiers in Psychiatry](https://consensus.app/papers/details/736408fae6df596e9a98f6c59593417d/?utm_source=claude_desktop)) → supports mandatory break enforcement
+- Children with ASD aged 8–10 have an **attention span of 10–15 minutes** ([Diomampo et al., 2025, Journal of Education, Learning, and Management](https://consensus.app/papers/details/e5873420a4dc5e83b3860dbf4e2b25aa/?utm_source=sitara_research)) → informs 15-minute total session cap
+- WHO/AAP and [Panjeti-Madan et al., 2023](https://consensus.app/papers/details/f52b2f9436d050b3a35f6eccd369a389/?utm_source=sitara_research) recommend **≤60 minutes/day** total screen time for ages 3–8 → informs daily limit shown to parents
+- Longer screen time correlates with more severe ASD symptoms in younger children ([Dong et al., 2021, Frontiers in Psychiatry](https://consensus.app/papers/details/736408fae6df596e9a98f6c59593417d/?utm_source=sitara_research)) → supports mandatory break enforcement
 
 ### Requirements
 
@@ -254,7 +254,7 @@ Given the three tracks, implement in this sequence to avoid conflicts:
 
 ## Research References
 
-1. [Diomampo et al. (2025) — Technology use and ASD development, JELM](https://consensus.app/papers/details/e5873420a4dc5e83b3860dbf4e2b25aa/?utm_source=claude_desktop) — 10–15 min attention span for ASD children aged 8–10
-2. [Panjeti-Madan et al. (2023) — Screen time impact on development, Multimodal Technol. Interact.](https://consensus.app/papers/details/f52b2f9436d050b3a35f6eccd369a389/?utm_source=claude_desktop) — ≤60 min/day recommended for ages 3–8
-3. [Dong et al. (2021) — Screen time and ASD symptom severity, Frontiers in Psychiatry](https://consensus.app/papers/details/736408fae6df596e9a98f6c59593417d/?utm_source=claude_desktop) — Longer screen time → more severe ASD symptoms in younger children
-4. [Ophir et al. (2023) — Screen time and ASD meta-analysis, JAMA Network Open](https://consensus.app/papers/details/752693ae9b6257409523053ef6767eb4/?utm_source=claude_desktop) — Mixed evidence; emphasises importance of content quality over duration alone
+1. [Diomampo et al. (2025) — Technology use and ASD development, JELM](https://consensus.app/papers/details/e5873420a4dc5e83b3860dbf4e2b25aa/?utm_source=sitara_research) — 10–15 min attention span for ASD children aged 8–10
+2. [Panjeti-Madan et al. (2023) — Screen time impact on development, Multimodal Technol. Interact.](https://consensus.app/papers/details/f52b2f9436d050b3a35f6eccd369a389/?utm_source=sitara_research) — ≤60 min/day recommended for ages 3–8
+3. [Dong et al. (2021) — Screen time and ASD symptom severity, Frontiers in Psychiatry](https://consensus.app/papers/details/736408fae6df596e9a98f6c59593417d/?utm_source=sitara_research) — Longer screen time → more severe ASD symptoms in younger children
+4. [Ophir et al. (2023) — Screen time and ASD meta-analysis, JAMA Network Open](https://consensus.app/papers/details/752693ae9b6257409523053ef6767eb4/?utm_source=sitara_research) — Mixed evidence; emphasises importance of content quality over duration alone
