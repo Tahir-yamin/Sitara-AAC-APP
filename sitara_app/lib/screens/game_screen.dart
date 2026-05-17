@@ -323,6 +323,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       fontWeight: FontWeight.w900,
                       color: Color(0xFF333333),
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ]),
                 // Streak
@@ -341,6 +343,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                           ? const Color(0xFFFF6B35)
                           : const Color(0xFF6C63FF),
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ]),
               ],
