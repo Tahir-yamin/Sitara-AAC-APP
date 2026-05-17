@@ -2,18 +2,24 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sitara/models/game_event.dart';
 import 'package:sitara/services/analytics_service.dart';
+import 'package:sitara/services/local_db_service.dart';
 
-// Minimal stub — avoids SharedPreferences entirely so no mocking needed.
-class _NullDb {
-  final List<GameEvent> _store = [];
+/// In-memory stub for LocalDbService — no SharedPreferences or secure storage.
+class _FakeLocalDb extends LocalDbService {
+  _FakeLocalDb() : super.forTesting();
 
-  Future<void> saveGameEvent(GameEvent event) async => _store.add(event);
+  final List<GameEvent> _events = [];
+  final Map<String, int> _minutes = {};
 
+  @override
+  Future<void> saveGameEvent(GameEvent event) async => _events.add(event);
+
+  @override
   Future<List<GameEvent>> getGameEvents(String childId, {int? limitDays}) async {
     final cutoff = limitDays != null
         ? DateTime.now().subtract(Duration(days: limitDays))
         : null;
-    return _store
+    return _events
         .where((e) => e.childId == childId)
         .where((e) => cutoff == null || e.timestamp.isAfter(cutoff))
         .toList()
@@ -21,52 +27,23 @@ class _NullDb {
         .toList();
   }
 
-  Future<int> getTodayPlayMinutes() async => 0;
-  Future<void> addPlayMinutes(int _) async {}
+  @override
+  Future<int> getTodayPlayMinutes(String childId) async =>
+      _minutes[childId] ?? 0;
+
+  @override
+  Future<void> addPlayMinutes(String childId, int minutes) async {
+    _minutes[childId] = (_minutes[childId] ?? 0) + minutes;
+  }
 }
 
-// Thin wrapper that makes _NullDb look like LocalDbService to AnalyticsService.
-// We achieve this by subclassing AnalyticsService with an overridden _db path.
-class _TestAnalyticsService extends AnalyticsService {
-  final _NullDb _nullDb;
-
-  _TestAnalyticsService(String childId)
-      : _nullDb = _NullDb(),
-        super(childId: childId);
-
-  @override
-  GameEvent buildEvent({
-    required GameEventType type,
-    required Map<String, dynamic> properties,
-  }) {
-    return GameEvent(type: type, childId: childId, properties: properties);
-  }
-
-  @override
-  Future<void> log({
-    required GameEventType type,
-    required Map<String, dynamic> properties,
-  }) async {
-    final event = buildEvent(type: type, properties: properties);
-    await _nullDb.saveGameEvent(event);
-  }
-
-  @override
-  Future<List<GameEvent>> getEvents({int? limitDays}) {
-    return _nullDb.getGameEvents(childId, limitDays: limitDays);
-  }
-
-  @override
-  Future<int> getTodayMinutes() => _nullDb.getTodayPlayMinutes();
-
-  @override
-  Future<void> addMinutes(int minutes) => _nullDb.addPlayMinutes(minutes);
-}
+AnalyticsService _makeSvc(String childId) =>
+    AnalyticsService.withDb(childId: childId, db: _FakeLocalDb());
 
 void main() {
   group('AnalyticsService', () {
     test('buildEvent returns event with correct type and childId', () {
-      final svc = _TestAnalyticsService('child_001');
+      final svc = _makeSvc('child_001');
       final event = svc.buildEvent(
         type: GameEventType.cardTapped,
         properties: {'card_id': 'apple'},
@@ -79,7 +56,7 @@ void main() {
 
     test('buildEvent auto-stamps a timestamp close to now', () {
       final before = DateTime.now().subtract(const Duration(seconds: 1));
-      final svc = _TestAnalyticsService('child_002');
+      final svc = _makeSvc('child_002');
       final event = svc.buildEvent(
         type: GameEventType.questStarted,
         properties: {},
@@ -91,7 +68,7 @@ void main() {
     });
 
     test('exportEventsAsJson round-trips to valid JSON list', () async {
-      final svc = _TestAnalyticsService('child_003');
+      final svc = _makeSvc('child_003');
 
       await svc.log(
         type: GameEventType.rewardTriggered,
@@ -118,8 +95,8 @@ void main() {
       expect(reconstructed[1].properties['stars'], 3);
     });
 
-    test('GameEventType.fromKey returns unknown for unrecognised key', () {
-      expect(GameEventType.fromKey('no_such_event'), GameEventType.unknown);
+    test('GameEventType.fromString returns unknown for unrecognised key', () {
+      expect(GameEventType.fromString('no_such_event'), GameEventType.unknown);
     });
 
     test('all GameEventType keys are distinct and non-empty', () {
@@ -128,6 +105,15 @@ void main() {
       for (final k in keys) {
         expect(k.isNotEmpty, isTrue);
       }
+    });
+
+    test('addMinutes accumulates per-child daily play time', () async {
+      final svc = _makeSvc('child_004');
+
+      await svc.addMinutes(10);
+      await svc.addMinutes(5);
+
+      expect(await svc.getTodayMinutes(), 15);
     });
   });
 }

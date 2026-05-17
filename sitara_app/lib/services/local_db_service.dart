@@ -10,6 +10,12 @@ import '../models/game_event.dart';
 /// Session events remain in SharedPreferences (volume too high for secure storage).
 class LocalDbService {
   LocalDbService._();
+
+  /// Protected constructor for test subclasses. Production code must use
+  /// [instance]; only test doubles should call this.
+  @visibleForTesting
+  LocalDbService.forTesting();
+
   static final LocalDbService instance = LocalDbService._();
 
   SharedPreferences? _prefs;
@@ -32,7 +38,7 @@ class LocalDbService {
   String _profileKey(String childId) => 'profile_$childId';
   String _insightsKey(String childId) => 'insights_$childId';
   String _gameEventsKey(String childId) => 'game_events_$childId';
-  String _playMinutesKey(String date) => 'play_minutes_$date';
+  String _playMinutesKey(String childId, String date) => 'play_minutes_${childId}_$date';
 
   // ─── SESSION EVENTS ────────────────────────────────────────────────────────
 
@@ -172,18 +178,19 @@ class LocalDbService {
     return events;
   }
 
-  Future<int> getTodayPlayMinutes() async {
+  String _todayDateString() {
     final today = DateTime.now();
-    final dateStr =
-        '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-    return _p.getInt(_playMinutesKey(dateStr)) ?? 0;
+    return '${today.year.toString().padLeft(4, '0')}-'
+        '${today.month.toString().padLeft(2, '0')}-'
+        '${today.day.toString().padLeft(2, '0')}';
   }
 
-  Future<void> addPlayMinutes(int minutes) async {
-    final today = DateTime.now();
-    final dateStr =
-        '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-    final key = _playMinutesKey(dateStr);
+  Future<int> getTodayPlayMinutes(String childId) async {
+    return _p.getInt(_playMinutesKey(childId, _todayDateString())) ?? 0;
+  }
+
+  Future<void> addPlayMinutes(String childId, int minutes) async {
+    final key = _playMinutesKey(childId, _todayDateString());
     final current = _p.getInt(key) ?? 0;
     await _p.setInt(key, current + minutes);
   }

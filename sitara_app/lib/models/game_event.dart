@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 enum GameEventType {
   cardTapped,
   rewardTriggered,
@@ -27,7 +25,7 @@ enum GameEventType {
         GameEventType.unknown => 'unknown',
       };
 
-  static GameEventType fromKey(String key) {
+  static GameEventType fromString(String key) {
     return GameEventType.values.firstWhere(
       (e) => e.key == key,
       orElse: () => GameEventType.unknown,
@@ -56,11 +54,10 @@ class GameEvent {
       };
 
   factory GameEvent.fromJson(Map<String, dynamic> json) => GameEvent(
-        type: GameEventType.fromKey(json['type'] as String),
+        type: GameEventType.fromString(json['type'] as String),
         childId: json['child_id'] as String,
         timestamp: DateTime.parse(json['timestamp'] as String),
         properties: (json['properties'] as Map<String, dynamic>?) ?? {},
       );
 
-  String toJsonString() => jsonEncode(toJson());
 }
