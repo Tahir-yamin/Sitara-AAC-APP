@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/session_event.dart';
+import '../models/game_event.dart';
 
 /// LocalDbService — JSON persistence via shared_preferences + secure storage.
 /// Child profiles (name, ID) are stored in Android Keystore via flutter_secure_storage.
@@ -141,6 +142,48 @@ class LocalDbService {
         .reversed
         .toList();
     return all.take(limit).toList();
+  }
+
+  // ─── GAME EVENTS ───────────────────────────────────────────────────────────
+
+  String _gameEventsKey(String childId) => 'game_events_$childId';
+  String _dailyMinutesKey(String date) => 'daily_mins_$date';
+
+  Future<void> saveGameEvent(GameEvent event) async {
+    final key = _gameEventsKey(event.childId);
+    final existing = _p.getStringList(key) ?? [];
+    existing.add(jsonEncode(event.toJson()));
+    if (existing.length > 1000) existing.removeRange(0, existing.length - 1000);
+    await _p.setStringList(key, existing);
+  }
+
+  Future<List<GameEvent>> getGameEvents(String childId, {int? limitDays}) async {
+    final key = _gameEventsKey(childId);
+    final raw = _p.getStringList(key) ?? [];
+    final cutoff = limitDays != null
+        ? DateTime.now().subtract(Duration(days: limitDays))
+        : null;
+    final all = raw
+        .map((s) => GameEvent.fromJson(jsonDecode(s) as Map<String, dynamic>))
+        .where((e) => cutoff == null || e.timestamp.isAfter(cutoff))
+        .toList();
+    return all.reversed.toList();
+  }
+
+  Future<int> getTodayPlayMinutes() async {
+    final key = _dailyMinutesKey(_todayKey());
+    return _p.getInt(key) ?? 0;
+  }
+
+  Future<void> addPlayMinutes(int minutes) async {
+    final key = _dailyMinutesKey(_todayKey());
+    final current = _p.getInt(key) ?? 0;
+    await _p.setInt(key, current + minutes);
+  }
+
+  String _todayKey() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
   // ─── STATS ─────────────────────────────────────────────────────────────────
