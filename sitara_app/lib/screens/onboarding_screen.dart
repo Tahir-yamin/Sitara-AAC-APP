@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'dart:math';
 import '../services/local_db_service.dart';
 import '../services/session_tracker.dart';
 
@@ -69,8 +70,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
       return;
     }
-    final slug = name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
-    final childId = '${slug}_${DateTime.now().millisecondsSinceEpoch}';
+    final randomHex = List.generate(8, (_) => Random().nextInt(16).toRadixString(16)).join('');
+    final childId = 'child_${DateTime.now().millisecondsSinceEpoch}_$randomHex';
 
     context.read<SessionTracker>().startNewSession(
           childId: childId,

@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from google.adk.agents import LlmAgent
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService, DatabaseSessionService
@@ -436,6 +436,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+BACKEND_TOKEN = os.environ.get("BACKEND_TOKEN", "dev-token-sitara")
+
+@app.middleware("http")
+async def verify_token(request: Request, call_next):
+    """Simple shared secret check to protect against unauthorized usage."""
+    if request.url.path not in ["/", "/health", "/docs", "/openapi.json"]:
+        token = request.headers.get("X-Sitara-Token")
+        if not token or token != BACKEND_TOKEN:
+            return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+    return await call_next(request)
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Ensure CORS headers even on unhandled exceptions and robustly detect 429s."""
@@ -460,7 +471,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         
     return JSONResponse(
         status_code=status_code,
-        content={"error": message, "detail": str(exc), "type": exc_type},
+        content={"error": message, "type": exc_type},
         headers={
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "*",
@@ -471,14 +482,14 @@ async def global_exception_handler(request: Request, exc: Exception):
 # ─── REQUEST MODELS ───────────────────────────────────────────────
 
 class AdaptationRequest(BaseModel):
-    child_id: str
+    child_id: str = Field(..., max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
     success_rate: float
     consecutive_failures: int
     tap_speed: float
-    category: str
+    category: str = Field(..., max_length=50)
     session_duration_mins: float = 0.0
     cards_attempted: int = 0
-    mode: str = "agentic"  # "agentic" or "baseline"
+    mode: str = Field("agentic", max_length=20)
 
 class FixedRuleEngine:
     """Sovereign Baseline: Deterministic rule-based adaptation logic."""
@@ -522,17 +533,17 @@ class FixedRuleEngine:
         }
 
 class QuestRequest(BaseModel):
-    child_id: str
-    child_name: str
-    preferred_category: str
-    difficulty: str = "easy"
-    recent_mastery: str = ""  # e.g. "just mastered Animals"
+    child_id: str = Field(..., max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
+    child_name: str = Field(..., max_length=50)
+    preferred_category: str = Field(..., max_length=50)
+    difficulty: str = Field("easy", max_length=20)
+    recent_mastery: str = Field("", max_length=500)
 
 class ReportRequest(BaseModel):
-    child_id: str
-    child_name: str
-    session_summary: str  # JSON string of session stats
-    therapist_insights: str = ""  # from log_insight calls
+    child_id: str = Field(..., max_length=64, pattern=r"^[a-zA-Z0-9_-]+$")
+    child_name: str = Field(..., max_length=50)
+    session_summary: str = Field(..., max_length=2000)
+    therapist_insights: str = Field("", max_length=500)
 
 
 # ─── ENDPOINTS ───────────────────────────────────────────────────

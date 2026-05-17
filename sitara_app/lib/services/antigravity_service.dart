@@ -233,7 +233,10 @@ class AntigravityService extends ChangeNotifier {
       final res = await http
           .post(
             Uri.parse('$_baseUrl/$endpoint'),
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Sitara-Token': const String.fromEnvironment('BACKEND_TOKEN', defaultValue: 'dev-token-sitara'),
+            },
             body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 10));
