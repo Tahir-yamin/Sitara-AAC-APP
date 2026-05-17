@@ -143,7 +143,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         _showReward(action.data['praise_phrase'] ?? 'Shabash!');
         break;
       case 'send_break_prompt':
-        _showBreakDialog();
+        _showBreakOverlay();
         break;
       // A2A delegation: Therapy Director called Story Weaver internally.
       // The quest data is already in action.data — route it to the quest screen.
@@ -213,19 +213,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     });
   }
 
-  void _showBreakDialog() {
-    showDialog(
+  void _showBreakOverlay() {
+    showGeneralDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('🧘 Break Time!'),
-        content: const Text('Let\'s take a small break. Stretch, drink water, or give a hug!'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Okay, back to game!'),
-          ),
-        ],
-      ),
+      barrierDismissible: false,
+      barrierColor: Colors.black54,
+      pageBuilder: (ctx, anim1, anim2) => const _BreakOverlay(),
     );
   }
 
@@ -477,5 +470,95 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _confettiController.dispose();
     _tts.stop(); // Stop any in-progress utterance when leaving screen
     super.dispose();
+  }
+}
+
+class _BreakOverlay extends StatefulWidget {
+  const _BreakOverlay();
+  @override
+  State<_BreakOverlay> createState() => _BreakOverlayState();
+}
+
+class _BreakOverlayState extends State<_BreakOverlay>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _breatheController;
+  late Animation<double> _breatheAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _breatheController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
+    _breatheAnim = Tween<double>(begin: 0.75, end: 1.15).animate(
+      CurvedAnimation(parent: _breatheController, curve: Curves.easeInOut),
+    );
+    // Auto-dismiss after 3 breath cycles (24 seconds)
+    Future.delayed(const Duration(seconds: 24), () {
+      if (mounted) Navigator.of(context).pop();
+    });
+  }
+
+  @override
+  void dispose() {
+    _breatheController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF6C63FF).withValues(alpha: 0.97),
+      body: SafeArea(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedBuilder(
+              animation: _breatheAnim,
+              builder: (ctx, _) => Transform.scale(
+                scale: _breatheAnim.value,
+                child: Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.25),
+                    border: Border.all(color: Colors.white54, width: 3),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+            const Text(
+              'وقفہ کریں',
+              textDirection: TextDirection.rtl,
+              style: TextStyle(fontSize: 32, color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Time for a little break',
+              style: TextStyle(fontSize: 18, color: Colors.white70),
+            ),
+            const SizedBox(height: 48),
+            GestureDetector(
+              onDoubleTap: () => Navigator.of(context).pop(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: Colors.white38),
+                ),
+                child: const Text(
+                  'Double-tap to continue',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
