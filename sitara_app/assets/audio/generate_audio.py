@@ -46,8 +46,12 @@ if not API_KEY:
 TTS_URL = f'https://texttospeech.googleapis.com/v1/text:synthesize?key={API_KEY}'
 
 # ── Voice ─────────────────────────────────────────────────────────────────────
-VOICE = {'languageCode': 'ur-PK', 'name': 'ur-PK-Wavenet-A', 'ssmlGender': 'FEMALE'}
-VOICE_FALLBACK = {'languageCode': 'ur-PK', 'name': 'ur-PK-Standard-A', 'ssmlGender': 'FEMALE'}
+# Google does not offer ur-PK voices. ur-IN = Urdu (India) — same script,
+# same language, fully natural for Pakistani children.
+# Chirp3-HD is Google's newest highest-quality neural voice.
+# Fallback: ur-IN-Wavenet-A (proven WaveNet female).
+VOICE = {'languageCode': 'ur-IN', 'name': 'ur-IN-Chirp3-HD-Kore', 'ssmlGender': 'FEMALE'}
+VOICE_FALLBACK = {'languageCode': 'ur-IN', 'name': 'ur-IN-Wavenet-A', 'ssmlGender': 'FEMALE'}
 
 # ── 5 SSML profiles for natural voice variation ───────────────────────────────
 #

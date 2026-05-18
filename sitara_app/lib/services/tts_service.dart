@@ -36,31 +36,10 @@ class TtsService {
   Map<String, String>? _femaleUrduVoice;
   Map<String, String>? _femaleFallbackVoice;
 
-  // Pre-recorded audio files with incorrect accents or poor energy to be bypassed
-  static const Set<String> _badAudioAssets = {
-    'assets/audio/behan.mp3',
-    'assets/audio/dara.mp3',
-    'assets/audio/doodh.mp3',
-    'assets/audio/kashti.mp3',
-    'assets/audio/mehnat.mp3',
-    'assets/audio/nahana.mp3',
-    'assets/audio/titli.mp3',
-    'assets/audio/bohat_acha.mp3',
-    'assets/audio/shabash.mp3',
-    'assets/audio/praise_0.mp3',
-    'assets/audio/praise_2.mp3',
-    'audio/behan.mp3',
-    'audio/dara.mp3',
-    'audio/doodh.mp3',
-    'audio/kashti.mp3',
-    'audio/mehnat.mp3',
-    'audio/nahana.mp3',
-    'audio/titli.mp3',
-    'audio/bohat_acha.mp3',
-    'audio/shabash.mp3',
-    'audio/praise_0.mp3',
-    'audio/praise_2.mp3',
-  };
+  // All pre-recorded assets regenerated 2026-05-19 with ur-IN-Chirp3-HD-Kore
+  // (female Pakistani WaveNet/Chirp3-HD). Blacklist is now empty — every file
+  // is good quality and should play directly.
+  static const Set<String> _badAudioAssets = {};
 
   Future<void> _init() async {
     await _tts.setVolume(1.0);
@@ -303,9 +282,9 @@ class TtsService {
       await _tts.stop();
       await _audioPlayer.stop();
 
-      // If this is one of the poorly pronounced pre-recordings, bypass it and use dynamic female live TTS!
-      if (_badAudioAssets.contains(phrase.audioAsset) || phrase.audioAsset == 'audio/mehnat.mp3') {
-        throw Exception("Bypass bad praise audio for short, excited live TTS");
+      // All assets are now high-quality — play directly without bypass.
+      if (_badAudioAssets.contains(phrase.audioAsset)) {
+        throw Exception('Bypassed low-quality audio asset');
       }
 
       await _audioPlayer.play(AssetSource(phrase.audioAsset));

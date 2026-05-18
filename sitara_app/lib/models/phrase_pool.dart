@@ -103,12 +103,6 @@ class PhrasePool {
     ),
     zabardast,
     Phrase(
-      urdu: 'سپر! ایک اور!',
-      romanUrdu: 'Super Star! One More! YES!',
-      english: 'Super! One more!',
-      audioAsset: 'audio/praise_8.mp3',
-    ),
-    Phrase(
       urdu: 'شاندار!',
       romanUrdu: 'Incredible! Shandaar!',
       english: 'Splendid!',
@@ -119,34 +113,16 @@ class PhrasePool {
   // ── Streak tier 3 — streak ≥ 6 ──────────────────────────────────────────────
   static const _amazing = [
     Phrase(
-      urdu: 'چیمپئن! ماشاءاللہ!',
-      romanUrdu: 'CHAMPION! Masha Allah! WOW!',
-      english: 'Champion! Outstanding!',
-      audioAsset: 'audio/praise_10.mp3',
-    ),
-    Phrase(
       urdu: 'شیر بچہ! واہ!',
       romanUrdu: 'Sher Bacha! You ROCK! WOW!',
       english: 'Brave champion!',
       audioAsset: 'audio/praise_11.mp3',
     ),
     Phrase(
-      urdu: 'سپر! بہت اچھا!',
-      romanUrdu: 'WOW WOW WOW! Super! Bohat Acha!',
-      english: 'Super amazing!',
-      audioAsset: 'audio/praise_12.mp3',
-    ),
-    Phrase(
       urdu: 'ماشاءاللہ! واہ!',
       romanUrdu: 'Masha Allah! OUTSTANDING! Wow!',
       english: 'Outstanding!',
       audioAsset: 'audio/praise_13.mp3',
-    ),
-    Phrase(
-      urdu: 'سپر ہیرو!',
-      romanUrdu: 'SUPERHERO! You are AMAZING!',
-      english: 'Superhero!',
-      audioAsset: 'audio/praise_14.mp3',
     ),
   ];
 
