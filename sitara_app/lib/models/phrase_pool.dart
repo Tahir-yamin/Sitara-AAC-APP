@@ -4,11 +4,13 @@ class Phrase {
   final String urdu;
   final String romanUrdu;
   final String english;
+  final String audioAsset;
 
   const Phrase({
     required this.urdu,
     required this.romanUrdu,
     required this.english,
+    required this.audioAsset,
   });
 
   String get ttsText => urdu;
@@ -19,27 +21,27 @@ class PhrasePool {
   static final _rng = Random();
 
   static const _good = [
-    Phrase(urdu: 'شاباش!', romanUrdu: 'Shabash!', english: 'Well done!'),
-    Phrase(urdu: 'بلکل سہی!', romanUrdu: 'Bilkul sahi!', english: 'Exactly right!'),
-    Phrase(urdu: 'بہت اچھا!', romanUrdu: 'Bohat acha!', english: 'Very good!'),
-    Phrase(urdu: 'واہ! صحیح جواب!', romanUrdu: 'Wah! Sahi jawab!', english: 'Wow! Correct answer!'),
-    Phrase(urdu: 'کمال ہے!', romanUrdu: 'Kamaal hai!', english: 'Amazing!'),
+    Phrase(urdu: 'شاباش!', romanUrdu: 'Shabash!', english: 'Well done!', audioAsset: 'audio/praise_0.mp3'),
+    Phrase(urdu: 'بلکل سہی!', romanUrdu: 'Bilkul sahi!', english: 'Exactly right!', audioAsset: 'audio/praise_1.mp3'),
+    Phrase(urdu: 'بہت اچھا!', romanUrdu: 'Bohat acha!', english: 'Very good!', audioAsset: 'audio/praise_2.mp3'),
+    Phrase(urdu: 'واہ! صحیح جواب!', romanUrdu: 'Wah! Sahi jawab!', english: 'Wow! Correct answer!', audioAsset: 'audio/praise_3.mp3'),
+    Phrase(urdu: 'کمال ہے!', romanUrdu: 'Kamaal hai!', english: 'Amazing!', audioAsset: 'audio/praise_4.mp3'),
   ];
 
   static const _great = [
-    Phrase(urdu: 'واہ واہ! کمال!', romanUrdu: 'Wah wah! Kamaal!', english: 'Brilliant!'),
-    Phrase(urdu: 'بہت خوب!', romanUrdu: 'Bohat khoob!', english: 'Excellent!'),
-    Phrase(urdu: 'زبردست!', romanUrdu: 'Zabardast!', english: 'Fantastic!'),
-    Phrase(urdu: 'سوپر! ایک اور کرو!', romanUrdu: 'Super! Ek aur karo!', english: 'Super! One more!'),
-    Phrase(urdu: 'شاندار!', romanUrdu: 'Shandaar!', english: 'Splendid!'),
+    Phrase(urdu: 'واہ واہ! کمال!', romanUrdu: 'Wah wah! Kamaal!', english: 'Brilliant!', audioAsset: 'audio/praise_5.mp3'),
+    Phrase(urdu: 'بہت خوب!', romanUrdu: 'Bohat khoob!', english: 'Excellent!', audioAsset: 'audio/praise_6.mp3'),
+    Phrase(urdu: 'زبردست!', romanUrdu: 'Zabardast!', english: 'Fantastic!', audioAsset: 'audio/praise_7.mp3'),
+    Phrase(urdu: 'سوپر! ایک اور کرو!', romanUrdu: 'Super! Ek aur karo!', english: 'Super! One more!', audioAsset: 'audio/praise_8.mp3'),
+    Phrase(urdu: 'شاندار!', romanUrdu: 'Shandaar!', english: 'Splendid!', audioAsset: 'audio/praise_9.mp3'),
   ];
 
   static const _amazing = [
-    Phrase(urdu: 'تم چیمپئن ہو!', romanUrdu: 'Tum champion ho!', english: 'You are a champion!'),
-    Phrase(urdu: 'شیر بچہ!', romanUrdu: 'Sher bacha!', english: 'Brave one!'),
-    Phrase(urdu: 'تم بہت ہوشیار ہو!', romanUrdu: 'Tum bohat hoshiyar ho!', english: 'You are so smart!'),
-    Phrase(urdu: 'ماشاللہ! بہت بہت اچھا!', romanUrdu: 'Masha Allah! Bohat bohat acha!', english: 'Outstanding!'),
-    Phrase(urdu: 'سپر ہیرو!', romanUrdu: 'Superhero!', english: 'Superhero!'),
+    Phrase(urdu: 'تم چیمپئن ہو!', romanUrdu: 'Tum champion ho!', english: 'You are a champion!', audioAsset: 'audio/praise_10.mp3'),
+    Phrase(urdu: 'شیر بچہ!', romanUrdu: 'Sher bacha!', english: 'Brave one!', audioAsset: 'audio/praise_11.mp3'),
+    Phrase(urdu: 'تم بہت ہوشیار ہو!', romanUrdu: 'Tum bohat hoshiyar ho!', english: 'You are so smart!', audioAsset: 'audio/praise_12.mp3'),
+    Phrase(urdu: 'ماشاللہ! بہت بہت اچھا!', romanUrdu: 'Masha Allah! Bohat bohat acha!', english: 'Outstanding!', audioAsset: 'audio/praise_13.mp3'),
+    Phrase(urdu: 'سپر ہیرو!', romanUrdu: 'Superhero!', english: 'Superhero!', audioAsset: 'audio/praise_14.mp3'),
   ];
 
   static List<String> get greatTierRomanUrdu =>

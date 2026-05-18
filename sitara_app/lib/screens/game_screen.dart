@@ -251,7 +251,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Future<void> _speakPraiseUrdu(Phrase phrase) async {
     try {
-      await _tts.speakPraise(phrase.ttsText, phrase.romanUrdu);
+      await _tts.speakPraise(phrase);
     } catch (_) {
       await _tts.speak(phrase.romanUrdu);
     }

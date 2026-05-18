@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 /// Singleton TTS service — speaks card names in Urdu then English.
 /// Falls back to Roman Urdu (English engine) when ur-PK voice is not installed.
@@ -156,44 +157,33 @@ class TtsService {
     }
   }
 
-  Future<void> speakPraise(String urduText, String romanUrduFallback) async {
-    await _ensureReady();
-    if (!_ready) return;
+  // Keep a reference to audio player to prevent multiple simultaneous praises
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
+  Future<void> speakPraise(dynamic phrase) async {
+    // Expects phrase.audioAsset, but we use dynamic to avoid circular imports if any,
+    // though ideally we'd import phrase_pool.dart
     try {
       if (kIsWeb) {
+        // Fallback for web if assets aren't bundled properly or for simplicity
         await _setEnglishProfile();
-        await _tts.speak(romanUrduFallback);
+        await _tts.speak(phrase.romanUrdu);
         return;
       }
 
       await _tts.stop();
+      await _audioPlayer.stop();
       
-      // Explicitly try to use Google TTS engine which has superior Urdu voices
-      try {
-        await _tts.setEngine('com.google.android.tts');
-      } catch (_) {}
-
-      if (_urduAvailable) {
-        await _setUrduProfile();
-        await _tts.speak(urduText);
-      } else {
-        await _setEnglishProfile();
-        await _tts.speak(romanUrduFallback);
-      }
+      // Play the pre-generated highly realistic female Hindi/Urdu voice MP3
+      await _audioPlayer.play(AssetSource(phrase.audioAsset.replaceFirst('audio/', 'audio/')));
       
-      // Reset engine to default after praise is done
-      await _awaitCompletion();
-      try {
-        await _tts.getDefaultEngine.then((engine) {
-          if (engine != null) _tts.setEngine(engine.toString());
-        });
-      } catch (_) {}
+      // Wait for it to finish so we don't overlap with the next word
+      await Future.delayed(const Duration(milliseconds: 1500));
     } catch (e) {
       debugPrint('TtsService.speakPraise error: $e');
       try {
         await _setEnglishProfile();
-        await _tts.speak(romanUrduFallback);
+        await _tts.speak(phrase.romanUrdu);
       } catch (_) {}
     }
   }

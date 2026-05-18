@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../data/symbols_data.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String _selectedCategory = 'animals';
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +72,7 @@ class HomeScreen extends StatelessWidget {
               ),
 
               // ─── STAR MASCOT ───────────────────────────────────────
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
               const _PulsingStar(),
               const SizedBox(height: 8),
               Text(
@@ -74,14 +82,55 @@ class HomeScreen extends StatelessWidget {
                     fontSize: 14,
                     height: 1.5),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 20),
 
               // ─── ACTION CARDS ──────────────────────────────────────
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Category Selector
+                      Text(
+                        'Select Category:',
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            fontFamily: 'Nunito'),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedCategory,
+                            isExpanded: true,
+                            dropdownColor: const Color(0xFF2D2060),
+                            icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
+                            style: const TextStyle(color: Colors.white, fontSize: 16, fontFamily: 'Nunito', fontWeight: FontWeight.bold),
+                            items: SymbolsData.allCategories.map((cat) {
+                              return DropdownMenuItem(
+                                value: cat,
+                                child: Text(cat.replaceAll('_', ' ').toUpperCase()),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() => _selectedCategory = val);
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      
                       Semantics(
                         label: 'Start game session',
                         button: true,
@@ -91,7 +140,10 @@ class HomeScreen extends StatelessWidget {
                           subtitle: 'Tap & learn with Sitara',
                           color: const Color(0xFF6C63FF),
                           onTap: () => Navigator.pushNamed(context, '/game',
-                              arguments: {'childName': childName}),
+                              arguments: {
+                                'childName': childName,
+                                'initial_category': _selectedCategory
+                              }),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -107,6 +159,7 @@ class HomeScreen extends StatelessWidget {
                                   arguments: {
                                     'childName': childName,
                                     'mode': 'story',
+                                    'initial_category': _selectedCategory
                                   }),
                             ),
                           ),
