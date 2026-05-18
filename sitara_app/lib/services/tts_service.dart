@@ -41,8 +41,9 @@ class TtsService {
             for (var v in voices) {
               final name = v['name'].toString().toLowerCase();
               final locale = v['locale'].toString();
+              final gender = v['gender']?.toString().toLowerCase();
               if (locale.contains('ur-PK') || locale.contains('ur_PK')) {
-                if (name.contains('female') || name.contains('urc') || name.contains('ura') || name.contains('urf')) {
+                if (gender == 'female' || name.contains('female') || name.contains('urc') || name.contains('ura') || name.contains('urf')) {
                   _femaleUrduVoice = {'name': v['name'].toString(), 'locale': v['locale'].toString()};
                   break;
                 }
@@ -83,12 +84,22 @@ class TtsService {
       await _tts.setVoice(_femaleUrduVoice!);
     }
     // Boost pitch slightly for a softer/more feminine tone if we missed the female voice
-    await _tts.setPitch(_femaleUrduVoice != null ? 1.1 : 1.3);
+    await _tts.setPitch(1.1);
     await _tts.setSpeechRate(0.40); // Slower for clarity
   }
 
   Future<void> _setEnglishProfile() async {
-    await _tts.setLanguage('en-US');
+    final hasEnPk = await _tts.isLanguageAvailable('en-PK') == true;
+    final hasEnIn = await _tts.isLanguageAvailable('en-IN') == true;
+    
+    if (hasEnPk) {
+      await _tts.setLanguage('en-PK');
+    } else if (hasEnIn) {
+      await _tts.setLanguage('en-IN');
+    } else {
+      await _tts.setLanguage('en-US');
+    }
+    
     await _tts.setPitch(1.1);
     await _tts.setSpeechRate(0.45);
   }
@@ -175,15 +186,20 @@ class TtsService {
       await _audioPlayer.stop();
       
       // Play the pre-generated highly realistic female Hindi/Urdu voice MP3
-      await _audioPlayer.play(AssetSource(phrase.audioAsset.replaceFirst('audio/', 'audio/')));
+      await _audioPlayer.play(AssetSource(phrase.audioAsset));
       
       // Wait for it to finish so we don't overlap with the next word
-      await Future.delayed(const Duration(milliseconds: 1500));
+      await _audioPlayer.onPlayerComplete.first;
     } catch (e) {
       debugPrint('TtsService.speakPraise error: $e');
       try {
-        await _setEnglishProfile();
-        await _tts.speak(phrase.romanUrdu);
+        if (_urduAvailable) {
+          await _setUrduProfile();
+          await _tts.speak(phrase.urdu);
+        } else {
+          await _setEnglishProfile();
+          await _tts.speak(phrase.romanUrdu);
+        }
       } catch (_) {}
     }
   }
@@ -191,6 +207,8 @@ class TtsService {
   Future<void> stop() async {
     try {
       await _tts.stop();
+      await _audioPlayer.stop();
+      _audioPlayer.dispose();
     } catch (_) {}
   }
 

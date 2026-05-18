@@ -27,10 +27,7 @@ class LocalDbService {
     _prefs = await SharedPreferences.getInstance();
   }
 
-  SharedPreferences get _p {
-    if (_prefs == null) throw StateError('LocalDbService not initialized. Call init() first.');
-    return _prefs!;
-  }
+  SharedPreferences? get _p => _prefs;
 
   // ─── KEYS ──────────────────────────────────────────────────────────────────
 
@@ -44,32 +41,42 @@ class LocalDbService {
 
   Future<void> saveEvent(SessionEvent event) async {
     final key = _eventsKey(event.childId);
-    final existing = _p.getStringList(key) ?? [];
-    existing.add(jsonEncode({
-      'child_id': event.childId,
-      'event_type': event.eventType,
-      'card_id': event.cardId,
-      'category': event.category,
-      'timestamp': event.timestamp.toIso8601String(),
-      'is_success': event.isSuccess,
-      'tap_speed': event.tapSpeed,
-      'tap_count': event.tapCount,
-    }));
-    // Keep last 500 events per child to bound storage
-    if (existing.length > 500) existing.removeRange(0, existing.length - 500);
-    await _p.setStringList(key, existing);
+    final existing = _p?.getStringList(key) ?? [];
+    try {
+      existing.add(jsonEncode({
+        'child_id': event.childId,
+        'event_type': event.eventType,
+        'card_id': event.cardId,
+        'category': event.category,
+        'timestamp': event.timestamp.toIso8601String(),
+        'is_success': event.isSuccess,
+        'tap_speed': event.tapSpeed,
+        'tap_count': event.tapCount,
+      }));
+      // Keep last 500 events per child to bound storage
+      if (existing.length > 500) existing.removeRange(0, existing.length - 500);
+      await _p?.setStringList(key, existing);
+    } catch (_) {}
   }
 
   Future<List<SessionEvent>> getEventsForChild(String childId,
       {int? limitDays}) async {
     final key = _eventsKey(childId);
-    final raw = _p.getStringList(key) ?? [];
+    final raw = _p?.getStringList(key) ?? [];
     final cutoff = limitDays != null
         ? DateTime.now().subtract(Duration(days: limitDays))
         : null;
 
     return raw
-        .map((s) => jsonDecode(s) as Map<String, dynamic>)
+        .map((s) {
+          try {
+            return jsonDecode(s) as Map<String, dynamic>;
+          } catch (_) {
+            return null;
+          }
+        })
+        .where((m) => m != null)
+        .cast<Map<String, dynamic>>()
         .where((m) {
           if (cutoff == null) return true;
           return DateTime.parse(m['timestamp'] as String).isAfter(cutoff);
@@ -128,24 +135,34 @@ class LocalDbService {
     required String description,
   }) async {
     final key = _insightsKey(childId);
-    final existing = _p.getStringList(key) ?? [];
-    existing.add(jsonEncode({
-      'child_id': childId,
-      'agent': agent,
-      'insight_type': insightType,
-      'description': description,
-      'timestamp': DateTime.now().toIso8601String(),
-    }));
-    if (existing.length > 200) existing.removeRange(0, existing.length - 200);
-    await _p.setStringList(key, existing);
+    final existing = _p?.getStringList(key) ?? [];
+    try {
+      existing.add(jsonEncode({
+        'child_id': childId,
+        'agent': agent,
+        'insight_type': insightType,
+        'description': description,
+        'timestamp': DateTime.now().toIso8601String(),
+      }));
+      if (existing.length > 200) existing.removeRange(0, existing.length - 200);
+      await _p?.setStringList(key, existing);
+    } catch (_) {}
   }
 
   Future<List<Map<String, dynamic>>> getInsights(String childId,
       {int limit = 20}) async {
     final key = _insightsKey(childId);
-    final raw = _p.getStringList(key) ?? [];
+    final raw = _p?.getStringList(key) ?? [];
     final all = raw
-        .map((s) => jsonDecode(s) as Map<String, dynamic>)
+        .map((s) {
+          try {
+            return jsonDecode(s) as Map<String, dynamic>;
+          } catch (_) {
+            return null;
+          }
+        })
+        .where((m) => m != null)
+        .cast<Map<String, dynamic>>()
         .toList()
         .reversed
         .toList();
@@ -156,21 +173,31 @@ class LocalDbService {
 
   Future<void> saveGameEvent(GameEvent event) async {
     final key = _gameEventsKey(event.childId);
-    final existing = _p.getStringList(key) ?? [];
-    existing.add(jsonEncode(event.toJson()));
-    if (existing.length > 1000) existing.removeRange(0, existing.length - 1000);
-    await _p.setStringList(key, existing);
+    final existing = _p?.getStringList(key) ?? [];
+    try {
+      existing.add(jsonEncode(event.toJson()));
+      if (existing.length > 1000) existing.removeRange(0, existing.length - 1000);
+      await _p?.setStringList(key, existing);
+    } catch (_) {}
   }
 
   Future<List<GameEvent>> getGameEvents(String childId, {int? limitDays}) async {
     final key = _gameEventsKey(childId);
-    final raw = _p.getStringList(key) ?? [];
+    final raw = _p?.getStringList(key) ?? [];
     final cutoff = limitDays != null
         ? DateTime.now().subtract(Duration(days: limitDays))
         : null;
 
     final events = raw
-        .map((s) => GameEvent.fromJson(jsonDecode(s) as Map<String, dynamic>))
+        .map((s) {
+          try {
+            return GameEvent.fromJson(jsonDecode(s) as Map<String, dynamic>);
+          } catch (_) {
+            return null;
+          }
+        })
+        .where((e) => e != null)
+        .cast<GameEvent>()
         .where((e) => cutoff == null || e.timestamp.isAfter(cutoff))
         .toList()
         .reversed
@@ -186,13 +213,13 @@ class LocalDbService {
   }
 
   Future<int> getTodayPlayMinutes(String childId) async {
-    return _p.getInt(_playMinutesKey(childId, _todayDateString())) ?? 0;
+    return _p?.getInt(_playMinutesKey(childId, _todayDateString())) ?? 0;
   }
 
   Future<void> addPlayMinutes(String childId, int minutes) async {
     final key = _playMinutesKey(childId, _todayDateString());
-    final current = _p.getInt(key) ?? 0;
-    await _p.setInt(key, current + minutes);
+    final current = _p?.getInt(key) ?? 0;
+    await _p?.setInt(key, current + minutes);
   }
 
   // ─── STATS ─────────────────────────────────────────────────────────────────

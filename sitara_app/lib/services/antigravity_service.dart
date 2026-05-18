@@ -208,8 +208,8 @@ class AntigravityService extends ChangeNotifier {
     return {
       'sessions_logged': total,
       'total_adaptations': adaptations.length,
-      'categories_explored': adaptations.where((a) => a.contains('category')).length,
-      'rewards_triggered': adaptations.where((a) => a.contains('reward')).length,
+      'categories_explored': adaptations.where((a) => a == 'switch_category').length,
+      'rewards_triggered': adaptations.where((a) => a == 'trigger_reward').length,
     };
   }
 
@@ -235,7 +235,7 @@ class AntigravityService extends ChangeNotifier {
             Uri.parse('$_baseUrl/$endpoint'),
             headers: {
               'Content-Type': 'application/json',
-              'X-Sitara-Token': const String.fromEnvironment('BACKEND_TOKEN', defaultValue: 'dev-token-sitara'),
+              'X-Sitara-Token': const String.fromEnvironment('BACKEND_TOKEN', defaultValue: ''),
             },
             body: jsonEncode(body),
           )
@@ -272,7 +272,7 @@ class AntigravityService extends ChangeNotifier {
     if (events.isEmpty) return {};
     final successes = events.where((e) => e.isSuccess).length;
     final avgTapSpeed =
-        events.map((e) => e.tapSpeed).reduce((a, b) => a + b) / events.length;
+        events.fold(0.0, (sum, e) => sum + e.tapSpeed) / events.length;
     final consecutiveFails = _countConsecutiveFails(events);
 
     return {

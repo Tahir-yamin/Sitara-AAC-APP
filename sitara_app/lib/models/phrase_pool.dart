@@ -20,6 +20,11 @@ class Phrase {
 class PhrasePool {
   static final _rng = Random();
 
+  static const tryAgain = Phrase(urdu: 'محنت کرو', romanUrdu: 'Mehnat karo', english: 'Try again', audioAsset: 'audio/mehnat.mp3');
+  static const shabash = Phrase(urdu: 'شاباش!', romanUrdu: 'Shabash!', english: 'Well done!', audioAsset: 'audio/shabash.mp3');
+  static const bohatAcha = Phrase(urdu: 'بہت اچھا!', romanUrdu: 'Bohat acha!', english: 'Very good!', audioAsset: 'audio/bohat_acha.mp3');
+  static const zabardast = Phrase(urdu: 'زبردست!', romanUrdu: 'Zabardast!', english: 'Fantastic!', audioAsset: 'audio/zabardast.mp3');
+
   static const _good = [
     Phrase(urdu: 'شاباش!', romanUrdu: 'Shabash!', english: 'Well done!', audioAsset: 'audio/praise_0.mp3'),
     Phrase(urdu: 'بلکل سہی!', romanUrdu: 'Bilkul sahi!', english: 'Exactly right!', audioAsset: 'audio/praise_1.mp3'),

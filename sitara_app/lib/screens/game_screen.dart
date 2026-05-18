@@ -57,7 +57,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     super.initState();
     _agentService = context.read<AntigravityService>();
     _tracker = context.read<SessionTracker>();
-    _analytics = AnalyticsService(childId: _tracker.childId);
+    _analytics = context.read<AnalyticsService>();
 
     _confettiController = ConfettiController(duration: const Duration(milliseconds: 1500));
 
@@ -188,7 +188,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         );
         break;
       case 'trigger_reward':
-        _showReward(action.data['praise_phrase'] ?? 'Shabash!');
+        final phrase = action.data['praise_phrase'] ?? 'Shabash!';
+        _tts.speak(phrase, language: 'ur-PK');
+        _showReward(phrase);
         break;
       case 'send_break_prompt':
         _showBreakOverlay();
@@ -203,7 +205,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
   }
 
-  void _onCardTapped(SymbolCard card) {
+  Future<void> _onCardTapped(SymbolCard card) async {
     final isCorrect = card.id == _targetCard?.id;
 
     _tracker.recordEvent(
@@ -236,16 +238,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     if (isCorrect) {
       final phrase = PhrasePool.pickPraise(streak: _currentStreak);
-      _speakPraiseUrdu(phrase);
       _showReward(phrase.displayText);
-      Future.delayed(const Duration(milliseconds: 1800), () {
-        if (mounted) setState(() => _feedbackCardId = null);
-      });
-      Future.delayed(const Duration(seconds: 2), _loadCards);
+      await _speakPraiseUrdu(phrase);
+      if (mounted) setState(() => _feedbackCardId = null);
+      _loadCards();
     } else {
-      Future.delayed(const Duration(milliseconds: 600), () {
-        if (mounted) setState(() => _feedbackCardId = null);
-      });
+      await _speakPraiseUrdu(PhrasePool.tryAgain);
+      if (mounted) setState(() => _feedbackCardId = null);
     }
   }
 
@@ -631,10 +630,10 @@ class _BreakOverlayState extends State<_BreakOverlay>
               ),
             ),
             const SizedBox(height: 40),
-            const Text(
+            Text(
               'وقفہ کریں',
               textDirection: TextDirection.rtl,
-              style: TextStyle(fontSize: 32, color: Colors.white, fontWeight: FontWeight.bold),
+              style: GoogleFonts.notoNastaliqUrdu(fontSize: 32, color: Colors.white, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text(
