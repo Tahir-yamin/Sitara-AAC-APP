@@ -201,7 +201,7 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
                   ),
                 ),
 
-                // ── EMOJI VISUAL ───────────────────────────────────────────────
+                // ── PICTOGRAM VISUAL WITH EMOJI FALLBACK ────────────────────────
                 Expanded(
                   flex: 5,
                   child: Center(
@@ -223,10 +223,32 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
                             ],
                           ),
                           child: Center(
-                            child: Text(
-                              widget.card.emoji,
-                              style: TextStyle(fontSize: size * 0.56),
-                              textAlign: TextAlign.center,
+                            child: Padding(
+                              padding: EdgeInsets.all(size * 0.12),
+                              child: Image.network(
+                                widget.card.imagePath,
+                                fit: BoxFit.contain,
+                                loadingBuilder: (ctx, child, progress) {
+                                  if (progress == null) return child;
+                                  return Center(
+                                    child: CircularProgressIndicator(
+                                      value: progress.expectedTotalBytes != null
+                                          ? progress.cumulativeBytesLoaded /
+                                              progress.expectedTotalBytes!
+                                          : null,
+                                      color: accent,
+                                      strokeWidth: 2,
+                                    ),
+                                  );
+                                },
+                                errorBuilder: (ctx, e, s) => Center(
+                                  child: Text(
+                                    widget.card.emoji,
+                                    style: TextStyle(fontSize: size * 0.56),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         );
