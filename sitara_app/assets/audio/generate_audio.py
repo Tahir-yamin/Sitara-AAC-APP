@@ -246,7 +246,7 @@ def main():
     print('Sitara — Full Audio Regeneration')
     print('Voice : ur-PK-Wavenet-A  (female Pakistani WaveNet)')
     print('Files : {:d}  (card names + praise + wrong-answer)'.format(total))
-    print('Cost  : ~2,000 chars  →  FREE (1M WaveNet chars/month)')
+    print('Cost  : ~2,000 chars  ->  FREE (1M WaveNet chars/month)')
     print('=' * 65)
 
     ok_count = 0
