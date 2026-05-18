@@ -139,6 +139,7 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
               widget.card.nameUrdu,
               widget.card.nameEnglish,
               nameRomanUrdu: widget.card.nameRomanUrdu,
+              audioPath: widget.card.audioPath,
             );
           }
           widget.onTap();

@@ -1,12 +1,18 @@
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:audioplayers/audioplayers.dart';
 
 /// Singleton TTS service — speaks card names in Urdu then English.
-/// Falls back to Roman Urdu (en-IN/en-PK engine) when ur-PK voice is unavailable.
-/// Works on Android, iOS, and Web (HTML5 Audio for MP3, Web Speech API for TTS).
+///
+/// Strategy (in priority order):
+///   1. Pre-recorded female Urdu MP3 via [audioPath] (audioplayers → HTML5 Audio on web)
+///   2. Live ur-PK synthesis via Web Speech API / flutter_tts if voice is available
+///   3. Roman Urdu fallback via South Asian English voice
+///   4. English name as final fallback
+///
+/// Works on Android, iOS, and Web with natural female Pakistani voice.
 class TtsService {
   static final TtsService _instance = TtsService._internal();
   factory TtsService() => _instance;
@@ -21,7 +27,9 @@ class TtsService {
   }
 
   final FlutterTts _tts = FlutterTts();
+  final AudioPlayer _audioPlayer = AudioPlayer();
   final Completer<void> _initCompleter = Completer<void>();
+
   bool _ready = false;
   bool _urduAvailable = false;
   Map<String, String>? _femaleUrduVoice;
@@ -45,7 +53,7 @@ class TtsService {
       try {
         final List<dynamic>? voices = await _tts.getVoices;
         if (voices != null) {
-          // Find a female voice. Typically 'ur-pk-x-urc' or 'ura' are female. 'urb' is male.
+          // Find a female voice. Typically 'ur-pk-x-urc' or 'ura' are female.
           for (var v in voices) {
             final name = v['name'].toString().toLowerCase();
             final locale = v['locale'].toString();
@@ -84,7 +92,8 @@ class TtsService {
     }
 
     if (!_urduAvailable) {
-      debugPrint('TtsService: ur-PK not available; will use Roman Urdu via en-IN/en-PK/en-US');
+      debugPrint(
+          'TtsService: ur-PK not available — using pre-recorded audio assets for Urdu words.');
     }
 
     _ready = true;
@@ -104,7 +113,7 @@ class TtsService {
       await _tts.setVoice(_femaleUrduVoice!);
     }
     await _tts.setPitch(1.1);
-    await _tts.setSpeechRate(0.40); // Slower for clarity with children
+    await _tts.setSpeechRate(0.40);
   }
 
   Future<void> _setEnglishProfile() async {
@@ -124,32 +133,66 @@ class TtsService {
     await _tts.setSpeechRate(0.45);
   }
 
-  /// Speak the card name: Urdu first, then English.
-  /// Works on Android, iOS, and Web — no kIsWeb early return needed.
+  /// Speak the card name using pre-recorded Urdu audio first, then English TTS.
+  ///
+  /// [audioPath] — asset path to the pre-recorded Urdu word MP3
+  ///   (e.g. 'assets/audio/billi.mp3'). When provided and the file loads
+  ///   successfully, the female Google-generated Urdu voice plays directly.
+  ///
+  /// Falls back to Web Speech API ur-PK or Roman Urdu if audio is unavailable.
   Future<void> speakCard(
     String nameUrdu,
     String nameEnglish, {
     String? nameRomanUrdu,
+    String? audioPath,
   }) async {
     await _ensureReady();
     if (!_ready) return;
 
     try {
       await _tts.stop();
+      await _audioPlayer.stop();
 
+      // ── 1. Pre-recorded female Urdu MP3 (best quality) ─────────────────────
+      if (audioPath != null && audioPath.isNotEmpty) {
+        bool playedAudio = false;
+        try {
+          // Strip 'assets/' prefix — AssetSource adds it automatically.
+          final assetKey = audioPath.startsWith('assets/')
+              ? audioPath.substring('assets/'.length)
+              : audioPath;
+          await _audioPlayer.play(AssetSource(assetKey));
+          await _audioPlayer.onPlayerComplete.first
+              .timeout(const Duration(seconds: 6));
+          playedAudio = true;
+        } catch (e) {
+          debugPrint('TtsService: audio asset failed ($audioPath): $e');
+        }
+
+        if (playedAudio) {
+          // Audio played successfully — follow with English TTS
+          await Future.delayed(const Duration(milliseconds: 300));
+          await _setEnglishProfile();
+          await _tts.speak(nameEnglish);
+          return;
+        }
+      }
+
+      // ── 2. Live ur-PK synthesis (mobile / browser with Urdu voice) ─────────
       if (_urduAvailable) {
         await _setUrduProfile();
         await _tts.speak(nameUrdu);
         await _awaitCompletion();
         await Future.delayed(const Duration(milliseconds: 400));
       } else if (nameRomanUrdu != null && nameRomanUrdu.isNotEmpty) {
-        // Roman Urdu via South Asian English voice
+        // ── 3. Roman Urdu via South Asian English voice ──────────────────────
         await _setEnglishProfile();
         await _tts.speak(nameRomanUrdu);
         await _awaitCompletion();
         await Future.delayed(const Duration(milliseconds: 300));
       }
 
+      // ── 4. English name (always spoken after Urdu) ──────────────────────────
       await _setEnglishProfile();
       await _tts.speak(nameEnglish);
     } catch (e) {
@@ -168,7 +211,6 @@ class TtsService {
       if (language == 'ur-PK' && _urduAvailable) {
         await _setUrduProfile();
       } else {
-        // Try the requested language; fall back gracefully
         try {
           final langOk =
               language == 'en-US' || await _tts.isLanguageAvailable(language) == true;
@@ -186,11 +228,8 @@ class TtsService {
     }
   }
 
-  // Keep a single AudioPlayer instance — never dispose() a singleton player.
-  final AudioPlayer _audioPlayer = AudioPlayer();
-
   /// Play a pre-recorded female Pakistani-accented praise MP3.
-  /// audioplayers uses HTML5 Audio on web — no kIsWeb guard needed.
+  /// audioplayers uses HTML5 Audio on web — works without any special config.
   Future<void> speakPraise(dynamic phrase) async {
     try {
       await _tts.stop();
@@ -214,7 +253,6 @@ class TtsService {
   }
 
   /// Stop all audio immediately (called on screen dispose).
-  /// Uses stop() only — never dispose() so singleton survives across sessions.
   Future<void> stop() async {
     try {
       await _tts.stop();

@@ -127,6 +127,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       _targetCard!.nameUrdu,
       _targetCard!.nameEnglish,
       nameRomanUrdu: _targetCard!.nameRomanUrdu,
+      audioPath: _targetCard!.audioPath,
     );
   }
 
