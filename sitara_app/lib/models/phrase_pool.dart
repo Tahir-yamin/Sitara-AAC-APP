@@ -20,7 +20,7 @@ class Phrase {
 class PhrasePool {
   static final _rng = Random();
 
-  static const tryAgain = Phrase(urdu: 'محنت کرو', romanUrdu: 'Mehnat karo', english: 'Try again', audioAsset: 'audio/mehnat.mp3');
+  static const tryAgain = Phrase(urdu: 'پھر سے کوشش کریں!', romanUrdu: 'Phir se koshish karen!', english: 'Try again!', audioAsset: 'audio/mehnat.mp3');
   static const shabash = Phrase(urdu: 'شاباش!', romanUrdu: 'Shabash!', english: 'Well done!', audioAsset: 'audio/shabash.mp3');
   static const bohatAcha = Phrase(urdu: 'بہت اچھا!', romanUrdu: 'Bohat acha!', english: 'Very good!', audioAsset: 'audio/bohat_acha.mp3');
   static const zabardast = Phrase(urdu: 'زبردست!', romanUrdu: 'Zabardast!', english: 'Fantastic!', audioAsset: 'audio/zabardast.mp3');
@@ -44,7 +44,7 @@ class PhrasePool {
   static const _amazing = [
     Phrase(urdu: 'تم چیمپئن ہو!', romanUrdu: 'Tum champion ho!', english: 'You are a champion!', audioAsset: 'audio/praise_10.mp3'),
     Phrase(urdu: 'شیر بچہ!', romanUrdu: 'Sher bacha!', english: 'Brave one!', audioAsset: 'audio/praise_11.mp3'),
-    Phrase(urdu: 'تم بہت ہوشیار ہو!', romanUrdu: 'Tum bohat hoshiyar ho!', english: 'You are so smart!', audioAsset: 'audio/praise_12.mp3'),
+    Phrase(urdu: 'سپر! بہت اچھا!', romanUrdu: 'Super! Bohat acha!', english: 'Super! Very good!', audioAsset: 'audio/praise_12.mp3'),
     Phrase(urdu: 'ماشاللہ! بہت بہت اچھا!', romanUrdu: 'Masha Allah! Bohat bohat acha!', english: 'Outstanding!', audioAsset: 'audio/praise_13.mp3'),
     Phrase(urdu: 'سپر ہیرو!', romanUrdu: 'Superhero!', english: 'Superhero!', audioAsset: 'audio/praise_14.mp3'),
   ];

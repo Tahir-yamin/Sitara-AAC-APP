@@ -50,4 +50,5 @@ flutter:
   assets:
     - assets/logo.png
     - assets/symbols.png
+    - assets/namaz.png
     - assets/audio/

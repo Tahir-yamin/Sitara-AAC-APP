@@ -146,7 +146,7 @@ class SymbolsData {
         imagePath: _pic(6971), audioPath: 'assets/audio/daant.mp3'),
     SymbolCard(id: 'd08', nameEnglish: 'Pray', nameUrdu: 'نماز',
         nameRomanUrdu: 'Namaz', category: 'daily_routines', emoji: '🤲',
-        imagePath: _pic(30863), audioPath: 'assets/audio/namaz.mp3'),
+        imagePath: 'assets/namaz.png', audioPath: 'assets/audio/namaz.mp3'),
 
     // ── TRANSPORT (6 cards) ──────────────────────────────────────
     SymbolCard(id: 't01', nameEnglish: 'Car', nameUrdu: 'گاڑی',

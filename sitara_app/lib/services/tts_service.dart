@@ -34,6 +34,33 @@ class TtsService {
   bool _ready = false;
   bool _urduAvailable = false;
   Map<String, String>? _femaleUrduVoice;
+  Map<String, String>? _femaleFallbackVoice;
+
+  // Pre-recorded audio files with incorrect accents or poor energy to be bypassed
+  static const Set<String> _badAudioAssets = {
+    'assets/audio/behan.mp3',
+    'assets/audio/dara.mp3',
+    'assets/audio/doodh.mp3',
+    'assets/audio/kashti.mp3',
+    'assets/audio/mehnat.mp3',
+    'assets/audio/nahana.mp3',
+    'assets/audio/titli.mp3',
+    'assets/audio/bohat_acha.mp3',
+    'assets/audio/shabash.mp3',
+    'assets/audio/praise_0.mp3',
+    'assets/audio/praise_2.mp3',
+    'audio/behan.mp3',
+    'audio/dara.mp3',
+    'audio/doodh.mp3',
+    'audio/kashti.mp3',
+    'audio/mehnat.mp3',
+    'audio/nahana.mp3',
+    'audio/titli.mp3',
+    'audio/bohat_acha.mp3',
+    'audio/shabash.mp3',
+    'audio/praise_0.mp3',
+    'audio/praise_2.mp3',
+  };
 
   Future<void> _init() async {
     await _tts.setVolume(1.0);
@@ -49,12 +76,12 @@ class TtsService {
       _urduAvailable = false;
     }
 
-    if (_urduAvailable && !kIsWeb) {
-      // Voice selection only on mobile/desktop — web doesn't expose voice objects.
+    // Voice selection only on mobile/desktop — web doesn't expose voice objects.
+    if (!kIsWeb) {
       try {
         final List<dynamic>? voices = await _tts.getVoices;
         if (voices != null) {
-          // Find a female voice. Typically 'ur-pk-x-urc' or 'ura' are female.
+          // 1. Find a female Urdu voice. Typically 'ur-pk-x-urc' or 'ura' are female.
           for (var v in voices) {
             final name = v['name'].toString().toLowerCase();
             final locale = v['locale'].toString();
@@ -73,7 +100,7 @@ class TtsService {
               }
             }
           }
-          // Fallback: take first ur-PK voice that isn't 'urb' (the default male)
+          // Fallback Urdu: take first ur-PK voice that isn't 'urb' (the default male)
           if (_femaleUrduVoice == null) {
             for (var v in voices) {
               final name = v['name'].toString().toLowerCase();
@@ -88,13 +115,38 @@ class TtsService {
               }
             }
           }
+
+          // 2. Find any English female voice to serve as English/Roman Urdu female fallback
+          for (var v in voices) {
+            final name = v['name'].toString().toLowerCase();
+            final locale = v['locale'].toString();
+            final gender = v['gender']?.toString().toLowerCase();
+            if (locale.startsWith('en') || name.contains('zira') || name.contains('hazel') || name.contains('jessa') || name.contains('female')) {
+              if (gender == 'female' ||
+                  name.contains('female') ||
+                  name.contains('zira') ||
+                  name.contains('hazel') ||
+                  name.contains('jessa') ||
+                  name.contains('kalpana') ||
+                  name.contains('heera') ||
+                  name.contains('ananya') ||
+                  name.contains('jessica') ||
+                  name.contains('samantha')) {
+                _femaleFallbackVoice = {
+                  'name': v['name'].toString(),
+                  'locale': v['locale'].toString()
+                };
+                break;
+              }
+            }
+          }
         }
       } catch (_) {}
     }
 
     if (!_urduAvailable) {
       debugPrint(
-          'TtsService: ur-PK not available — using pre-recorded audio assets for Urdu words.');
+          'TtsService: ur-PK not available — using pre-recorded audio assets or English/Roman Urdu female fallback.');
     }
 
     _ready = true;
@@ -118,16 +170,22 @@ class TtsService {
   }
 
   Future<void> _setEnglishProfile() async {
-    // Pakistani / South Asian accent preference: en-PK → en-IN → en-US
-    final hasEnPk = await _tts.isLanguageAvailable('en-PK') == true;
-    final hasEnIn = await _tts.isLanguageAvailable('en-IN') == true;
-
-    if (hasEnPk) {
-      await _tts.setLanguage('en-PK');
-    } else if (hasEnIn) {
-      await _tts.setLanguage('en-IN');
+    // If a clear female fallback voice (like Microsoft Zira) is found, prioritize it to ensure female TTS
+    if (_femaleFallbackVoice != null) {
+      await _tts.setLanguage(_femaleFallbackVoice!['locale']!);
+      await _tts.setVoice(_femaleFallbackVoice!);
     } else {
-      await _tts.setLanguage('en-US');
+      // Pakistani / South Asian accent preference: en-PK → en-IN → en-US
+      final hasEnPk = await _tts.isLanguageAvailable('en-PK') == true;
+      final hasEnIn = await _tts.isLanguageAvailable('en-IN') == true;
+
+      if (hasEnPk) {
+        await _tts.setLanguage('en-PK');
+      } else if (hasEnIn) {
+        await _tts.setLanguage('en-IN');
+      } else {
+        await _tts.setLanguage('en-US');
+      }
     }
 
     await _tts.setPitch(1.1);
@@ -166,8 +224,9 @@ class TtsService {
       // If we get here, it's either bilingual or urdu-only.
       bool playedAudio = false;
 
-      // ── 1. Pre-recorded female Urdu MP3 (best quality) ─────────────────────
-      if (audioPath != null && audioPath.isNotEmpty) {
+      // ── 1. Pre-recorded female Urdu MP3 (best quality) ──
+      // Bypass if the pre-recorded audio asset has incorrect pronunciation/accent
+      if (audioPath != null && audioPath.isNotEmpty && !_badAudioAssets.contains(audioPath)) {
         try {
           // Strip 'assets/' prefix — AssetSource adds it automatically.
           final assetKey = audioPath.startsWith('assets/')
@@ -244,29 +303,27 @@ class TtsService {
       await _tts.stop();
       await _audioPlayer.stop();
 
-      // If this is the "Try again" phrase, play a short, excited voice.
-      // Since mehnat.mp3 contains a slow, long sentence "Mehnat Karo ap karsakaty hein",
-      // we bypass it and use high-pitched, excited live TTS of the short text!
-      if (phrase.audioAsset == 'audio/mehnat.mp3') {
-        throw Exception("Bypass mehnat.mp3 for short, excited live TTS");
+      // If this is one of the poorly pronounced pre-recordings, bypass it and use dynamic female live TTS!
+      if (_badAudioAssets.contains(phrase.audioAsset) || phrase.audioAsset == 'audio/mehnat.mp3') {
+        throw Exception("Bypass bad praise audio for short, excited live TTS");
       }
 
       await _audioPlayer.play(AssetSource(phrase.audioAsset));
       await _audioPlayer.onPlayerComplete.first;
     } catch (e) {
       debugPrint('TtsService.speakPraise error: $e');
-      // Fallback: live TTS in best available voice (configured to sound excited)
+      // Fallback: live TTS in best available voice (configured to sound excited and strict female)
       try {
         if (_urduAvailable) {
           await _setUrduProfile();
           await _tts.setPitch(1.3); // higher pitch for childish/excited tone
-          await _tts.setSpeechRate(0.55); // faster rate for high energy
+          await _tts.setSpeechRate(0.58); // faster rate for high energy
           await _tts.speak(phrase.urdu);
           await _awaitCompletion();
         } else {
           await _setEnglishProfile();
           await _tts.setPitch(1.3);
-          await _tts.setSpeechRate(0.55);
+          await _tts.setSpeechRate(0.58);
           await _tts.speak(phrase.romanUrdu);
           await _awaitCompletion();
         }
@@ -302,6 +359,22 @@ class TtsService {
       await _awaitCompletion();
     } catch (e) {
       debugPrint('TtsService.speakNarratorLine error: $e');
+    }
+  }
+
+  /// Speak a childlike sound cue with high pitch for sensory play (e.g. Boing, Ting, Toot-toot)
+  Future<void> speakSoundCue(String soundText) async {
+    await _ensureReady();
+    if (!_ready) return;
+    try {
+      await _tts.stop();
+      await _audioPlayer.stop();
+      await _setEnglishProfile();
+      await _tts.setPitch(1.8); // childish high pitch
+      await _tts.setSpeechRate(0.8); // fast, bouncy sound
+      await _tts.speak(soundText);
+    } catch (e) {
+      debugPrint('TtsService.speakSoundCue error: $e');
     }
   }
 

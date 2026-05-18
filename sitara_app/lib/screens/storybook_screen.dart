@@ -17,6 +17,23 @@ class _StorybookScreenState extends State<StorybookScreen>
   late AnimationController _breatheController;
   late Animation<double> _breatheAnim;
 
+  late AnimationController _catController;
+  late Animation<double> _catAnim;
+
+  late AnimationController _trainController;
+  late Animation<double> _trainAnim;
+
+  // Star spin/bounce interactive state
+  double _starAngle = 0.0;
+  double _starScale = 1.0;
+  bool _isStarTapped = false;
+
+  // Coco tap state
+  bool _isCatTapped = false;
+
+  // Train tap state
+  bool _isTrainTapped = false;
+
   // The 3 beautiful built-in children's stories in English
   static const List<Map<String, dynamic>> _stories = [
     {
@@ -24,9 +41,12 @@ class _StorybookScreenState extends State<StorybookScreen>
       'emoji': '⭐',
       'accentColor': 0xFFFFD700,
       'pages': [
-        'Look at the beautiful night sky. The soft blue star shines so bright for you.',
-        'It whispers slowly: "You are special. You are brave. And you are loved."',
-        'Close your eyes, little explorer. The stars will keep you safe all night long. Sweet dreams.',
+        'Look at the beautiful night sky. The sky is dark blue, and a soft, happy star is twinkling just for you.',
+        'The little star moves left and right! When you tap the star, it sings a sweet chime like a tiny bell: Ting!',
+        'Now, the moon wakes up with a soft, warm smile. It breathes in and out, slowly, helping you feel calm and safe.',
+        'Look at the shooting stars! They draw beautiful glowing lines across the sky. Let\'s make a quiet wish together.',
+        'The star whispers a gentle secret: "You are so special. You are brave, you are wonderful, and you are loved."',
+        'Close your eyes, little explorer. The stars are keeping you safe all night long. Sweet dreams and quiet sleep.',
       ]
     },
     {
@@ -34,9 +54,12 @@ class _StorybookScreenState extends State<StorybookScreen>
       'emoji': '🐱',
       'accentColor': 0xFFFFB800,
       'pages': [
-        'Coco is a very small, soft orange kitty. He has tiny paws and long whiskers.',
-        'He walks slowly to sit right next to you. Purr, purr, purr, Coco sings a gentle song.',
-        'Coco is your best friend. Together, you share a quiet, peaceful, and happy day.',
+        'Coco is a very small, fluffy orange kitty. He has tiny velvet paws, long white whiskers, and soft warm fur.',
+        'Tap on Coco to see him jump! When you tap his tummy, Coco does a playful little bounce: Boing!',
+        'Coco purrs happily: Purr, purr, purr. The sound is warm and cozy, like a soft blanket wrapped around you.',
+        'He rolls a little red ball of yarn across the floor. Roll, roll, roll. Watch it go! It is so fun to watch.',
+        'Coco walks slowly and sits right next to you, resting his head. He is your best friend who loves you very much.',
+        'Together, you and Coco share a quiet, peaceful, and happy day. Take a deep breath and smile with your kitty.',
       ]
     },
     {
@@ -44,9 +67,12 @@ class _StorybookScreenState extends State<StorybookScreen>
       'emoji': '🚂',
       'accentColor': 0xFF43C59E,
       'pages': [
-        'Choo-choo! The happy blue train starts its slow journey through the quiet green trees.',
-        'Chug-chug-chug. It moves rhythmically and gently past soft toys and bright colorful flowers.',
-        'We sit comfortably inside our safe carriage. The ride is slow, peaceful, and warm.',
+        'Choo-choo! The happy blue steam train starts its slow journey through the beautiful green forest.',
+        'Chug-chug-chug! Tap the train engine to hear it blow its soft horn: Toot-toot! The wheels spin around and around.',
+        'The train passes by tall green trees that sway in the wind. Friendly birds chirp from the branches: Tweet-tweet!',
+        'We look out the window and see bright, colorful flowers that dance in the sun. Yellow, red, and blue petals!',
+        'We sit comfortably inside our safe, warm carriage. The ride is slow, steady, and very relaxing.',
+        'The train safely arrives at the peaceful station. You did a wonderful job on this journey! Choo-choo!',
       ]
     }
   ];
@@ -80,7 +106,69 @@ class _StorybookScreenState extends State<StorybookScreen>
       CurvedAnimation(parent: _breatheController, curve: Curves.easeInOut),
     );
 
+    _catController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _catAnim = Tween<double>(begin: 0.0, end: -35.0).animate(
+      CurvedAnimation(parent: _catController, curve: Curves.elasticOut),
+    );
+
+    _trainController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _trainAnim = Tween<double>(begin: -15.0, end: 15.0).animate(
+      CurvedAnimation(parent: _trainController, curve: Curves.easeInOut),
+    );
+
     _checkCooldown();
+  }
+
+  void _onStarTapped() {
+    TtsService().speakSoundCue('Ting!');
+    setState(() {
+      _starAngle += 6.28; // full spin
+      _starScale = 1.4;
+      _isStarTapped = true;
+    });
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _starScale = 1.0;
+          _isStarTapped = false;
+        });
+      }
+    });
+  }
+
+  void _onCatTapped() {
+    TtsService().speakSoundCue('Boing!');
+    _catController.forward().then((_) => _catController.reverse());
+    setState(() {
+      _isCatTapped = true;
+    });
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _isCatTapped = false;
+        });
+      }
+    });
+  }
+
+  void _onTrainTapped() {
+    TtsService().speakSoundCue('Toot-toot!');
+    setState(() {
+      _isTrainTapped = true;
+    });
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) {
+        setState(() {
+          _isTrainTapped = false;
+        });
+      }
+    });
   }
 
   void _checkCooldown() {
@@ -213,6 +301,8 @@ class _StorybookScreenState extends State<StorybookScreen>
   void dispose() {
     _starController.dispose();
     _breatheController.dispose();
+    _catController.dispose();
+    _trainController.dispose();
     _cooldownTimer?.cancel();
     TtsService().stop();
     super.dispose();
@@ -557,31 +647,7 @@ class _StorybookScreenState extends State<StorybookScreen>
             flex: 4,
             child: ScaleTransition(
               scale: _breatheAnim,
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(32),
-                  border: Border.all(color: color.withValues(alpha: 0.25), width: 2),
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(emoji, style: const TextStyle(fontSize: 100)),
-                      const SizedBox(height: 16),
-                      Text(
-                        story['title'] as String,
-                        style: GoogleFonts.outfit(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              child: _buildInteractiveIllustration(color),
             ),
           ),
 
@@ -669,6 +735,307 @@ class _StorybookScreenState extends State<StorybookScreen>
             ],
           ),
           const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInteractiveIllustration(Color color) {
+    switch (_selectedStoryIndex) {
+      case 0:
+        return _buildSpaceEnvironment(color);
+      case 1:
+        return _buildCocoPlayground(color);
+      case 2:
+        return _buildForestTrainScene(color);
+      default:
+        return Center(
+          child: Text(
+            _stories[_selectedStoryIndex]['emoji'] as String,
+            style: const TextStyle(fontSize: 100),
+          ),
+        );
+    }
+  }
+
+  Widget _buildSpaceEnvironment(Color color) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF0F172A), Color(0xFF1E1B4B), Color(0xFF020617)],
+        ),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          const Positioned(top: 30, right: 40, child: Text('✨', style: TextStyle(fontSize: 20))),
+          const Positioned(bottom: 50, left: 30, child: Text('✨', style: TextStyle(fontSize: 18))),
+          const Positioned(top: 100, left: 60, child: Text('✨', style: TextStyle(fontSize: 16))),
+          const Positioned(bottom: 80, right: 60, child: Text('✨', style: TextStyle(fontSize: 22))),
+
+          // Floating breathing moon
+          Positioned(
+            top: 24,
+            left: 24,
+            child: ScaleTransition(
+              scale: _breatheAnim,
+              child: const Text('🌙', style: TextStyle(fontSize: 48)),
+            ),
+          ),
+
+          // Glowing hint/ting bubble
+          Positioned(
+            top: 30,
+            right: 0,
+            left: 0,
+            child: Center(
+              child: AnimatedOpacity(
+                opacity: _isStarTapped ? 1.0 : 0.4,
+                duration: const Duration(milliseconds: 300),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                  ),
+                  child: Text(
+                    _isStarTapped ? '✨ Ting! ✨' : 'Tap the star!',
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: _isStarTapped ? const Color(0xFFFFD700) : Colors.white70,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Central interactive twinkling Star
+          Center(
+            child: GestureDetector(
+              onTap: _onStarTapped,
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedScale(
+                scale: _starScale,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutBack,
+                child: AnimatedRotation(
+                  turns: _starAngle / 6.28,
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeInOutBack,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFFD700).withValues(alpha: 0.3),
+                          blurRadius: 40,
+                          spreadRadius: _isStarTapped ? 15 : 5,
+                        ),
+                      ],
+                    ),
+                    child: const Text(
+                      '⭐',
+                      style: TextStyle(fontSize: 110),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCocoPlayground(Color color) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFFFF7ED), Color(0xFFFED7AA), Color(0xFFFFEDD5)],
+        ),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
+      ),
+      child: Stack(
+        children: [
+          const Positioned(top: 20, right: 30, child: Text('☁️', style: TextStyle(fontSize: 32))),
+          const Positioned(top: 40, left: 40, child: Text('☁️', style: TextStyle(fontSize: 24))),
+
+          // Interactive Yarn Ball
+          Positioned(
+            bottom: 40,
+            right: 40,
+            child: ScaleTransition(
+              scale: _breatheAnim,
+              child: const Text('🧶', style: TextStyle(fontSize: 48)),
+            ),
+          ),
+
+          // Dialogue/Reaction Bubble
+          Positioned(
+            top: 30,
+            right: 0,
+            left: 0,
+            child: Center(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  _isCatTapped ? '😺 Purr! Boing!' : 'Tap Coco the cat!',
+                  style: GoogleFonts.outfit(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange.shade800,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Central interactive bouncing Cat
+          Center(
+            child: AnimatedBuilder(
+              animation: _catController,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(0, _catAnim.value),
+                  child: child,
+                );
+              },
+              child: GestureDetector(
+                onTap: _onCatTapped,
+                behavior: HitTestBehavior.opaque,
+                child: AnimatedScale(
+                  scale: _isCatTapped ? 1.3 : 1.0,
+                  duration: const Duration(milliseconds: 150),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.2),
+                    ),
+                    child: const Text(
+                      '🐱',
+                      style: TextStyle(fontSize: 100),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildForestTrainScene(Color color) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFECFDF5), Color(0xFFA7F3D0), Color(0xFF34D399)],
+        ),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
+      ),
+      child: Stack(
+        children: [
+          const Positioned(bottom: 80, left: 30, child: Text('🌲', style: TextStyle(fontSize: 48))),
+          const Positioned(bottom: 90, right: 30, child: Text('🌲', style: TextStyle(fontSize: 54))),
+          const Positioned(bottom: 100, left: 100, child: Text('🌳', style: TextStyle(fontSize: 40))),
+
+          // Action bubble
+          Positioned(
+            top: 30,
+            right: 0,
+            left: 0,
+            child: Center(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  _isTrainTapped ? '🚂 Toot-toot! Choo-choo!' : 'Tap the steam train!',
+                  style: GoogleFonts.outfit(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.teal.shade800,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Steam puff when tapped
+          if (_isTrainTapped)
+            Positioned(
+              top: 80,
+              left: 120,
+              child: ScaleTransition(
+                scale: _breatheAnim,
+                child: const Text('💨', style: TextStyle(fontSize: 36)),
+              ),
+            ),
+
+          // Central interactive chugging Train
+          Center(
+            child: AnimatedBuilder(
+              animation: _trainController,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(_trainAnim.value, 0),
+                  child: child,
+                );
+              },
+              child: GestureDetector(
+                onTap: _onTrainTapped,
+                behavior: HitTestBehavior.opaque,
+                child: AnimatedScale(
+                  scale: _isTrainTapped ? 1.25 : 1.0,
+                  duration: const Duration(milliseconds: 150),
+                  child: const Text(
+                    '🚂',
+                    style: TextStyle(fontSize: 110),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/session_event.dart';
+import 'local_db_service.dart';
 
 /// SessionTracker — ChangeNotifier that records every card interaction.
 /// Used by GameScreen to build the event list sent to AntigravityService every 30s.
@@ -65,7 +66,7 @@ class SessionTracker extends ChangeNotifier {
     _totalAttempts++;
     if (isSuccess) _totalSuccesses++;
 
-    _events.add(SessionEvent(
+    final event = SessionEvent(
       childId: _childId,
       eventType: isSuccess ? 'card_success' : 'card_fail',
       cardId: cardId,
@@ -74,9 +75,14 @@ class SessionTracker extends ChangeNotifier {
       isSuccess: isSuccess,
       tapSpeed: tapSpeed,
       tapCount: tapCount,
-    ));
+    );
+
+    _events.add(event);
 
     if (_events.length > _maxEvents) _events.removeAt(0);
+
+    // Save to SharedPreferences for persistence across restarts
+    LocalDbService.instance.saveEvent(event);
 
     notifyListeners();
   }
