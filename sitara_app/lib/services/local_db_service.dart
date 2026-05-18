@@ -10,6 +10,12 @@ import '../models/game_event.dart';
 /// Session events remain in SharedPreferences (volume too high for secure storage).
 class LocalDbService {
   LocalDbService._();
+
+  /// Protected constructor for test subclasses. Production code must use
+  /// [instance]; only test doubles should call this.
+  @visibleForTesting
+  LocalDbService.forTesting();
+
   static final LocalDbService instance = LocalDbService._();
 
   SharedPreferences? _prefs;
@@ -31,6 +37,8 @@ class LocalDbService {
   String _eventsKey(String childId) => 'events_$childId';
   String _profileKey(String childId) => 'profile_$childId';
   String _insightsKey(String childId) => 'insights_$childId';
+  String _gameEventsKey(String childId) => 'game_events_$childId';
+  String _playMinutesKey(String childId, String date) => 'play_minutes_${childId}_$date';
 
   // ─── SESSION EVENTS ────────────────────────────────────────────────────────
 
@@ -146,9 +154,6 @@ class LocalDbService {
 
   // ─── GAME EVENTS ───────────────────────────────────────────────────────────
 
-  String _gameEventsKey(String childId) => 'game_events_$childId';
-  String _dailyMinutesKey(String childId, String date) => 'daily_mins_${childId}_$date';
-
   Future<void> saveGameEvent(GameEvent event) async {
     final key = _gameEventsKey(event.childId);
     final existing = _p.getStringList(key) ?? [];
@@ -163,27 +168,31 @@ class LocalDbService {
     final cutoff = limitDays != null
         ? DateTime.now().subtract(Duration(days: limitDays))
         : null;
-    final all = raw
+
+    final events = raw
         .map((s) => GameEvent.fromJson(jsonDecode(s) as Map<String, dynamic>))
         .where((e) => cutoff == null || e.timestamp.isAfter(cutoff))
+        .toList()
+        .reversed
         .toList();
-    return all.reversed.toList();
+    return events;
+  }
+
+  String _todayDateString() {
+    final today = DateTime.now();
+    return '${today.year.toString().padLeft(4, '0')}-'
+        '${today.month.toString().padLeft(2, '0')}-'
+        '${today.day.toString().padLeft(2, '0')}';
   }
 
   Future<int> getTodayPlayMinutes(String childId) async {
-    final key = _dailyMinutesKey(childId, _todayKey());
-    return _p.getInt(key) ?? 0;
+    return _p.getInt(_playMinutesKey(childId, _todayDateString())) ?? 0;
   }
 
   Future<void> addPlayMinutes(String childId, int minutes) async {
-    final key = _dailyMinutesKey(childId, _todayKey());
+    final key = _playMinutesKey(childId, _todayDateString());
     final current = _p.getInt(key) ?? 0;
     await _p.setInt(key, current + minutes);
-  }
-
-  String _todayKey() {
-    final now = DateTime.now();
-    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
   // ─── STATS ─────────────────────────────────────────────────────────────────

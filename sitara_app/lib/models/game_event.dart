@@ -11,36 +11,23 @@ enum GameEventType {
   dailyLimitApproached,
   unknown;
 
-  String get key {
-    switch (this) {
-      case cardTapped:
-        return 'card_tapped';
-      case rewardTriggered:
-        return 'reward_triggered';
-      case difficultyAdjusted:
-        return 'difficulty_adjusted';
-      case breakShown:
-        return 'break_shown';
-      case questStarted:
-        return 'quest_started';
-      case questCompleted:
-        return 'quest_completed';
-      case agentSessionEval:
-        return 'agent_session_eval';
-      case interactionCapHit:
-        return 'interaction_cap_hit';
-      case sessionCapHit:
-        return 'session_cap_hit';
-      case dailyLimitApproached:
-        return 'daily_limit_approached';
-      case unknown:
-        return 'unknown';
-    }
-  }
+  String get key => switch (this) {
+        GameEventType.cardTapped => 'card_tapped',
+        GameEventType.rewardTriggered => 'reward_triggered',
+        GameEventType.difficultyAdjusted => 'difficulty_adjusted',
+        GameEventType.breakShown => 'break_shown',
+        GameEventType.questStarted => 'quest_started',
+        GameEventType.questCompleted => 'quest_completed',
+        GameEventType.agentSessionEval => 'agent_session_eval',
+        GameEventType.interactionCapHit => 'interaction_cap_hit',
+        GameEventType.sessionCapHit => 'session_cap_hit',
+        GameEventType.dailyLimitApproached => 'daily_limit_approached',
+        GameEventType.unknown => 'unknown',
+      };
 
-  static GameEventType fromString(String s) {
+  static GameEventType fromString(String key) {
     return GameEventType.values.firstWhere(
-      (e) => e.key == s,
+      (e) => e.key == key,
       orElse: () => GameEventType.unknown,
     );
   }
@@ -60,16 +47,16 @@ class GameEvent {
   }) : timestamp = timestamp ?? DateTime.now();
 
   Map<String, dynamic> toJson() => {
-    'type': type.key,
-    'child_id': childId,
-    'timestamp': timestamp.toIso8601String(),
-    'properties': properties,
-  };
+        'type': type.key,
+        'child_id': childId,
+        'timestamp': timestamp.toIso8601String(),
+        'properties': properties,
+      };
 
   factory GameEvent.fromJson(Map<String, dynamic> json) => GameEvent(
-    type: GameEventType.fromString(json['type'] as String),
-    childId: json['child_id'] as String,
-    properties: Map<String, dynamic>.from(json['properties'] as Map),
-    timestamp: DateTime.parse(json['timestamp'] as String),
-  );
+        type: GameEventType.fromString(json['type'] as String),
+        childId: json['child_id'] as String,
+        timestamp: DateTime.parse(json['timestamp'] as String),
+        properties: (json['properties'] as Map<String, dynamic>?) ?? {},
+      );
 }
