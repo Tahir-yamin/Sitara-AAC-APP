@@ -26,9 +26,9 @@ class PhrasePool {
   static const zabardast = Phrase(urdu: 'زبردست!', romanUrdu: 'Zabardast!', english: 'Fantastic!', audioAsset: 'audio/zabardast.mp3');
 
   static const _good = [
-    Phrase(urdu: 'شاباش!', romanUrdu: 'Shabash!', english: 'Well done!', audioAsset: 'audio/praise_0.mp3'),
+    shabash,
     Phrase(urdu: 'بلکل سہی!', romanUrdu: 'Bilkul sahi!', english: 'Exactly right!', audioAsset: 'audio/praise_1.mp3'),
-    Phrase(urdu: 'بہت اچھا!', romanUrdu: 'Bohat acha!', english: 'Very good!', audioAsset: 'audio/praise_2.mp3'),
+    bohatAcha,
     Phrase(urdu: 'واہ! صحیح جواب!', romanUrdu: 'Wah! Sahi jawab!', english: 'Wow! Correct answer!', audioAsset: 'audio/praise_3.mp3'),
     Phrase(urdu: 'کمال ہے!', romanUrdu: 'Kamaal hai!', english: 'Amazing!', audioAsset: 'audio/praise_4.mp3'),
   ];
@@ -36,7 +36,7 @@ class PhrasePool {
   static const _great = [
     Phrase(urdu: 'واہ واہ! کمال!', romanUrdu: 'Wah wah! Kamaal!', english: 'Brilliant!', audioAsset: 'audio/praise_5.mp3'),
     Phrase(urdu: 'بہت خوب!', romanUrdu: 'Bohat khoob!', english: 'Excellent!', audioAsset: 'audio/praise_6.mp3'),
-    Phrase(urdu: 'زبردست!', romanUrdu: 'Zabardast!', english: 'Fantastic!', audioAsset: 'audio/praise_7.mp3'),
+    zabardast,
     Phrase(urdu: 'سوپر! ایک اور کرو!', romanUrdu: 'Super! Ek aur karo!', english: 'Super! One more!', audioAsset: 'audio/praise_8.mp3'),
     Phrase(urdu: 'شاندار!', romanUrdu: 'Shandaar!', english: 'Splendid!', audioAsset: 'audio/praise_9.mp3'),
   ];

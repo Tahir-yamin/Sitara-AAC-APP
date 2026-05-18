@@ -208,7 +208,6 @@ class TtsService {
     try {
       await _tts.stop();
       await _audioPlayer.stop();
-      _audioPlayer.dispose();
     } catch (_) {}
   }
 
