@@ -37,7 +37,7 @@ except Exception as e:
 # ─── STORY WEAVER QUALITY CONTROL ────────────────────────────────
 VALID_CATEGORIES = ["animals", "food", "family", "emotions", "daily_routines", "transport"]
 
-def _validate_quest(quest: dict) -> tuple[bool, str]:
+def _validate_quest(quest: dict, child_id: str = "") -> tuple[bool, str]:
     """QC gate: validates Story Weaver output before returning to Flutter."""
     if not quest.get("quest_title", "").strip():
         return False, "empty quest_title"
@@ -48,6 +48,15 @@ def _validate_quest(quest: dict) -> tuple[bool, str]:
         return False, f"invalid category: {quest.get('target_category')!r}"
     if quest.get("difficulty") not in ("easy", "medium", "hard"):
         return False, "invalid difficulty"
+    if child_id:
+        try:
+            state = get_session_state(child_id)
+            if state:
+                # If target category matches child's current category and success rate is < 20% (i.e. >80% failure rate)
+                if quest.get("target_category") == state.get("current_category") and state.get("success_rate", 1.0) < 0.20:
+                    return False, f"category {quest.get('target_category')} has >80% failure rate (success rate: {state.get('success_rate')})"
+        except Exception as e:
+            print(f"[QC WARN] Could not check failure rate: {e}")
     return True, "ok"
 
 # ─── ENVIRONMENT & QUOTA ──────────────────────────────────────────
@@ -344,7 +353,7 @@ async def generate_quest_via_story_weaver(
             if clean.startswith("json"):
                 clean = clean[4:]
         parsed = json.loads(clean.strip())
-        is_valid, reason = _validate_quest(parsed)
+        is_valid, reason = _validate_quest(parsed, child_id)
         if not is_valid:
             print(f"[QC REJECTED] A2A quest failed: {reason} — using fallback")
             return {**fallback_a2a, "qc_status": "rejected", "qc_reason": reason}
@@ -691,7 +700,7 @@ async def generate_quest(data: QuestRequest):
         match = re.search(r"```(?:json)?\s*(.*?)\s*```", response_text, re.DOTALL)
         clean = match.group(1) if match else response_text.strip()
         parsed = json.loads(clean)
-        is_valid, reason = _validate_quest(parsed)
+        is_valid, reason = _validate_quest(parsed, user_id)
         if not is_valid:
             print(f"[QC REJECTED] /generate-quest: {reason} — using fallback")
             return {**fallback_quest, "qc_status": "rejected", "qc_reason": reason}

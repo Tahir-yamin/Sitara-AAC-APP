@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import '../data/symbols_data.dart';
 import '../services/tts_service.dart';
-import '../services/antigravity_service.dart';
-import '../services/session_tracker.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,7 +12,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String _selectedCategory = 'animals';
-  bool _loadingStory = false;
+  final bool _loadingStory = false;
 
   @override
   void initState() {
@@ -23,44 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
     TtsService().stop(); // Ensure all speech is killed when home screen is loaded or returned to
   }
 
-  void _generateAndLaunchStory(String childName) async {
-    setState(() => _loadingStory = true);
-    try {
-      final agentService = context.read<AntigravityService>();
-      final tracker = context.read<SessionTracker>();
-      
-      final questData = await agentService.generateQuest(
-        childId: tracker.childId,
-        preferredCategory: _selectedCategory,
-        childName: childName,
-        difficulty: 'medium', // standard story quest difficulty
-      );
-      
-      if (mounted) {
-        setState(() => _loadingStory = false);
-        Navigator.pushNamed(context, '/quest', arguments: questData);
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _loadingStory = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to weave story. Starting a custom quest offline!'),
-            backgroundColor: Color(0xFF6C63FF),
-          ),
-        );
-        // Fallback: push quest screen with offline fallback quest
-        Navigator.pushNamed(context, '/quest', arguments: {
-          'quest_title': 'The Magical Animal Quest!',
-          'urdu_hook': 'چلو کہانی شروع کریں!',
-          'story_text': 'Sitara wants to play with the lovely animals! Help her find them!',
-          'target_category': _selectedCategory,
-          'character': 'Sitara',
-          'difficulty': 'medium',
-        });
-      }
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {

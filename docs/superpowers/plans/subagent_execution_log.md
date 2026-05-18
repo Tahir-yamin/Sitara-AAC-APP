@@ -169,4 +169,30 @@
 
 ---
 
-*Ledger updated by Claude Code on 2026-05-18T (UTC+5).*
+#### ⏰ 2026-05-19 — Full QA Pass (7 Test Areas) + TTS Wrong-Answer Fix
+
+**QA Audit — Score: 7.5/10**
+* **Method**: Static source analysis against 7-area test plan covering all 47 cards, 6 categories, backend agents, TTS, storybook, offline resilience, and build readiness.
+* **Full report**: `sitara_qa_audit_report.md`
+
+* **❌ T7.3 — `flutter analyze` 7 issues found** (correcting all prior "0 issues" claims):
+  * `WARNING` `home_screen.dart:26` — unused `_generateAndLaunchStory` (dead code)
+  * `WARNING` `parent_dashboard.dart:1` — unused `import 'dart:convert'`
+  * 5 × `info` style hints (non-blocking)
+* **❌ T3.6 — ARASAAC CDN requests made** — 46/47 cards use `Image.network()`. Emoji fallback works offline. Not "zero CDN requests."
+* **⚠️ T1.7 — `_validate_quest` partial** — validates structure only, not per-child failure rate.
+* **⚠️ T6.1 — offline mode returns `actions:[]`** — game plays but no adaptive actions offline.
+* **✅ Passing**: T2.1–T2.7, T3.1–T3.2, T3.4–T3.5, T4.1–T4.3, T5.1–T5.4, T6.2–T6.3, T7.1.
+
+**TTS Wrong-Answer Fix**
+* **Trigger**: User reported wrong-answer audio still playing incorrect voice/phrase on device.
+* **Root cause**: `mehnat.mp3` was original gTTS Hindi file saying `'Mehnat karo'` — wrong phrase, wrong energy.
+* **Fix**:
+  * `phrase_pool.dart` `tryAgain` → `'اوہو! کوئی بات نہیں!'` / `'Oho! Koi baat nahi!'`, asset → `koi_baat_nai.mp3`
+  * `koi_baat_nai.mp3` generated (17KB, gTTS `lang='ur'`)
+  * `generate_audio.py` updated with warm soft SSML prosody for wrong-answer (medium rate, not emphatic)
+* **Note**: Run `generate_audio.py` with `GOOGLE_API_KEY` set to upgrade to `ur-PK-Wavenet-A` female voice.
+
+---
+
+*Ledger updated by Claude Code on 2026-05-19T (UTC+5).*

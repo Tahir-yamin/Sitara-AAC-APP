@@ -235,9 +235,9 @@ class AntigravityService extends ChangeNotifier {
 
   /// Direct client-side OpenRouter API call for weekly reports
   Future<String> _callOpenRouterDirect(String childName, Map<String, dynamic> summary) async {
-    final String p1 = 'sk-or-v';
-    final String p2 = '1-d881eec854cfdd672760021386772059c8f69584dd2d148663f5563997d04803';
-    final String openRouterKey = p1 + p2;
+    const String p1 = 'sk-or-v';
+    const String p2 = '1-d881eec854cfdd672760021386772059c8f69584dd2d148663f5563997d04803';
+    const String openRouterKey = p1 + p2;
     final url = Uri.parse('https://openrouter.ai/api/v1/chat/completions');
     final insights = _extractInsightsFromTrace();
     
@@ -338,21 +338,37 @@ class AntigravityService extends ChangeNotifier {
         }
         return data;
       } else {
-        return _localFallback(endpoint);
+        return _localFallback(endpoint, body);
       }
     } catch (e) {
-      return _localFallback(endpoint);
+      return _localFallback(endpoint, body);
     }
   }
 
   /// LOCAL FALLBACK: Rule-based adaptation when offline
   /// This ensures the app works without internet (critical for Pakistan)
-  Map<String, dynamic> _localFallback(String endpoint) {
+  Map<String, dynamic> _localFallback(String endpoint, Map<String, dynamic> body) {
     if (endpoint == 'evaluate-session') {
+      final dummySummary = {
+        'consecutive_failures': body['consecutive_failures'],
+        'success_rate': body['success_rate'],
+        'session_duration_mins': body['session_duration_mins'],
+        'total_attempts': body['cards_attempted'],
+      };
+      final heuristicActions = _heuristicAdaptation(dummySummary);
+      final rawActions = heuristicActions.map((a) => {
+        'tool': a.type,
+        'args': a.data,
+      }).toList();
+
+      final reasoning = heuristicActions.isEmpty
+          ? '[𝐎𝐅𝐅𝐋𝐈𝐍𝐄 𝐌𝐎𝐃𝐄] No internet — preserving current category'
+          : '[𝐎𝐅𝐅𝐋𝐈𝐍𝐄 𝐌𝐎𝐃𝐄] No internet — running heuristic client-side adaptation';
+
       return {
-        'mode': 'offline',
-        'reasoning': '[𝐎𝐅𝐅𝐋𝐈𝐍𝐄 𝐌𝐎𝐃𝐄] No internet — preserving current category',
-        'actions': [],
+        'mode': 'baseline_fallback',
+        'reasoning': reasoning,
+        'actions': rawActions,
       };
     }
     return {'reasoning': 'Offline mode', 'actions': []};

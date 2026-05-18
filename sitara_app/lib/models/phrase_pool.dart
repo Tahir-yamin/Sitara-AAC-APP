@@ -35,10 +35,10 @@ class PhrasePool {
 
   // ── Wrong answer ────────────────────────────────────────────────────────────
   static const tryAgain = Phrase(
-    urdu: 'واہ! پھر سے!',
-    romanUrdu: 'Wow! Try again!',
-    english: 'Wow! Try again!',
-    audioAsset: 'audio/mehnat.mp3',
+    urdu: 'اوہو! کوئی بات نہیں!',
+    romanUrdu: 'Oho! Koi baat nahi!',
+    english: 'Oho! Never mind!',
+    audioAsset: 'audio/koi_baat_nai.mp3',
   );
 
   // ── Named constants (also wired into pools below) ───────────────────────────
@@ -159,7 +159,7 @@ class PhrasePool {
   /// Matches a phrase string (from agent trigger_reward) to the nearest
   /// pre-recorded Phrase, normalising punctuation and case.
   static Phrase? findPhrase(String text) {
-    final clean = (String s) =>
+    String clean(String s) =>
         s.trim().toLowerCase().replaceAll(RegExp(r'[!.?]'), '');
     final normalised = clean(text);
     final all = [..._good, ..._great, ..._amazing, tryAgain];
