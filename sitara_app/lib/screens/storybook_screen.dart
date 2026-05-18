@@ -23,6 +23,9 @@ class _StorybookScreenState extends State<StorybookScreen>
   late AnimationController _trainController;
   late Animation<double> _trainAnim;
 
+  late AnimationController _jugnuController;
+  late Animation<double> _jugnuAnim;
+
   // Star spin/bounce interactive state
   double _starAngle = 0.0;
   double _starScale = 1.0;
@@ -34,47 +37,188 @@ class _StorybookScreenState extends State<StorybookScreen>
   // Train tap state
   bool _isTrainTapped = false;
 
-  // The 3 beautiful built-in children's stories in English
+  // Jugnu (firefly) tap state
+  bool _isJugnuTapped = false;
+  int _jugnuCount = 1;
+
+  // ── Story data: pages are Map<String,String> with 'en' and 'ur' keys ─────────
   static const List<Map<String, dynamic>> _stories = [
     {
       'title': 'The Shiny Little Star',
+      'titleUrdu': 'چمکتا چھوٹا ستارہ',
       'emoji': '⭐',
       'accentColor': 0xFFFFD700,
       'pages': [
-        'Look at the beautiful night sky. The sky is dark blue, and a soft, happy star is twinkling just for you.',
-        'The little star moves left and right! When you tap the star, it sings a sweet chime like a tiny bell: Ting!',
-        'Now, the moon wakes up with a soft, warm smile. It breathes in and out, slowly, helping you feel calm and safe.',
-        'Look at the shooting stars! They draw beautiful glowing lines across the sky. Let\'s make a quiet wish together.',
-        'The star whispers a gentle secret: "You are so special. You are brave, you are wonderful, and you are loved."',
-        'Close your eyes, little explorer. The stars are keeping you safe all night long. Sweet dreams and quiet sleep.',
-      ]
+        {
+          'en': 'Look at the beautiful night sky! The sky is deep blue, and a happy little star is twinkling just for you. It is so beautiful!',
+          'ur': 'خوبصورت رات کے آسمان کو دیکھو! آسمان گہرا نیلا ہے، اور ایک خوش چھوٹا ستارہ صرف تمہارے لیے چمک رہا ہے!',
+        },
+        {
+          'en': 'The little star moves left and right! Tap the star and it sings a sweet chime — just like a tiny golden bell: Ting! Try it!',
+          'ur': 'چھوٹا ستارہ ادھر ادھر ہلتا ہے! ستارے کو تھپتھپاؤ اور یہ ایک پیاری آواز نکالے گا — ایک چھوٹی سنہری گھنٹی کی طرح: ٹنگ!',
+        },
+        {
+          'en': 'Now the big, round moon wakes up with a warm smile. It breathes slowly in and out, gently helping you feel calm and safe.',
+          'ur': 'اب بڑا، گول چاند ایک گرم مسکراہٹ کے ساتھ جاگتا ہے۔ یہ آہستہ آہستہ سانس لیتا ہے، تمہیں پُرسکون اور محفوظ محسوس کراتا ہے۔',
+        },
+        {
+          'en': 'Look! Shooting stars zoom across the sky, drawing beautiful glowing lines. They are going so fast! Let us make a quiet wish together.',
+          'ur': 'دیکھو! ٹوٹتے ستارے آسمان میں خوبصورت چمکتی لکیریں کھینچتے ہوئے گزرتے ہیں۔ آؤ مل کر ایک خاموش خواہش مانگیں!',
+        },
+        {
+          'en': 'The star whispers a gentle secret: You are so special! You are brave, you are wonderful, and you are so very, very loved!',
+          'ur': 'ستارہ آہستہ سے ایک راز بتاتا ہے: تم بہت خاص ہو! تم بہادر ہو، تم شاندار ہو، اور تم سے بہت بہت پیار کیا جاتا ہے!',
+        },
+        {
+          'en': 'High up in the sky, friendly stars are dancing together. They twinkle and sparkle, painting the whole night with light and magic.',
+          'ur': 'اونچے آسمان پر، دوستانہ ستارے مل کر ناچ رہے ہیں۔ وہ جھلملاتے اور چمکتے ہیں، پوری رات کو روشنی اور جادو سے بھر دیتے ہیں۔',
+        },
+        {
+          'en': 'The big moon wraps you in soft, silver moonlight. It is like a cozy blanket made of starlight — warm, safe, and full of love.',
+          'ur': 'بڑا چاند تمہیں نرم چاندی کی چاندنی میں لپیٹتا ہے۔ یہ تاروں کی روشنی سے بنے آرام دہ کمبل کی طرح ہے — گرم، محفوظ اور محبت سے بھرپور۔',
+        },
+        {
+          'en': 'Your own little star has a name — its name is Sitara! She flies up high to watch over you every single night with love and care.',
+          'ur': 'تمہارے اپنے چھوٹے ستارے کا ایک نام ہے — اس کا نام ستارہ ہے! وہ ہر رات تم پر محبت اور پیار سے نظر رکھنے کے لیے اونچا اڑتی ہے۔',
+        },
+        {
+          'en': 'Close your eyes, little explorer. The stars are all around you, keeping you safe and loved. Sweet dreams and quiet, peaceful sleep.',
+          'ur': 'آنکھیں بند کرو، چھوٹے مہم جو۔ ستارے تمہارے چاروں طرف ہیں، تمہیں محفوظ اور پیارا رکھتے ہیں۔ اچھے خواب اور پُرسکون نیند!',
+        },
+      ],
     },
     {
       'title': 'Coco the Kind Cat',
+      'titleUrdu': 'کوکو پیاری بلی',
       'emoji': '🐱',
       'accentColor': 0xFFFFB800,
       'pages': [
-        'Coco is a very small, fluffy orange kitty. He has tiny velvet paws, long white whiskers, and soft warm fur.',
-        'Tap on Coco to see him jump! When you tap his tummy, Coco does a playful little bounce: Boing!',
-        'Coco purrs happily: Purr, purr, purr. The sound is warm and cozy, like a soft blanket wrapped around you.',
-        'He rolls a little red ball of yarn across the floor. Roll, roll, roll. Watch it go! It is so fun to watch.',
-        'Coco walks slowly and sits right next to you, resting his head. He is your best friend who loves you very much.',
-        'Together, you and Coco share a quiet, peaceful, and happy day. Take a deep breath and smile with your kitty.',
-      ]
+        {
+          'en': 'Coco is a small, fluffy orange kitty! He has tiny velvet paws, long white whiskers, and the warmest, softest fur you have ever felt!',
+          'ur': 'کوکو ایک چھوٹی، نرم نارنجی بلی ہے! اس کے چھوٹے مخملی پنجے، لمبی سفید مونچھیں، اور سب سے نرم اور گرم کوٹ ہے!',
+        },
+        {
+          'en': 'Tap Coco to see him jump up high! When you tap his tummy, Coco does a happy little bounce and shouts: Boing! He loves to play!',
+          'ur': 'کوکو کو تھپتھپاؤ اور دیکھو وہ اونچا کودتا ہے! جب تم اس کے پیٹ کو چھوتے ہو، کوکو خوشی سے اچھلتا ہے اور کہتا ہے: بوئنگ!',
+        },
+        {
+          'en': 'Coco purrs a happy song: Purr, purr, purr! The sound is warm and cozy, like a soft blanket all around you on a cold, quiet night.',
+          'ur': 'کوکو خوشی کا گیت گنگناتا ہے: پرر، پرر، پرر! یہ آواز گرم اور آرام دہ ہے، جیسے ٹھنڈی خاموش رات میں ایک نرم کمبل۔',
+        },
+        {
+          'en': 'He rolls a little red ball of yarn! Roll, roll, roll. Watch it go bouncing across the floor! Coco chases it with his tiny, fast paws.',
+          'ur': 'وہ اون کی ایک چھوٹی سرخ گیند لڑھکاتا ہے! لڑھکو، لڑھکو، لڑھکو۔ دیکھو یہ فرش پر اچھلتی جاتی ہے! کوکو اپنے چھوٹے تیز پنجوں سے اس کا پیچھا کرتا ہے۔',
+        },
+        {
+          'en': 'Coco sees a beautiful butterfly! He watches it flutter by — flap, flap, flap — with wide, curious eyes. So many wonderful colours!',
+          'ur': 'کوکو ایک خوبصورت تتلی دیکھتا ہے! وہ اسے پھڑپھڑاتے ہوئے دیکھتا ہے — پھڑپھڑ، پھڑپھڑ — چوڑی پیاری آنکھوں سے۔ کتنے خوبصورت رنگ!',
+        },
+        {
+          'en': 'Coco gets a little sleepy after playing so much. He yawns a big yawn — Ahhhhh! — and slowly blinks his shiny, golden eyes at you.',
+          'ur': 'بہت کھیلنے کے بعد کوکو تھوڑا نیند محسوس کرتا ہے۔ وہ ایک بڑی جمائی لیتا ہے — آہہہہہ! — اور آہستہ آہستہ اپنی سنہری چمکتی آنکھیں جھپکاتا ہے۔',
+        },
+        {
+          'en': 'Coco walks slowly and gently sits right next to you. He rests his warm, fluffy head against your arm. He loves you very, very much!',
+          'ur': 'کوکو آہستہ چلتا ہے اور آہستگی سے تمہارے بالکل پاس بیٹھتا ہے۔ وہ اپنا گرم، نرم سر تمہارے بازو سے لگاتا ہے۔ وہ تم سے بہت بہت پیار کرتا ہے!',
+        },
+        {
+          'en': 'Coco wants to share his favourite snack — a tiny warm bowl of fresh milk! Lap, lap, lap. It is so yummy! Drinking milk makes every day bright!',
+          'ur': 'کوکو اپنا پسندیدہ کھانا شیئر کرنا چاہتا ہے — تازہ دودھ کا ایک چھوٹا گرم پیالہ! لپ، لپ، لپ۔ بہت مزیدار! دودھ پینا ہر دن کو روشن بناتا ہے!',
+        },
+        {
+          'en': 'Together you and Coco share a quiet, peaceful, and very happy day. Take a deep breath, smile big, and give your little kitty a gentle hug!',
+          'ur': 'مل کر تم اور کوکو ایک پُرسکون، پُرامن، اور بہت خوش دن گزارتے ہو۔ گہری سانس لو، بڑی مسکراہٹ دو، اور اپنی پیاری بلی کو ایک پیارا گلے لگاؤ!',
+        },
+      ],
     },
     {
       'title': 'The Forest Train Adventure',
+      'titleUrdu': 'جنگل کی ریل گاڑی',
       'emoji': '🚂',
       'accentColor': 0xFF43C59E,
       'pages': [
-        'Choo-choo! The happy blue steam train starts its slow journey through the beautiful green forest.',
-        'Chug-chug-chug! Tap the train engine to hear it blow its soft horn: Toot-toot! The wheels spin around and around.',
-        'The train passes by tall green trees that sway in the wind. Friendly birds chirp from the branches: Tweet-tweet!',
-        'We look out the window and see bright, colorful flowers that dance in the sun. Yellow, red, and blue petals!',
-        'We sit comfortably inside our safe, warm carriage. The ride is slow, steady, and very relaxing.',
-        'The train safely arrives at the peaceful station. You did a wonderful job on this journey! Choo-choo!',
-      ]
-    }
+        {
+          'en': 'Choo-choo! The happy blue steam train starts its slow, steady journey through the tall, beautiful green forest! What a wonderful adventure!',
+          'ur': 'چو-چو! خوش نیلی بھاپ کی ٹرین اونچے، خوبصورت سبز جنگل سے گزرتے ہوئے اپنا آہستہ، مستقل سفر شروع کرتی ہے! کیا شاندار مہم جوئی!',
+        },
+        {
+          'en': 'Chug-chug-chug! Tap the train to hear it blow its soft horn: Toot-toot! The big round wheels spin around and around so smoothly!',
+          'ur': 'چگ-چگ-چگ! ٹرین کو تھپتھپاؤ اور سنو یہ اپنا نرم ہارن بجاتی ہے: ٹوٹ-ٹوٹ! بڑے گول پہیے بہت آرام سے گھومتے رہتے ہیں!',
+        },
+        {
+          'en': 'We pass tall green trees that sway gently in the warm wind. Friendly little birds are singing from the branches: Tweet-tweet, tweet!',
+          'ur': 'ہم اونچے سبز درختوں سے گزرتے ہیں جو گرم ہوا میں آہستہ سے جھومتے ہیں۔ پیاری چھوٹی چڑیاں شاخوں سے گاتی ہیں: چوئیں-چوئیں، چوئیں!',
+        },
+        {
+          'en': 'Look out the window! We see bright, colourful flowers dancing in the golden sunshine — yellow, red, and bright blue petals all swaying!',
+          'ur': 'کھڑکی سے باہر دیکھو! ہم سنہری دھوپ میں ناچتے چمکدار، رنگ برنگے پھول دیکھتے ہیں — پیلی، سرخ اور نیلی پتیاں لہراتی ہیں!',
+        },
+        {
+          'en': 'A little bunny hops alongside the train! Hop, hop, hop! He waves his fluffy white tail at us and then hops away into the cozy forest.',
+          'ur': 'ایک چھوٹا خرگوش ٹرین کے ساتھ ساتھ اچھلتا ہے! اچھل، اچھل، اچھل! وہ اپنی نرم سفید دم ہمیں ہلاتا ہے اور پھر آرام دہ جنگل میں غائب ہو جاتا ہے۔',
+        },
+        {
+          'en': 'We sit comfortably inside our safe, warm carriage. The ride is slow, steady, and very relaxing. We feel so happy and cozy inside!',
+          'ur': 'ہم اپنے محفوظ، گرم ڈبے میں آرام سے بیٹھتے ہیں۔ سواری آہستہ، مستقل اور بہت آرام دہ ہے۔ ہم بہت خوش اور آرام دہ محسوس کرتے ہیں!',
+        },
+        {
+          'en': 'The train goes through a short, cozy tunnel — it gets dark for a moment, then bright again! Whoosh! We are back in the warm sunshine!',
+          'ur': 'ٹرین ایک چھوٹی، آرام دہ سرنگ سے گزرتی ہے — ایک لمحے کے لیے اندھیرا ہوتا ہے، پھر دوبارہ روشن! ووش! ہم دوبارہ گرم دھوپ میں ہیں!',
+        },
+        {
+          'en': 'The forest opens wide and we see a magical waterfall! The water tumbles down with a gentle, rushing sound: Whoosh, whoosh, whoosh!',
+          'ur': 'جنگل کھل جاتا ہے اور ہم ایک جادوئی آبشار دیکھتے ہیں! پانی ایک نرم آواز کے ساتھ نیچے گرتا ہے: ووش، ووش، ووش!',
+        },
+        {
+          'en': 'The train safely arrives at the peaceful forest station. All the animals wave goodbye. You did a wonderful job on this adventure! Choo-choo!',
+          'ur': 'ٹرین محفوظ طریقے سے پُرامن جنگل کے اسٹیشن پر پہنچتی ہے۔ تمام جانور خدا حافظ کہتے ہیں۔ اس مہم جوئی میں تم نے بہت اچھا کام کیا! چو-چو!',
+        },
+      ],
+    },
+    {
+      'title': 'Sitara Aur Jugnu',
+      'titleUrdu': 'ستارہ اور جگنو',
+      'emoji': '🌙',
+      'accentColor': 0xFF7C3AED,
+      'pages': [
+        {
+          'en': 'It is a warm, beautiful summer evening in our garden. Ammi is sitting on the charpoy, and Dada Abu is smiling gently from his chair!',
+          'ur': 'ہمارے باغ میں ایک گرم، خوبصورت موسمِ گرما کی شام ہے۔ امی چارپائی پر بیٹھی ہیں، اور دادا ابو اپنی کرسی سے آہستہ سے مسکرا رہے ہیں!',
+        },
+        {
+          'en': 'Suddenly, a tiny light flickers in the dark garden — it is a jugnu! A firefly! It glows soft yellow-green, like a tiny dancing star!',
+          'ur': 'اچانک، باغ کے اندھیرے میں ایک چھوٹی روشنی چمکتی ہے — یہ ایک جگنو ہے! یہ ایک چھوٹے ناچتے ستارے کی طرح نرم پیلے-سبز رنگ میں چمکتا ہے!',
+        },
+        {
+          'en': 'Tap the jugnu to make it glow! Watch it blink on and off — flash, flash, flash! It is nature\'s own little magic lantern, just for you!',
+          'ur': 'جگنو کو تھپتھپاؤ اور اسے چمکاؤ! دیکھو یہ آن اور آف ہوتا ہے — فلیش، فلیش، فلیش! یہ قدرت کی اپنی چھوٹی جادوئی لالٹین ہے، صرف تمہارے لیے!',
+        },
+        {
+          'en': 'Dada Abu says: In my childhood, we used to catch jugnu in a jar. They would light up our room like fairy lights! What a wonderful story!',
+          'ur': 'دادا ابو کہتے ہیں: بچپن میں ہم جگنو کو شیشے کے جار میں پکڑتے تھے۔ وہ ہمارے کمرے کو پریوں کی روشنیوں کی طرح روشن کر دیتے تھے! کیا شاندار کہانی!',
+        },
+        {
+          'en': 'Ammi brings a plate of warm, crispy samosas! The smell is so yummy — warm, spicy, and delicious. She smiles and says: Khaao beta! Eat!',
+          'ur': 'امی گرم، کرارے سموسوں کی پلیٹ لاتی ہیں! خوشبو بہت لذیذ ہے — گرم، مسالہ دار، اور مزیدار۔ وہ مسکرا کر کہتی ہیں: کھاؤ بیٹا!',
+        },
+        {
+          'en': 'More and more jugnu come flying in the dark! Ten, twenty, thirty little lights! They dance together in the garden like tiny, happy stars!',
+          'ur': 'اندھیرے میں اور اور جگنو اڑتے ہوئے آتے ہیں! دس، بیس، تیس چھوٹی روشنیاں! وہ باغ میں چھوٹے خوش ستاروں کی طرح مل کر ناچتے ہیں!',
+        },
+        {
+          'en': 'Dada Abu tells a story about brave little Sitara — a girl who follows a jugnu all the way to a magical garden full of flowers and starlight!',
+          'ur': 'دادا ابو بہادر چھوٹی ستارہ کی کہانی سناتے ہیں — ایک لڑکی جو ایک جگنو کی پیروی کرتے ہوئے پھولوں اور روشنی سے بھرے ایک جادوئی باغ تک پہنچتی ہے!',
+        },
+        {
+          'en': 'Ammi gives a warm, soft hug and says: Tum bhi hamari Sitara ho! You are our very own Sitara! You shine bright like a beautiful star, always!',
+          'ur': 'امی ایک گرم، نرم گلے لگاتی ہیں اور کہتی ہیں: تم بھی ہماری ستارہ ہو! تم ہمیشہ ایک خوبصورت ستارے کی طرح چمکتے ہو!',
+        },
+        {
+          'en': 'The jugnu blink goodnight — flash, flash, flash. Dada Abu smiles, Ammi hums a soft lullaby. You are safe, you are loved. Goodnight, Sitara!',
+          'ur': 'جگنو شب بخیر کہنے کے لیے چمکتے ہیں — فلیش، فلیش، فلیش۔ دادا ابو مسکراتے ہیں، امی ایک نرم لوری گنگناتی ہیں۔ تم محفوظ ہو، تم سے پیار ہے۔ شب بخیر، ستارہ!',
+        },
+      ],
+    },
   ];
 
   int _selectedStoryIndex = 0;
@@ -122,6 +266,14 @@ class _StorybookScreenState extends State<StorybookScreen>
       CurvedAnimation(parent: _trainController, curve: Curves.easeInOut),
     );
 
+    _jugnuController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _jugnuAnim = Tween<double>(begin: 0.7, end: 1.0).animate(
+      CurvedAnimation(parent: _jugnuController, curve: Curves.easeInOut),
+    );
+
     _checkCooldown();
   }
 
@@ -166,6 +318,21 @@ class _StorybookScreenState extends State<StorybookScreen>
       if (mounted) {
         setState(() {
           _isTrainTapped = false;
+        });
+      }
+    });
+  }
+
+  void _onJugnuTapped() {
+    TtsService().speakSoundCue('Flash!');
+    setState(() {
+      _isJugnuTapped = true;
+      _jugnuCount = (_jugnuCount < 8) ? _jugnuCount + 1 : 1;
+    });
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      if (mounted) {
+        setState(() {
+          _isJugnuTapped = false;
         });
       }
     });
@@ -234,10 +401,9 @@ class _StorybookScreenState extends State<StorybookScreen>
     setState(() => _isNarrating = true);
 
     final story = _stories[_selectedStoryIndex];
-    final pages = story['pages'] as List<String>;
-    final pageText = pages[_currentPageIndex];
+    final pages = story['pages'] as List<Map<String, String>>;
+    final pageText = pages[_currentPageIndex]['en']!;
 
-    // Calm, slow narration with dynamic TTS voice configuration
     await TtsService().speakNarratorLine(pageText);
 
     if (mounted) {
@@ -248,7 +414,7 @@ class _StorybookScreenState extends State<StorybookScreen>
   void _nextPage() {
     TtsService().stop();
     final story = _stories[_selectedStoryIndex];
-    final pages = story['pages'] as List<String>;
+    final pages = story['pages'] as List<Map<String, String>>;
     if (_currentPageIndex < pages.length - 1) {
       setState(() {
         _currentPageIndex++;
@@ -278,6 +444,7 @@ class _StorybookScreenState extends State<StorybookScreen>
       _currentPageIndex = 0;
       _isPlayingStory = true;
       _isNarrating = false;
+      _jugnuCount = 1;
     });
     _narrateCurrentPage();
   }
@@ -303,6 +470,7 @@ class _StorybookScreenState extends State<StorybookScreen>
     _breatheController.dispose();
     _catController.dispose();
     _trainController.dispose();
+    _jugnuController.dispose();
     _cooldownTimer?.cancel();
     TtsService().stop();
     super.dispose();
@@ -342,9 +510,9 @@ class _StorybookScreenState extends State<StorybookScreen>
             right: 40,
             child: RotationTransition(
               turns: _starController,
-              child: Opacity(
+              child: const Opacity(
                 opacity: 0.25,
-                child: const Text('✨', style: TextStyle(fontSize: 48)),
+                child: Text('✨', style: TextStyle(fontSize: 48)),
               ),
             ),
           ),
@@ -353,9 +521,9 @@ class _StorybookScreenState extends State<StorybookScreen>
             left: 30,
             child: RotationTransition(
               turns: _starController,
-              child: Opacity(
+              child: const Opacity(
                 opacity: 0.15,
-                child: const Text('✨', style: TextStyle(fontSize: 36)),
+                child: Text('✨', style: TextStyle(fontSize: 36)),
               ),
             ),
           ),
@@ -527,16 +695,29 @@ class _StorybookScreenState extends State<StorybookScreen>
             textAlign: TextAlign.center,
           ),
         ),
-        const SizedBox(height: 8),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 32),
+        const SizedBox(height: 6),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Text(
-            'Calming English narratives with friendly illustrations for speech engagement.',
-            style: TextStyle(color: Colors.white54, fontSize: 13),
+            'کہانی پڑھو — اردو اور انگلش میں',
+            style: GoogleFonts.notoNastaliqUrdu(
+              fontSize: 14,
+              height: 2.0,
+              color: const Color(0xFFB8B0FF),
+            ),
             textAlign: TextAlign.center,
           ),
         ),
-        const SizedBox(height: 36),
+        const SizedBox(height: 4),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 32),
+          child: Text(
+            'Bilingual stories with fun animations and calm narration.',
+            style: TextStyle(color: Colors.white54, fontSize: 12),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        const SizedBox(height: 24),
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -544,6 +725,7 @@ class _StorybookScreenState extends State<StorybookScreen>
             itemBuilder: (ctx, idx) {
               final story = _stories[idx];
               final color = Color(story['accentColor'] as int);
+              final pageCount = (story['pages'] as List).length;
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 20),
@@ -579,18 +761,28 @@ class _StorybookScreenState extends State<StorybookScreen>
                                 Text(
                                   story['title'] as String,
                                   style: const TextStyle(
-                                    fontSize: 18,
+                                    fontSize: 17,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                   ),
                                 ),
-                                const SizedBox(height: 6),
+                                const SizedBox(height: 3),
+                                Text(
+                                  story['titleUrdu'] as String,
+                                  textDirection: TextDirection.rtl,
+                                  style: GoogleFonts.notoNastaliqUrdu(
+                                    fontSize: 13,
+                                    height: 1.8,
+                                    color: color.withValues(alpha: 0.85),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
                                 Row(
                                   children: [
                                     Icon(Icons.menu_book_rounded, size: 14, color: color),
                                     const SizedBox(width: 4),
                                     Text(
-                                      '${(story['pages'] as List).length} Pages of Joy',
+                                      '$pageCount Pages of Joy',
                                       style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
                                     ),
                                   ],
@@ -615,10 +807,9 @@ class _StorybookScreenState extends State<StorybookScreen>
   // Render the interactive, high-quality storybook player
   Widget _buildStoryPlayer() {
     final story = _stories[_selectedStoryIndex];
-    final pages = story['pages'] as List<String>;
-    final pageText = pages[_currentPageIndex];
+    final pages = story['pages'] as List<Map<String, String>>;
+    final page = pages[_currentPageIndex];
     final color = Color(story['accentColor'] as int);
-    final emoji = story['emoji'] as String;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
@@ -630,9 +821,9 @@ class _StorybookScreenState extends State<StorybookScreen>
             children: List.generate(
               pages.length,
               (idx) => Container(
-                width: 32,
+                width: 28,
                 height: 6,
-                margin: const EdgeInsets.symmetric(horizontal: 4),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
                 decoration: BoxDecoration(
                   color: idx <= _currentPageIndex ? color : Colors.white24,
                   borderRadius: BorderRadius.circular(3),
@@ -640,7 +831,7 @@ class _StorybookScreenState extends State<StorybookScreen>
               ),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
           // Illustration card
           Expanded(
@@ -651,35 +842,61 @@ class _StorybookScreenState extends State<StorybookScreen>
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
-          // Narrative prose block
+          // Bilingual narrative prose block
           Expanded(
             flex: 3,
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                border: Border.all(color: color.withValues(alpha: 0.18)),
               ),
               child: SingleChildScrollView(
-                child: Text(
-                  pageText,
-                  style: GoogleFonts.nunito(
-                    fontSize: 21,
-                    height: 1.6,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  textAlign: TextAlign.center,
+                child: Column(
+                  children: [
+                    // English narrative
+                    Text(
+                      page['en']!,
+                      style: GoogleFonts.nunito(
+                        fontSize: 19,
+                        height: 1.55,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+                    // Urdu subtitle
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        page['ur']!,
+                        textDirection: TextDirection.rtl,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.notoNastaliqUrdu(
+                          fontSize: 15,
+                          height: 2.0,
+                          color: color.withValues(alpha: 0.9),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // Interactive controls: Back / Speak / Next
           Row(
@@ -734,7 +951,7 @@ class _StorybookScreenState extends State<StorybookScreen>
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
         ],
       ),
     );
@@ -748,6 +965,8 @@ class _StorybookScreenState extends State<StorybookScreen>
         return _buildCocoPlayground(color);
       case 2:
         return _buildForestTrainScene(color);
+      case 3:
+        return _buildGardenScene(color);
       default:
         return Center(
           child: Text(
@@ -1034,6 +1253,140 @@ class _StorybookScreenState extends State<StorybookScreen>
                   ),
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Pakistani garden scene — Sitara Aur Jugnu
+  Widget _buildGardenScene(Color color) {
+    // Build a grid of jugnu (fireflies) based on _jugnuCount
+    final jugnuEmojis = List.generate(_jugnuCount, (i) => i);
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF0D1B2A), Color(0xFF1A2E1A), Color(0xFF0B1F0B)],
+        ),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 2),
+      ),
+      child: Stack(
+        children: [
+          // Garden greenery at bottom
+          const Positioned(bottom: 10, left: 10, child: Text('🌿', style: TextStyle(fontSize: 36))),
+          const Positioned(bottom: 10, right: 10, child: Text('🌿', style: TextStyle(fontSize: 36))),
+          const Positioned(bottom: 14, left: 55, child: Text('🌸', style: TextStyle(fontSize: 28))),
+          const Positioned(bottom: 14, right: 55, child: Text('🌸', style: TextStyle(fontSize: 28))),
+
+          // Stars in the sky
+          const Positioned(top: 24, left: 30, child: Text('✨', style: TextStyle(fontSize: 16))),
+          const Positioned(top: 18, right: 50, child: Text('✨', style: TextStyle(fontSize: 14))),
+          const Positioned(top: 40, left: 100, child: Text('✨', style: TextStyle(fontSize: 12))),
+
+          // Family members — Ammi and Dada Abu
+          const Positioned(bottom: 55, left: 16, child: Text('👩', style: TextStyle(fontSize: 36))),
+          const Positioned(bottom: 55, right: 16, child: Text('👴', style: TextStyle(fontSize: 36))),
+
+          // Floating extra jugnu when tapped
+          if (_jugnuCount > 1)
+            ...jugnuEmojis.skip(1).take(7).toList().asMap().entries.map((entry) {
+              final i = entry.key;
+              final positions = [
+                const Offset(60, 30), const Offset(140, 50), const Offset(200, 25),
+                const Offset(90, 80), const Offset(170, 70), const Offset(40, 60),
+                const Offset(230, 45),
+              ];
+              final pos = positions[i % positions.length];
+              return Positioned(
+                top: pos.dy,
+                left: pos.dx,
+                child: AnimatedBuilder(
+                  animation: _jugnuAnim,
+                  builder: (ctx, _) => Opacity(
+                    opacity: _jugnuAnim.value,
+                    child: const Text('✨', style: TextStyle(fontSize: 18)),
+                  ),
+                ),
+              );
+            }),
+
+          // Action bubble
+          Positioned(
+            top: 18,
+            right: 0,
+            left: 0,
+            child: Center(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: color.withValues(alpha: 0.35)),
+                ),
+                child: Text(
+                  _isJugnuTapped
+                      ? '✨ Flash! جگنو چمکا! ✨'
+                      : 'Tap the jugnu — جگنو کو چھوؤ!',
+                  style: GoogleFonts.outfit(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: _isJugnuTapped ? const Color(0xFFD4FF00) : Colors.white70,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Central interactive jugnu (firefly)
+          Center(
+            child: GestureDetector(
+              onTap: _onJugnuTapped,
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedBuilder(
+                animation: _jugnuAnim,
+                builder: (ctx, child) {
+                  return Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFD4FF00).withValues(
+                            alpha: _isJugnuTapped ? 0.7 : _jugnuAnim.value * 0.5,
+                          ),
+                          blurRadius: _isJugnuTapped ? 60 : 30,
+                          spreadRadius: _isJugnuTapped ? 20 : 8,
+                        ),
+                      ],
+                    ),
+                    child: AnimatedScale(
+                      scale: _isJugnuTapped ? 1.35 : 1.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Opacity(
+                        opacity: _jugnuAnim.value,
+                        child: const Text('🌟', style: TextStyle(fontSize: 96)),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+
+          // Moon in corner
+          Positioned(
+            top: 22,
+            right: 22,
+            child: ScaleTransition(
+              scale: _breatheAnim,
+              child: const Text('🌙', style: TextStyle(fontSize: 38)),
             ),
           ),
         ],

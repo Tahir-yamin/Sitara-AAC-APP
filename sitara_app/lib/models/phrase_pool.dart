@@ -17,36 +17,137 @@ class Phrase {
   String get displayText => '$urdu\n$romanUrdu';
 }
 
+/// Praise phrase pools for Sitara AAC game.
+///
+/// TEXT RULES
+/// • [urdu]       — clean Urdu script, spoken by ur-PK TTS engine.
+///                  Short (≤ 4 words). No English words here.
+/// • [romanUrdu]  — ENERGETIC mix of English + Roman Urdu, spoken by
+///                  South-Asian English TTS when ur-PK is unavailable.
+///                  Starts with a high-energy English word so even the
+///                  English-TTS fallback sounds excited.
+/// • [audioAsset] — pre-recorded female Pakistani-accented MP3 (first choice).
+///
+/// WRONG ANSWER — short, warm, never demoralising.
+/// CORRECT     — escalating energy: good → great → amazing.
 class PhrasePool {
   static final _rng = Random();
 
-  static const tryAgain = Phrase(urdu: 'پھر سے کوشش کریں!', romanUrdu: 'Phir se koshish karen!', english: 'Try again!', audioAsset: 'audio/mehnat.mp3');
-  static const shabash = Phrase(urdu: 'شاباش!', romanUrdu: 'Shabash!', english: 'Well done!', audioAsset: 'audio/shabash.mp3');
-  static const bohatAcha = Phrase(urdu: 'بہت اچھا!', romanUrdu: 'Bohat acha!', english: 'Very good!', audioAsset: 'audio/bohat_acha.mp3');
-  static const zabardast = Phrase(urdu: 'زبردست!', romanUrdu: 'Zabardast!', english: 'Fantastic!', audioAsset: 'audio/zabardast.mp3');
+  // ── Wrong answer ────────────────────────────────────────────────────────────
+  static const tryAgain = Phrase(
+    urdu: 'واہ! پھر سے!',
+    romanUrdu: 'Wow! Try again!',
+    english: 'Wow! Try again!',
+    audioAsset: 'audio/mehnat.mp3',
+  );
 
+  // ── Named constants (also wired into pools below) ───────────────────────────
+  static const shabash = Phrase(
+    urdu: 'شاباش!',
+    romanUrdu: 'Wow! Shabash!',
+    english: 'Well done!',
+    audioAsset: 'audio/shabash.mp3',
+  );
+
+  static const bohatAcha = Phrase(
+    urdu: 'بہت اچھا!',
+    romanUrdu: 'Yes! Bohat Acha!',
+    english: 'Very good!',
+    audioAsset: 'audio/bohat_acha.mp3',
+  );
+
+  static const zabardast = Phrase(
+    urdu: 'زبردست!',
+    romanUrdu: 'Amazing! Zabardast!',
+    english: 'Fantastic!',
+    audioAsset: 'audio/zabardast.mp3',
+  );
+
+  // ── Streak tier 1 — first 1-2 correct answers ───────────────────────────────
   static const _good = [
     shabash,
-    Phrase(urdu: 'بلکل سہی!', romanUrdu: 'Bilkul sahi!', english: 'Exactly right!', audioAsset: 'audio/praise_1.mp3'),
+    Phrase(
+      urdu: 'بلکل سہی!',
+      romanUrdu: 'Yes! Bilkul Sahi!',
+      english: 'Exactly right!',
+      audioAsset: 'audio/praise_1.mp3',
+    ),
     bohatAcha,
-    Phrase(urdu: 'واہ! صحیح جواب!', romanUrdu: 'Wah! Sahi jawab!', english: 'Wow! Correct answer!', audioAsset: 'audio/praise_3.mp3'),
-    Phrase(urdu: 'کمال ہے!', romanUrdu: 'Kamaal hai!', english: 'Amazing!', audioAsset: 'audio/praise_4.mp3'),
+    Phrase(
+      urdu: 'واہ! سہی جواب!',
+      romanUrdu: 'WOW! Correct! Wah!',
+      english: 'Wow! Correct!',
+      audioAsset: 'audio/praise_3.mp3',
+    ),
+    Phrase(
+      urdu: 'کمال ہے!',
+      romanUrdu: 'Amazing! Kamaal!',
+      english: 'Amazing!',
+      audioAsset: 'audio/praise_4.mp3',
+    ),
   ];
 
+  // ── Streak tier 2 — streak ≥ 3 ──────────────────────────────────────────────
   static const _great = [
-    Phrase(urdu: 'واہ واہ! کمال!', romanUrdu: 'Wah wah! Kamaal!', english: 'Brilliant!', audioAsset: 'audio/praise_5.mp3'),
-    Phrase(urdu: 'بہت خوب!', romanUrdu: 'Bohat khoob!', english: 'Excellent!', audioAsset: 'audio/praise_6.mp3'),
+    Phrase(
+      urdu: 'واہ واہ! کمال!',
+      romanUrdu: 'WOW WOW! Brilliant! Kamaal!',
+      english: 'Brilliant!',
+      audioAsset: 'audio/praise_5.mp3',
+    ),
+    Phrase(
+      urdu: 'بہت خوب!',
+      romanUrdu: 'Excellent! Bohat Khoob!',
+      english: 'Excellent!',
+      audioAsset: 'audio/praise_6.mp3',
+    ),
     zabardast,
-    Phrase(urdu: 'سوپر! ایک اور کرو!', romanUrdu: 'Super! Ek aur karo!', english: 'Super! One more!', audioAsset: 'audio/praise_8.mp3'),
-    Phrase(urdu: 'شاندار!', romanUrdu: 'Shandaar!', english: 'Splendid!', audioAsset: 'audio/praise_9.mp3'),
+    Phrase(
+      urdu: 'سپر! ایک اور!',
+      romanUrdu: 'Super Star! One More! YES!',
+      english: 'Super! One more!',
+      audioAsset: 'audio/praise_8.mp3',
+    ),
+    Phrase(
+      urdu: 'شاندار!',
+      romanUrdu: 'Incredible! Shandaar!',
+      english: 'Splendid!',
+      audioAsset: 'audio/praise_9.mp3',
+    ),
   ];
 
+  // ── Streak tier 3 — streak ≥ 6 ──────────────────────────────────────────────
   static const _amazing = [
-    Phrase(urdu: 'تم چیمپئن ہو!', romanUrdu: 'Tum champion ho!', english: 'You are a champion!', audioAsset: 'audio/praise_10.mp3'),
-    Phrase(urdu: 'شیر بچہ!', romanUrdu: 'Sher bacha!', english: 'Brave one!', audioAsset: 'audio/praise_11.mp3'),
-    Phrase(urdu: 'سپر! بہت اچھا!', romanUrdu: 'Super! Bohat acha!', english: 'Super! Very good!', audioAsset: 'audio/praise_12.mp3'),
-    Phrase(urdu: 'ماشاللہ! بہت بہت اچھا!', romanUrdu: 'Masha Allah! Bohat bohat acha!', english: 'Outstanding!', audioAsset: 'audio/praise_13.mp3'),
-    Phrase(urdu: 'سپر ہیرو!', romanUrdu: 'Superhero!', english: 'Superhero!', audioAsset: 'audio/praise_14.mp3'),
+    Phrase(
+      urdu: 'چیمپئن! ماشاءاللہ!',
+      romanUrdu: 'CHAMPION! Masha Allah! WOW!',
+      english: 'Champion! Outstanding!',
+      audioAsset: 'audio/praise_10.mp3',
+    ),
+    Phrase(
+      urdu: 'شیر بچہ! واہ!',
+      romanUrdu: 'Sher Bacha! You ROCK! WOW!',
+      english: 'Brave champion!',
+      audioAsset: 'audio/praise_11.mp3',
+    ),
+    Phrase(
+      urdu: 'سپر! بہت اچھا!',
+      romanUrdu: 'WOW WOW WOW! Super! Bohat Acha!',
+      english: 'Super amazing!',
+      audioAsset: 'audio/praise_12.mp3',
+    ),
+    Phrase(
+      urdu: 'ماشاءاللہ! واہ!',
+      romanUrdu: 'Masha Allah! OUTSTANDING! Wow!',
+      english: 'Outstanding!',
+      audioAsset: 'audio/praise_13.mp3',
+    ),
+    Phrase(
+      urdu: 'سپر ہیرو!',
+      romanUrdu: 'SUPERHERO! You are AMAZING!',
+      english: 'Superhero!',
+      audioAsset: 'audio/praise_14.mp3',
+    ),
   ];
 
   static List<String> get greatTierRomanUrdu =>
@@ -55,13 +156,17 @@ class PhrasePool {
   static List<String> get amazingTierRomanUrdu =>
       _amazing.map((p) => p.romanUrdu).toList();
 
+  /// Matches a phrase string (from agent trigger_reward) to the nearest
+  /// pre-recorded Phrase, normalising punctuation and case.
   static Phrase? findPhrase(String text) {
-    final normalizedInput = text.trim().toLowerCase().replaceAll('!', '').replaceAll('.', '').replaceAll('?', '');
-    final allPhrases = [..._good, ..._great, ..._amazing, tryAgain];
-    for (final p in allPhrases) {
-      if (p.urdu.replaceAll('!', '').replaceAll('.', '').replaceAll('?', '').trim() == text.trim() ||
-          p.romanUrdu.toLowerCase().replaceAll('!', '').replaceAll('.', '').replaceAll('?', '').trim() == normalizedInput ||
-          p.english.toLowerCase().replaceAll('!', '').replaceAll('.', '').replaceAll('?', '').trim() == normalizedInput) {
+    final clean = (String s) =>
+        s.trim().toLowerCase().replaceAll(RegExp(r'[!.?]'), '');
+    final normalised = clean(text);
+    final all = [..._good, ..._great, ..._amazing, tryAgain];
+    for (final p in all) {
+      if (clean(p.urdu) == clean(text) ||
+          clean(p.romanUrdu) == normalised ||
+          clean(p.english) == normalised) {
         return p;
       }
     }

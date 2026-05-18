@@ -312,17 +312,25 @@ class TtsService {
       await _audioPlayer.onPlayerComplete.first;
     } catch (e) {
       debugPrint('TtsService.speakPraise error: $e');
-      // Fallback: live TTS in best available voice (configured to sound excited and strict female)
+      // Fallback: live TTS — must be FEMALE and energetic.
+      //
+      // Strategy: only use ur-PK TTS when we confirmed a female Urdu voice
+      // during init. If _femaleUrduVoice is null the engine would use the
+      // default (often male) Urdu voice — in that case use the English female
+      // profile instead (which uses _femaleFallbackVoice if one was found).
       try {
-        if (_urduAvailable) {
+        if (_urduAvailable && _femaleUrduVoice != null) {
+          // Confirmed female ur-PK voice — use it with excitement settings.
           await _setUrduProfile();
-          await _tts.setPitch(1.3); // higher pitch for childish/excited tone
-          await _tts.setSpeechRate(0.58); // faster rate for high energy
+          await _tts.setPitch(1.3);
+          await _tts.setSpeechRate(0.56);
           await _tts.speak(phrase.urdu);
           await _awaitCompletion();
         } else {
+          // No confirmed female Urdu voice → English female profile.
+          // romanUrdu is already energetic mixed text (e.g. "Wow! Phir se!")
           await _setEnglishProfile();
-          await _tts.setPitch(1.3);
+          await _tts.setPitch(1.2);
           await _tts.setSpeechRate(0.58);
           await _tts.speak(phrase.romanUrdu);
           await _awaitCompletion();
