@@ -188,9 +188,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         );
         break;
       case 'trigger_reward':
-        final phrase = action.data['praise_phrase'] ?? 'Shabash!';
-        _tts.speak(phrase, language: 'ur-PK');
-        _showReward(phrase);
+        final phraseStr = action.data['praise_phrase'] ?? 'Shabash!';
+        final phrase = PhrasePool.findPhrase(phraseStr) ?? PhrasePool.shabash;
+        _speakPraiseUrdu(phrase);
+        _showReward(phrase.displayText);
         break;
       case 'send_break_prompt':
         _showBreakOverlay();

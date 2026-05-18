@@ -172,16 +172,7 @@ class TtsService {
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   Future<void> speakPraise(dynamic phrase) async {
-    // Expects phrase.audioAsset, but we use dynamic to avoid circular imports if any,
-    // though ideally we'd import phrase_pool.dart
     try {
-      if (kIsWeb) {
-        // Fallback for web if assets aren't bundled properly or for simplicity
-        await _setEnglishProfile();
-        await _tts.speak(phrase.romanUrdu);
-        return;
-      }
-
       await _tts.stop();
       await _audioPlayer.stop();
       
@@ -193,7 +184,10 @@ class TtsService {
     } catch (e) {
       debugPrint('TtsService.speakPraise error: $e');
       try {
-        if (_urduAvailable) {
+        if (kIsWeb) {
+          await _setEnglishProfile();
+          await _tts.speak(phrase.romanUrdu);
+        } else if (_urduAvailable) {
           await _setUrduProfile();
           await _tts.speak(phrase.urdu);
         } else {

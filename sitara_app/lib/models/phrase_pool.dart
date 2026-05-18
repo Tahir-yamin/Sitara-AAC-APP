@@ -55,6 +55,19 @@ class PhrasePool {
   static List<String> get amazingTierRomanUrdu =>
       _amazing.map((p) => p.romanUrdu).toList();
 
+  static Phrase? findPhrase(String text) {
+    final normalizedInput = text.trim().toLowerCase().replaceAll('!', '').replaceAll('.', '').replaceAll('?', '');
+    final allPhrases = [..._good, ..._great, ..._amazing, tryAgain];
+    for (final p in allPhrases) {
+      if (p.urdu.replaceAll('!', '').replaceAll('.', '').replaceAll('?', '').trim() == text.trim() ||
+          p.romanUrdu.toLowerCase().replaceAll('!', '').replaceAll('.', '').replaceAll('?', '').trim() == normalizedInput ||
+          p.english.toLowerCase().replaceAll('!', '').replaceAll('.', '').replaceAll('?', '').trim() == normalizedInput) {
+        return p;
+      }
+    }
+    return null;
+  }
+
   static Phrase pickPraise({required int streak}) {
     final pool = streak >= 6 ? _amazing : (streak >= 3 ? _great : _good);
     return pool[_rng.nextInt(pool.length)];
