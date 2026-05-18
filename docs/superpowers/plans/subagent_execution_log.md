@@ -153,4 +153,20 @@
 
 ---
 
-*Ledger updated by Antigravity Agent on 2026-05-18T00:45:00+05:00.*
+#### ⏰ 2026-05-18 (UTC+5) — ARASAAC Image ID Audit: 20 Critical Mismatches Found & Fixed
+* **Trigger**: User reported pictures and naming convention not matching in the running app.
+* **Method**: Full API audit of all 47 symbol cards in `lib/data/symbols_data.dart` using:
+  * `GET https://api.arasaac.org/v1/pictograms/en/{id}` — verified what each ID actually shows
+  * `GET https://api.arasaac.org/v1/pictograms/en/search/{keyword}` — found correct IDs per concept
+* **Severity**: **Critical for UX** — autistic children were being shown completely unrelated or broken images while being asked to identify a card by name.
+* **Root Cause**: A prior "correct ARASAAC image IDs" fix introduced unverified replacement IDs. Without API confirmation, a wrong integer shows a random unrelated pictogram.
+* **Findings — 20 cards wrong out of 47:**
+  * 🔴 **3 broken images (404)**: Angry (35534), Scared (35540), Tired (6348) — IDs do not exist in ARASAAC at all
+  * 🔴 **17 wrong images**: Banana→heart attack, Milk→number 5, Egg→internet, Bread→"bad", Orange→sausages, Baby→back bridge, Play→southern hemisphere map, Walk→bird's beak, Study→handcuffs, Brush Teeth→witch, Pray→tax office, Car→air conditioner, Bus→popcorn, Bicycle→comb, Airplane→butter, Boat→tennis ball, Motorcycle→number 1
+* **Fix**: All 20 IDs corrected in `lib/data/symbols_data.dart`. No logic change — integer constants only.
+* **Verified correct (27 cards)**: All 10 animals, food (mango/roti/rice/water/apple), family (mother/father/grandmother/brother/sister/grandfather), emotions (happy/sad/hungry), daily routines (sleep/eat/bath).
+* **Post-fix**: `flutter analyze` — 0 issues. Full correction table recorded in `docs/game_improvements_changelog.md`.
+
+---
+
+*Ledger updated by Claude Code on 2026-05-18T (UTC+5).*

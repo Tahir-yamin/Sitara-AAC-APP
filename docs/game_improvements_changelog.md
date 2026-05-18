@@ -246,3 +246,57 @@ b8dc309 feat: add font scaling safety to SymbolCardWidget text
 ---
 
 *Generated 2026-05-17 | Updated with code reviews, fixes, and documentation*
+
+---
+
+## Post-Submission Audit: ARASAAC Image ID Audit & Mass Fix
+
+> **Date:** 2026-05-18  
+> **Trigger:** User reported pictures and naming convention not matching in app  
+> **Method:** Full API audit — queried `https://api.arasaac.org/v1/pictograms/en/{id}` and `en/search/{keyword}` for all 47 cards  
+> **File:** `lib/data/symbols_data.dart`
+
+### Findings
+
+**20 out of 47 cards were displaying completely wrong images.** The errors were severe — children were seeing a heart attack diagram instead of a banana, handcuffs instead of a study book, a witch instead of a toothbrush, and three emotion cards (Angry, Scared, Tired) were showing 404 broken images because the IDs did not exist in ARASAAC.
+
+### Root Cause
+
+A previous "fix: correct ARASAAC image IDs" commit (commit `1b4345c`) introduced replacement IDs that were not verified against the ARASAAC catalog. The IDs are random integers — without API verification, an off-by-one or copy-paste error produces a completely unrelated image.
+
+### Full Correction Table
+
+| Card | Old ID | Old image (what was actually shown) | New ID | Correct image |
+|------|--------|--------------------------------------|--------|---------------|
+| Banana | 5490 | Heart attack diagram | **2530** | Banana |
+| Milk | 4893 | Number "5" | **2445** | Milk carton |
+| Egg | 5492 | Internet / Cyberspace | **2427** | Egg |
+| Bread (Double Roti) | 5504 | "Bad" (moral concept) | **10232** | Loaf of bread |
+| Orange | 10225 | Sausages / cold meat | **2483** | Orange fruit |
+| Baby | 38288 | Back bridge (gymnastics) | **2275** | Baby |
+| Angry | 35534 | **404 — image did not exist** | **35539** | Angry face |
+| Scared | 35540 | **404 — image did not exist** | **35535** | Scared face |
+| Tired | 6348 | **404 — image did not exist** | **35537** | Tired face |
+| Play | 10286 | Southern hemisphere map | **6537** | Playing (verb) |
+| Walk | 5538 | Bird's beak | **8649** | Walking person |
+| Study | 3307 | Handcuffs | **6495** | Studying |
+| Brush Teeth | 5404 | Witch | **6971** | Brushing teeth |
+| Pray | 35447 | Tax office building | **30863** | Praying hands |
+| Car | 2640 | Air conditioner | **2339** | Car |
+| Bus | 5534 | Popcorn | **2262** | Bus |
+| Bicycle | 2512 | Comb | **6935** | Bicycle |
+| Airplane | 2461 | Butter | **6924** | Aeroplane |
+| Boat | 2514 | Tennis ball | **6932** | Boat |
+| Motorcycle | 2627 | Number "1" | **7166** | Motorbike |
+
+### Verified Correct (27 cards — unchanged)
+
+All 10 animals (cat, dog, bird, fish, cow, horse, elephant, rabbit, butterfly, lion), food (mango, roti, rice, water, apple), family (mother, father, grandmother, brother, sister, grandfather), emotions (happy, sad, hungry), and daily routines (sleep, eat, bath) were confirmed correct via API.
+
+### Process
+
+Each ID was verified by calling the ARASAAC REST API directly:
+- `GET https://api.arasaac.org/v1/pictograms/en/{id}` — returns keyword/name of that specific ID
+- `GET https://api.arasaac.org/v1/pictograms/en/search/{keyword}` — returns correct IDs for each concept
+
+All 47 cards audited. 20 corrected. `flutter analyze` — 0 issues (no logic change, only integer constants).

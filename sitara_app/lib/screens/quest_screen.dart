@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/tts_service.dart';
 
 /// QuestScreen — rendered when Therapy Director triggers 'generate_quest_via_story_weaver'.
 /// Receives quest JSON from game_screen via Navigator.pushNamed(context, '/quest', arguments: questData).
@@ -46,6 +47,7 @@ class _QuestScreenState extends State<QuestScreen>
   @override
   void initState() {
     super.initState();
+    TtsService().stop(); // Silence the app immediately on entering Quest screen
     _entranceController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),

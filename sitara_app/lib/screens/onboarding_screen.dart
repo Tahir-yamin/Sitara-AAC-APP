@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'dart:math';
 import '../services/local_db_service.dart';
 import '../services/session_tracker.dart';
+import '../services/tts_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -16,6 +17,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   final _nameController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    TtsService().stop();
+  }
 
   final List<_OnboardingPage> _pages = const [
     _OnboardingPage(

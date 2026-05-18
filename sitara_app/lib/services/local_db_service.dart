@@ -222,6 +222,18 @@ class LocalDbService {
     await _p?.setInt(key, current + minutes);
   }
 
+  // ─── SETTINGS ──────────────────────────────────────────────────────────────
+
+  static const String _ttsLanguageModeKey = 'setting_tts_language_mode';
+
+  Future<void> saveTtsLanguageMode(String mode) async {
+    await _p?.setString(_ttsLanguageModeKey, mode);
+  }
+
+  String getTtsLanguageMode() {
+    return _p?.getString(_ttsLanguageModeKey) ?? 'bilingual';
+  }
+
   // ─── STATS ─────────────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getWeekStats(String childId) async {
@@ -247,5 +259,18 @@ class LocalDbService {
       'avg_tap_speed': avgSpeed,
       'success_rate': successes / events.length,
     };
+  }
+
+  // ─── STORYBOOK COOLDOWN ───────────────────────────────────────────────────
+
+  static const String _lastStoryPlayTimeKey = 'setting_last_story_play_time';
+
+  Future<void> saveLastStoryPlayTime(DateTime timestamp) async {
+    await _p?.setString(_lastStoryPlayTimeKey, timestamp.toIso8601String());
+  }
+
+  DateTime? getLastStoryPlayTime() {
+    final raw = _p?.getString(_lastStoryPlayTimeKey);
+    return raw != null ? DateTime.parse(raw) : null;
   }
 }

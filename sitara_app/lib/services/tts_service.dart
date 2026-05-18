@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'local_db_service.dart';
 
 /// Singleton TTS service — speaks card names in Urdu then English.
 ///
@@ -149,13 +150,24 @@ class TtsService {
     await _ensureReady();
     if (!_ready) return;
 
+    final mode = LocalDbService.instance.getTtsLanguageMode();
+
     try {
       await _tts.stop();
       await _audioPlayer.stop();
 
+      // If english mode, skip Urdu completely and only speak English
+      if (mode == 'english') {
+        await _setEnglishProfile();
+        await _tts.speak(nameEnglish);
+        return;
+      }
+
+      // If we get here, it's either bilingual or urdu-only.
+      bool playedAudio = false;
+
       // ── 1. Pre-recorded female Urdu MP3 (best quality) ─────────────────────
       if (audioPath != null && audioPath.isNotEmpty) {
-        bool playedAudio = false;
         try {
           // Strip 'assets/' prefix — AssetSource adds it automatically.
           final assetKey = audioPath.startsWith('assets/')
@@ -168,33 +180,30 @@ class TtsService {
         } catch (e) {
           debugPrint('TtsService: audio asset failed ($audioPath): $e');
         }
+      }
 
-        if (playedAudio) {
-          // Audio played successfully — follow with English TTS
-          await Future.delayed(const Duration(milliseconds: 300));
+      if (!playedAudio) {
+        // ── 2. Live ur-PK synthesis (mobile / browser with Urdu voice) ─────────
+        if (_urduAvailable) {
+          await _setUrduProfile();
+          await _tts.speak(nameUrdu);
+          await _awaitCompletion();
+          await Future.delayed(const Duration(milliseconds: 400));
+        } else if (nameRomanUrdu != null && nameRomanUrdu.isNotEmpty) {
+          // ── 3. Roman Urdu via South Asian English voice ──────────────────────
           await _setEnglishProfile();
-          await _tts.speak(nameEnglish);
-          return;
+          await _tts.speak(nameRomanUrdu);
+          await _awaitCompletion();
+          await Future.delayed(const Duration(milliseconds: 300));
         }
       }
 
-      // ── 2. Live ur-PK synthesis (mobile / browser with Urdu voice) ─────────
-      if (_urduAvailable) {
-        await _setUrduProfile();
-        await _tts.speak(nameUrdu);
-        await _awaitCompletion();
-        await Future.delayed(const Duration(milliseconds: 400));
-      } else if (nameRomanUrdu != null && nameRomanUrdu.isNotEmpty) {
-        // ── 3. Roman Urdu via South Asian English voice ──────────────────────
-        await _setEnglishProfile();
-        await _tts.speak(nameRomanUrdu);
-        await _awaitCompletion();
+      // ── 4. English name (only spoken after Urdu if mode is bilingual) ──────────────────────────
+      if (mode == 'bilingual') {
         await Future.delayed(const Duration(milliseconds: 300));
+        await _setEnglishProfile();
+        await _tts.speak(nameEnglish);
       }
-
-      // ── 4. English name (always spoken after Urdu) ──────────────────────────
-      await _setEnglishProfile();
-      await _tts.speak(nameEnglish);
     } catch (e) {
       debugPrint('TtsService.speakCard error: $e');
     }
@@ -235,20 +244,64 @@ class TtsService {
       await _tts.stop();
       await _audioPlayer.stop();
 
+      // If this is the "Try again" phrase, play a short, excited voice.
+      // Since mehnat.mp3 contains a slow, long sentence "Mehnat Karo ap karsakaty hein",
+      // we bypass it and use high-pitched, excited live TTS of the short text!
+      if (phrase.audioAsset == 'audio/mehnat.mp3') {
+        throw Exception("Bypass mehnat.mp3 for short, excited live TTS");
+      }
+
       await _audioPlayer.play(AssetSource(phrase.audioAsset));
       await _audioPlayer.onPlayerComplete.first;
     } catch (e) {
       debugPrint('TtsService.speakPraise error: $e');
-      // Fallback: live TTS in best available voice
+      // Fallback: live TTS in best available voice (configured to sound excited)
       try {
         if (_urduAvailable) {
           await _setUrduProfile();
+          await _tts.setPitch(1.3); // higher pitch for childish/excited tone
+          await _tts.setSpeechRate(0.55); // faster rate for high energy
           await _tts.speak(phrase.urdu);
+          await _awaitCompletion();
         } else {
           await _setEnglishProfile();
+          await _tts.setPitch(1.3);
+          await _tts.setSpeechRate(0.55);
           await _tts.speak(phrase.romanUrdu);
+          await _awaitCompletion();
         }
       } catch (_) {}
+    }
+  }
+
+  /// Speak a story page or narrator line slowly and soothingly.
+  Future<void> speakNarratorLine(String text) async {
+    await _ensureReady();
+    if (!_ready) return;
+
+    try {
+      await _tts.stop();
+      await _audioPlayer.stop();
+
+      // South Asian or standard English voice but even slower (0.35 rate) for clear speech training
+      final hasEnPk = await _tts.isLanguageAvailable('en-PK') == true;
+      final hasEnIn = await _tts.isLanguageAvailable('en-IN') == true;
+
+      if (hasEnPk) {
+        await _tts.setLanguage('en-PK');
+      } else if (hasEnIn) {
+        await _tts.setLanguage('en-IN');
+      } else {
+        await _tts.setLanguage('en-US');
+      }
+
+      await _tts.setPitch(1.0);
+      await _tts.setSpeechRate(0.35); // Slow, clear pronunciation for autistic kids
+
+      await _tts.speak(text);
+      await _awaitCompletion();
+    } catch (e) {
+      debugPrint('TtsService.speakNarratorLine error: $e');
     }
   }
 

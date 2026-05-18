@@ -10,9 +10,23 @@ I have successfully verified the live **Sitara Web Application** on Firebase Hos
 
 ## 📸 Firebase Web Visual Verification
 
-Below is the verified welcome page screenshot from the live Firebase Hosting deployment:
+Below are the verified welcome page and active pictogram card grid screenshots from the live Firebase Hosting deployment:
 
+````carousel
 ![Sitara Welcome Web Screen](file:///D:/my-dev-knowledge-base/sitara/sitara_home_page_1779103835858.png)
+<!-- slide -->
+![Sitara Pictograms Loading Grid](file:///D:/my-dev-knowledge-base/sitara/docs/demo/pictograms_grid.png)
+<!-- slide -->
+![Sitara Verification Session WebP Recording](file:///D:/my-dev-knowledge-base/sitara/docs/demo/verify_pictograms_loading.webp)
+````
+
+### 🖼️ Still Pictures (ARASAAC Pictograms) Loading Verification
+*   **Status**: Verified **SUCCESSFUL** ✅
+*   **Verification Method**: Ran a live browser automation session under the name **"Zara"** to complete onboarding, navigate to the **"FOOD"** category, and load the play grid.
+*   **Findings**:
+    *   Still drawings (ARASAAC pictograms) such as the **Apple (سیب)** and **Orange (مالٹا)** load beautifully inside the circular white containers.
+    *   Color-coded category tags, borders, and multi-language Urdu/English labels are rendered correctly.
+    *   No broken links or emoji fallbacks are active, proving the ARASAAC API ID audit has resolved all visual mismatches.
 
 ---
 

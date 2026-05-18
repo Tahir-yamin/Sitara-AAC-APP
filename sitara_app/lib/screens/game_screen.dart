@@ -13,6 +13,7 @@ import '../widgets/agent_trace_widget.dart';
 import '../data/symbols_data.dart';
 import '../models/symbol_card.dart';
 import '../models/phrase_pool.dart';
+import '../services/local_db_service.dart';
 import '../services/tts_service.dart';
 
 class GameScreen extends StatefulWidget {
@@ -242,8 +243,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       final phrase = PhrasePool.pickPraise(streak: _currentStreak);
       _showReward(phrase.displayText);
       await _speakPraiseUrdu(phrase);
-      if (mounted) setState(() => _feedbackCardId = null);
-      _loadCards();
+      
+      // Delay to let the child celebrate and enjoy confetti before next round target speech
+      await Future.delayed(const Duration(milliseconds: 2000));
+      
+      if (mounted) {
+        setState(() {
+          _feedbackCardId = null;
+        });
+        _loadCards();
+      }
     } else {
       await _speakPraiseUrdu(PhrasePool.tryAgain);
       if (mounted) setState(() => _feedbackCardId = null);
@@ -445,10 +454,68 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       appBar: AppBar(
         backgroundColor: const Color(0xFF6C63FF),
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.home_rounded),
+          tooltip: 'Back to Home',
+          onPressed: () {
+            _tts.stop();
+            Navigator.of(context).pop();
+          },
+        ),
         title: Row(
           children: [
             const Text('⭐ Sitara', style: TextStyle(fontWeight: FontWeight.bold)),
             const Spacer(),
+            // TTS LANGUAGE SELECTOR
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.translate_rounded, color: Colors.white),
+              tooltip: 'TTS Language Preference',
+              onSelected: (String choice) {
+                LocalDbService.instance.saveTtsLanguageMode(choice);
+                setState(() {});
+                // Proactively speak target to confirm language setting immediately
+                _speakTarget();
+              },
+              itemBuilder: (BuildContext context) {
+                final currentMode = LocalDbService.instance.getTtsLanguageMode();
+                return [
+                  PopupMenuItem<String>(
+                    value: 'bilingual',
+                    child: Row(
+                      children: [
+                        const Text('🔊 '),
+                        const Text('Bilingual (Urdu + English)', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Spacer(),
+                        if (currentMode == 'bilingual') const Icon(Icons.check_rounded, color: Color(0xFF6C63FF)),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'urdu',
+                    child: Row(
+                      children: [
+                        const Text('🇵🇰 '),
+                        const Text('Urdu Only', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Spacer(),
+                        if (currentMode == 'urdu') const Icon(Icons.check_rounded, color: Color(0xFF6C63FF)),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'english',
+                    child: Row(
+                      children: [
+                        const Text('🇬🇧 '),
+                        const Text('English Only', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Spacer(),
+                        if (currentMode == 'english') const Icon(Icons.check_rounded, color: Color(0xFF6C63FF)),
+                      ],
+                    ),
+                  ),
+                ];
+              },
+            ),
+            const SizedBox(width: 4),
             // BENCHMARK TOGGLE: Switch between agentic AI and fixed-rule heuristic
             GestureDetector(
               onTap: () => setState(() {

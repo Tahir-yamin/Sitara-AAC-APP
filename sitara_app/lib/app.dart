@@ -6,6 +6,7 @@ import 'screens/home_screen.dart';
 import 'screens/game_screen.dart';
 import 'screens/quest_screen.dart';
 import 'screens/parent_dashboard.dart';
+import 'screens/storybook_screen.dart';
 
 class SitaraApp extends StatelessWidget {
   const SitaraApp({super.key});
@@ -32,6 +33,7 @@ class SitaraApp extends StatelessWidget {
         '/game':        (ctx) => const GameScreen(),
         '/quest':       (ctx) => const QuestScreen(),   // A2A: Story Weaver output
         '/parent':      (ctx) => const ParentDashboard(),
+        '/storybook':   (ctx) => const StorybookScreen(),
       },
     );
   }
