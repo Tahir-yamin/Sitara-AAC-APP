@@ -3,17 +3,22 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/symbol_card.dart';
 import '../services/tts_service.dart';
 
-/// SymbolCardWidget
-/// Displays a professional ARASAAC pictogram (CC BY-NC-SA) loaded from CDN.
-/// Falls back to a large emoji if the network image fails (offline mode).
+/// SymbolCardWidget — emoji-primary AAC card.
+///
+/// Shows a large emoji as the guaranteed-correct visual (no CDN dependency,
+/// no wrong-category images, works offline). Category colour-coding provides
+/// instant visual context for children and therapists.
 class SymbolCardWidget extends StatefulWidget {
   final SymbolCard card;
   final VoidCallback onTap;
-  /// When false, the widget skips its own TTS (e.g. game_screen handles it).
+
+  /// When false the widget skips its own TTS (game_screen handles it instead).
   final bool speakOnTap;
-  /// Triggers bounce animation + green flash when set to true.
+
+  /// Triggers bounce animation + green flash.
   final bool showCorrect;
-  /// Triggers shake animation + red flash when set to true.
+
+  /// Triggers shake animation + red flash.
   final bool showIncorrect;
 
   const SymbolCardWidget({
@@ -37,42 +42,50 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
   late Animation<double> _bounceAnim;
   late AnimationController _shakeController;
   late Animation<double> _shakeAnim;
+
   Color? _flashColor;
   bool _isPressed = false;
 
-  // Per-category accent colours
-  static const Map<String, Color> _categoryColors = {
-    'animals':        Color(0xFF43C59E), // teal-green
-    'food':           Color(0xFFFFB800), // warm amber
-    'family':         Color(0xFFFF6584), // rose-pink
-    'emotions':       Color(0xFF6C63FF), // indigo
-    'daily_routines': Color(0xFF00BCD4), // cyan
-    'transport':      Color(0xFFFF9800), // orange
+  // ── Category palette ────────────────────────────────────────────────────────
+  static const Map<String, _CategoryStyle> _styles = {
+    'animals':        _CategoryStyle(Color(0xFF2EB87E), Color(0xFFE8FBF4), '🌿', 'Animals'),
+    'food':           _CategoryStyle(Color(0xFFE8930A), Color(0xFFFFF8EC), '🍽️', 'Food'),
+    'family':         _CategoryStyle(Color(0xFFE0457B), Color(0xFFFFEDF4), '❤️', 'Family'),
+    'emotions':       _CategoryStyle(Color(0xFF6C63FF), Color(0xFFF0EFFE), '💜', 'Emotions'),
+    'daily_routines': _CategoryStyle(Color(0xFF0097B2), Color(0xFFE5F8FB), '⭐', 'Routines'),
+    'transport':      _CategoryStyle(Color(0xFFF07020), Color(0xFFFFF2EA), '🚦', 'Transport'),
   };
 
+  _CategoryStyle get _style =>
+      _styles[widget.card.category] ??
+      const _CategoryStyle(Color(0xFF6C63FF), Color(0xFFF0EFFE), '✨', '');
+
+  // ── Lifecycle ────────────────────────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
+
     _scaleController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 120));
-    _scaleAnim = Tween(begin: 1.0, end: 0.93).animate(
+        vsync: this, duration: const Duration(milliseconds: 110));
+    _scaleAnim = Tween(begin: 1.0, end: 0.92).animate(
       CurvedAnimation(parent: _scaleController, curve: Curves.easeOut),
     );
 
     _bounceController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 350));
+        vsync: this, duration: const Duration(milliseconds: 380));
     _bounceAnim = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.15), weight: 40),
-      TweenSequenceItem(tween: Tween(begin: 1.15, end: 1.0), weight: 60),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.18), weight: 40),
+      TweenSequenceItem(tween: Tween(begin: 1.18, end: 0.95), weight: 25),
+      TweenSequenceItem(tween: Tween(begin: 0.95, end: 1.0),  weight: 35),
     ]).animate(CurvedAnimation(parent: _bounceController, curve: Curves.easeOut));
 
     _shakeController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 300));
+        vsync: this, duration: const Duration(milliseconds: 320));
     _shakeAnim = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 0.0, end: -8.0), weight: 20),
-      TweenSequenceItem(tween: Tween(begin: -8.0, end: 8.0), weight: 40),
-      TweenSequenceItem(tween: Tween(begin: 8.0, end: -8.0), weight: 20),
-      TweenSequenceItem(tween: Tween(begin: -8.0, end: 0.0), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: 0.0,  end: -9.0), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: -9.0, end:  9.0), weight: 40),
+      TweenSequenceItem(tween: Tween(begin:  9.0, end: -5.0), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: -5.0, end:  0.0), weight: 20),
     ]).animate(CurvedAnimation(parent: _shakeController, curve: Curves.linear));
   }
 
@@ -80,11 +93,11 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
   void didUpdateWidget(SymbolCardWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.showCorrect && !oldWidget.showCorrect) {
-      setState(() => _flashColor = Colors.greenAccent);
+      setState(() => _flashColor = const Color(0xFF00C853));
       _bounceController.forward(from: 0);
     }
     if (widget.showIncorrect && !oldWidget.showIncorrect) {
-      setState(() => _flashColor = Colors.redAccent);
+      setState(() => _flashColor = const Color(0xFFFF1744));
       _shakeController.forward(from: 0);
     }
     if (!widget.showCorrect && !widget.showIncorrect) {
@@ -92,27 +105,27 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
     }
   }
 
-  Color get _accent =>
-      _categoryColors[widget.card.category] ?? const Color(0xFF6C63FF);
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    _bounceController.dispose();
+    _shakeController.dispose();
+    super.dispose();
+  }
 
-  bool get _isNetworkImage =>
-      widget.card.imagePath.startsWith('http');
-
-  Widget _emojiFallback() => LayoutBuilder(
-    builder: (ctx, constraints) => Center(
-      child: Text(
-        widget.card.emoji,
-        style: TextStyle(fontSize: constraints.maxHeight * 0.65),
-      ),
-    ),
-  );
-
+  // ── Build ────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final accent = _style.accent;
+    final bg     = _style.bg;
+
+    final borderColor = _flashColor ??
+        (_isPressed ? accent : accent.withValues(alpha: 0.35));
+    final borderWidth = (_flashColor != null || _isPressed) ? 3.0 : 1.8;
+
     return Semantics(
       label: '${widget.card.nameEnglish}, ${widget.card.nameRomanUrdu}',
       button: true,
-      enabled: true,
       child: GestureDetector(
         onTapDown: (_) {
           _scaleController.forward();
@@ -121,9 +134,12 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
         onTapUp: (_) {
           _scaleController.reverse();
           setState(() => _isPressed = false);
-          // 🔊 Speak card name (unless caller suppresses it for its own TTS flow)
           if (widget.speakOnTap) {
-            TtsService().speakCard(widget.card.nameUrdu, widget.card.nameEnglish);
+            TtsService().speakCard(
+              widget.card.nameUrdu,
+              widget.card.nameEnglish,
+              nameRomanUrdu: widget.card.nameRomanUrdu,
+            );
           }
           widget.onTap();
         },
@@ -141,89 +157,122 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
             ),
           ),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 120),
+            duration: const Duration(milliseconds: 130),
             decoration: BoxDecoration(
-              color: _flashColor?.withValues(alpha: 0.15) ?? Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: _flashColor ?? (_isPressed ? _accent : _accent.withValues(alpha: 0.28)),
-                width: (_flashColor != null || _isPressed) ? 3.5 : 1.5,
-              ),
+              color: _flashColor != null
+                  ? _flashColor!.withValues(alpha: 0.12)
+                  : bg,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: borderColor, width: borderWidth),
               boxShadow: [
                 BoxShadow(
-                  color: (_flashColor ?? _accent).withValues(alpha: _isPressed ? 0.28 : 0.12),
-                  blurRadius: _isPressed ? 20 : 10,
-                  offset: const Offset(0, 4),
+                  color: (_flashColor ?? accent)
+                      .withValues(alpha: _isPressed ? 0.30 : 0.14),
+                  blurRadius: _isPressed ? 18 : 8,
+                  offset: const Offset(0, 3),
                 ),
               ],
             ),
             child: Column(
               children: [
-                // ── PICTOGRAM ──────────────────────────────────────────
-                Expanded(
-                  flex: 5,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 4),
-                    child: _isNetworkImage
-                        ? Image.network(
-                            widget.card.imagePath,
-                            fit: BoxFit.contain,
-                            loadingBuilder: (ctx, child, progress) {
-                              if (progress == null) return child;
-                              return Center(
-                                child: CircularProgressIndicator(
-                                  value: progress.expectedTotalBytes != null
-                                      ? progress.cumulativeBytesLoaded /
-                                          progress.expectedTotalBytes!
-                                      : null,
-                                  color: _accent,
-                                  strokeWidth: 2,
-                                ),
-                              );
-                            },
-                            errorBuilder: (ctx, e, s) => _emojiFallback(),
-                          )
-                        : Image.asset(
-                            widget.card.imagePath,
-                            fit: BoxFit.contain,
-                            errorBuilder: (ctx, e, s) => _emojiFallback(),
-                          ),
+                // ── CATEGORY PILL ──────────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 2.5),
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        _style.label,
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: accent,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
 
-                // ── LABEL BAR ─────────────────────────────────────────
+                // ── EMOJI VISUAL ───────────────────────────────────────────────
+                Expanded(
+                  flex: 5,
+                  child: Center(
+                    child: LayoutBuilder(
+                      builder: (ctx, constraints) {
+                        final size = constraints.maxHeight * 0.78;
+                        return Container(
+                          width: size,
+                          height: size,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: accent.withValues(alpha: 0.18),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              widget.card.emoji,
+                              style: TextStyle(fontSize: size * 0.56),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+
+                // ── LABEL BAR ─────────────────────────────────────────────────
                 Container(
                   width: double.infinity,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                  padding: const EdgeInsets.fromLTRB(6, 8, 6, 10),
                   decoration: BoxDecoration(
-                    color: _accent.withValues(alpha: 0.10),
+                    color: accent.withValues(alpha: 0.10),
                     borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(24),
-                      bottomRight: Radius.circular(24),
+                      bottomLeft:  Radius.circular(20),
+                      bottomRight: Radius.circular(20),
                     ),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Urdu — large, RTL, Noto Nastaliq Urdu for correct script rendering
+                      // Urdu — Noto Nastaliq for correct script rendering
                       Text(
                         widget.card.nameUrdu,
                         textDirection: TextDirection.rtl,
-                        style: GoogleFonts.notoNastaliqUrdu(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                          color: _accent,
-                          height: 1.4,
-                        ),
                         textAlign: TextAlign.center,
+                        style: GoogleFonts.notoNastaliqUrdu(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: accent,
+                          height: 1.5,
+                        ),
                       ),
                       const SizedBox(height: 1),
-                      // English — small, grey
+                      // English — small, muted
                       Text(
                         widget.card.nameEnglish,
-                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                         textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[600],
+                          letterSpacing: 0.2,
+                        ),
                       ),
                     ],
                   ),
@@ -235,12 +284,14 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
       ),
     );
   }
+}
 
-  @override
-  void dispose() {
-    _scaleController.dispose();
-    _bounceController.dispose();
-    _shakeController.dispose();
-    super.dispose();
-  }
+// ── Helper ─────────────────────────────────────────────────────────────────────
+class _CategoryStyle {
+  final Color  accent;
+  final Color  bg;
+  final String icon;   // unused but kept for future category header use
+  final String label;
+
+  const _CategoryStyle(this.accent, this.bg, this.icon, this.label);
 }
