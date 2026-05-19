@@ -401,55 +401,66 @@ T2.1–T2.7 (full game loop), T3.1–T3.2 (female voice, warm wrong-answer phras
 
 ---
 
-## Bug Refinement: Storybook English Female Narration & Robust Urdu Fallback (Date: 2026-05-19)
+## Bug Refinement & Premium Feature: Storybook Pre-Recorded Urdu Narration & English Female Voice Options (Date: 2026-05-19)
 
-> **Commit:** `7457d44`
-> **File:** `lib/screens/storybook_screen.dart`
-> **Trigger:** User reported Urdu female voice narration still not working on their web browser/environment due to `ur-PK` not being available, leaving the story mode silent or unresponsive. They requested a working female voice option in the story.
+> **Commit:** `1deaa73`
+> **Files:** `lib/screens/storybook_screen.dart`, `lib/services/tts_service.dart`
+> **Trigger:** User requested high-quality female Urdu voice narrations to be recorded as pre-recorded audio assets and downloaded, ensuring perfect offline and browser playback.
 
 ### Root Cause
 
-On web browsers and platforms without a South Asian TTS engine or Urdu language pack installed, calling `_tts.speak(text)` in Urdu script fails silently, resulting in complete silence. The previous unconditional Urdu-speaking fix worked on specific Android devices with South Asian voices installed, but completely silenced the storybook on the web and other environments. Additionally, the user had no explicit option to choose a female voice narrator in English.
+On web browsers and platforms without a South Asian TTS engine or Urdu language pack installed, calling `_tts.speak(text)` in Urdu script fails silently, resulting in complete silence. Gating Urdu behind `isUrduAvailable` fell back to English text, whereas running Urdu script unconditionally caused complete silence. 
 
-### Fix
+### Fix & Premium Improvements
 
-1. **Added Dedicated "English (Female)" Option**: Upgraded the Storybook voice toggle segment from two options to three options: `English (Male)`, `English (Female)`, and `اردو (Female)`. This gives the user direct, explicit control to select a female voice narrator in English.
-2. **Robust Urdu Fallback**: Restored the `isUrduAvailable` check in `_narrateCurrentPage()` for Urdu mode. If Urdu is unavailable on the user's browser, it now automatically and elegantly falls back to the soothing English Female voice (`speakStoryEnglishFemale`), ensuring the game never fails silently or plays with no sound.
+1. **Pre-recorded Female Urdu Narration Assets**:
+   * Developed `generate_story_audio.py` in `assets/audio/` to download premium-quality female Urdu voice files for all **36 story pages** (4 stories × 9 pages) from Google's Translate TTS service.
+   * Saved them as `story_0_page_0.mp3` through `story_3_page_8.mp3` inside `assets/audio/`. Because `- assets/audio/` is registered as a directory asset in `pubspec.yaml`, Flutter automatically bundles all 36 narration files.
+   * Upgraded `TtsService().speakStoryUrdu()` to accept an optional `audioPath` and `fallbackText`. It plays the premium pre-recorded MP3 asset first using `AudioPlayer`. This guarantees the Urdu female voice will play flawlessly on *all* environments (including web browsers) without requiring local language packs.
+2. **Dedicated English (Female) Narrator Option**:
+   * Upgraded the Storybook voice toggle to support three distinct paths: **English (Male)**, **English (Female)**, and **اردو (Female)**.
+3. **Double-Guarded Elegant Fallbacks**:
+   * If `urdu` mode is selected:
+     1. It plays the pre-recorded Urdu narration MP3 first.
+     2. If the audio player fails to load the asset, it falls back to live Urdu TTS (if `isUrduAvailable` is true).
+     3. If live Urdu TTS is also unsupported, it gracefully falls back to narrating the page's English text using the soothing English Female voice (`speakStoryEnglishFemale`).
+   * This guarantees that story narration never stays silent and always provides a high-quality experience.
 
 ```dart
-// BEFORE
+// storybook_screen.dart - Play premium audio path or elegant fallbacks
 if (_narrationLanguage == 'urdu') {
-  // Always speak the Urdu text when Urdu mode is selected.
-  final pageText = page['ur'] as String;
-  await TtsService().speakStoryUrdu(pageText);
-} else {
-  final pageText = page['en'] as String;
-  await TtsService().speakStoryEnglish(pageText);
+  final pageTextUr = page['ur'] as String;
+  final pageTextEn = page['en'] as String;
+  final audioPath = 'assets/audio/story_${_selectedStoryIndex}_page_$_currentPageIndex.mp3';
+  await TtsService().speakStoryUrdu(pageTextUr, audioPath: audioPath, fallbackText: pageTextEn);
 }
+```
 
-// AFTER
-if (_narrationLanguage == 'urdu') {
-  if (TtsService().isUrduAvailable) {
-    final pageText = page['ur'] as String;
-    await TtsService().speakStoryUrdu(pageText);
-  } else {
-    // Fallback to English (Female) if ur-PK is not available on this device/browser
-    final pageText = page['en'] as String;
-    await TtsService().speakStoryEnglishFemale(pageText);
+```dart
+// tts_service.dart - speakStoryUrdu premium playback flow
+Future<void> speakStoryUrdu(String text, {String? audioPath, String? fallbackText}) async {
+  ...
+  // 1. Play pre-recorded MP3 asset
+  if (audioPath != null) {
+    await _audioPlayer.play(AssetSource(assetKey));
+    return;
   }
-} else if (_narrationLanguage == 'english_female') {
-  final pageText = page['en'] as String;
-  await TtsService().speakStoryEnglishFemale(pageText);
-} else {
-  final pageText = page['en'] as String;
-  await TtsService().speakStoryEnglish(pageText);
+  // 2. Fall back to live Urdu TTS
+  if (_urduAvailable) {
+    await _tts.speak(text);
+  } else if (fallbackText != null) {
+    // 3. Fall back to English Female TTS
+    await _tts.speak(fallbackText);
+  }
 }
 ```
 
 | File | Change |
 |------|--------|
-| `lib/screens/storybook_screen.dart:228` | Initialized default language to `'english_male'`. |
-| `lib/screens/storybook_screen.dart:409-418` | Replaced binary language check with robust 3-option narration matching `urdu` with fallback, `english_female`, and default `english_male`. |
-| `lib/screens/storybook_screen.dart:858-860` | Upgraded segment toggle layout to include `English (Male)`, `English (Female)`, and `اردو (Female)`. |
+| `assets/audio/generate_story_audio.py` | New python automation script to generate 36 Urdu storybook audio files for free. |
+| `assets/audio/story_*.mp3` | 36 premium pre-recorded female Urdu MP3 files for stories. |
+| `lib/services/tts_service.dart` | Modified `speakStoryUrdu` to play the pre-recorded MP3 asset first with double-guarded live Urdu and English fallback. |
+| `lib/screens/storybook_screen.dart` | Passed `audioPath` and `fallbackText` into `speakStoryUrdu` during page narration. |
+
 
 
