@@ -53,6 +53,7 @@ flutter:
     - assets/namaz.png
     - assets/audio/
     - assets/fonts/
+    - assets/images/
 
   fonts:
     - family: NotoNastaliqUrdu

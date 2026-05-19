@@ -4,9 +4,7 @@ import '../models/symbol_card.dart';
 /// used by speech therapists worldwide. License: CC BY-NC-SA 4.0
 /// Image URL pattern: https://static.arasaac.org/pictograms/{id}/{id}_500.png
 class SymbolsData {
-  static const String _arasaac = 'https://static.arasaac.org/pictograms';
-
-  static String _pic(int id) => '$_arasaac/$id/${id}_500.png';
+  static String _pic(int id) => 'assets/images/$id.png';
 
   static final List<SymbolCard> allCards = [
     // ── ANIMALS (10 cards) ───────────────────────────────────────

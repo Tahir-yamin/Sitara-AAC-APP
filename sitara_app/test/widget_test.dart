@@ -35,8 +35,8 @@ void main() {
     // Verify that the Splash Screen loads and displays the app name
     expect(find.text('Sitara'), findsOneWidget);
 
-    // Drain transition timers
-    await tester.pumpAndSettle(const Duration(seconds: 3));
+    // Drain transition timers without waiting for infinite looping animations to settle
+    await tester.pump(const Duration(seconds: 3));
   });
 }
 
