@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -38,6 +39,18 @@ class _ParentDashboardState extends State<ParentDashboard> {
   String _parentInput = '';
   String _errorMessage = '';
 
+  // 🧠 Sitara Agent Brain Lab Telemetry State
+  int _activeTab = 0;
+  String _selectedScenario = 'fatigue';
+  List<String> _simulatedLogs = [];
+  double _simulatedComplexity = 2.0;
+  double _simulatedFrustration = 30.0;
+  double _simulatedSpeed = 1.0;
+  double _simulatedUrduAppreciation = 50.0;
+  bool _isSimulating = false;
+  Timer? _simulationTimer;
+  final ScrollController _consoleScrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +61,14 @@ class _ParentDashboardState extends State<ParentDashboard> {
     _analytics = AnalyticsService(childId: _tracker.childId);
     _loadTodayUsage();
     _generateMathProblem();
+    _initializeSimulatedLogs();
+  }
+
+  @override
+  void dispose() {
+    _simulationTimer?.cancel();
+    _consoleScrollController.dispose();
+    super.dispose();
   }
 
   void _generateMathProblem() {
@@ -436,152 +457,1030 @@ class _ParentDashboardState extends State<ParentDashboard> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+      body: Column(
+        children: [
+          _buildTabSelector(),
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: _activeTab == 0
+                  ? _buildParentGuardianView()
+                  : _buildBrainLabView(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabSelector() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF6C63FF).withValues(alpha: 0.15), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildTabButton(
+              index: 0,
+              icon: Icons.analytics_rounded,
+              title: 'Guardian Overview',
+              subtitle: 'Weekly Reports & Metrics',
+            ),
+          ),
+          Expanded(
+            child: _buildTabButton(
+              index: 1,
+              icon: Icons.psychology_rounded,
+              title: 'Agent Brain Lab',
+              subtitle: 'Active AI Orchestration',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabButton({
+    required int index,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    final isSelected = _activeTab == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _activeTab = index;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF6C63FF) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _buildDailyUsageBar(),
-            const SizedBox(height: 20),
-
-            // ─── WEEK SUMMARY CARDS ─────────────────────────────────
-            const Text(
-              'This Week',
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF1A1040),
-                  fontFamily: 'Nunito'),
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : const Color(0xFF6C63FF),
+              size: 22,
             ),
-            const SizedBox(height: 12),
-            _buildStatCards(),
-            const SizedBox(height: 10),
-            _buildRetentionChips(),
-            const SizedBox(height: 28),
-
-            // ─── MODE COMPARISON ─────────────────────────────────────
-            const Text(
-              'Mode Comparison',
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF1A1040),
-                  fontFamily: 'Nunito'),
-            ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
-              'Toggle 🤖 AI / 📏 Rules in the game to build this comparison',
-              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-            ),
-            const SizedBox(height: 12),
-            _buildModeComparisonCard(),
-            const SizedBox(height: 28),
-
-            // ─── AGENT TRACE SUMMARY ────────────────────────────────
-            const Text(
-              'AI Adaptations Made',
+              title,
               style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF1A1040),
-                  fontFamily: 'Nunito'),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.white : const Color(0xFF1A1040),
+                fontFamily: 'Nunito',
+              ),
             ),
-            const SizedBox(height: 12),
-            _buildAdaptationList(),
-            const SizedBox(height: 28),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 9,
+                color: isSelected ? Colors.white70 : Colors.grey[500],
+                fontFamily: 'Nunito',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-            // ─── PROGRESS GUARDIAN REPORT ───────────────────────────
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Weekly Progress Report',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF1A1040),
-                      fontFamily: 'Nunito'),
+  Widget _buildParentGuardianView() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDailyUsageBar(),
+          const SizedBox(height: 20),
+
+          // ─── WEEK SUMMARY CARDS ─────────────────────────────────
+          const Text(
+            'This Week',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF1A1040),
+                fontFamily: 'Nunito'),
+          ),
+          const SizedBox(height: 12),
+          _buildStatCards(),
+          const SizedBox(height: 10),
+          _buildRetentionChips(),
+          const SizedBox(height: 28),
+
+          // ─── MODE COMPARISON ─────────────────────────────────────
+          const Text(
+            'Mode Comparison',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF1A1040),
+                fontFamily: 'Nunito'),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Toggle 🤖 AI / 📏 Rules in the game to build this comparison',
+            style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+          ),
+          const SizedBox(height: 12),
+          _buildModeComparisonCard(),
+          const SizedBox(height: 28),
+
+          // ─── AGENT TRACE SUMMARY ────────────────────────────────
+          const Text(
+            'AI Adaptations Made',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF1A1040),
+                fontFamily: 'Nunito'),
+          ),
+          const SizedBox(height: 12),
+          _buildAdaptationList(),
+          const SizedBox(height: 28),
+
+          // ─── PROGRESS GUARDIAN REPORT ───────────────────────────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Weekly Progress Report',
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF1A1040),
+                    fontFamily: 'Nunito'),
+              ),
+              // Agent badge
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF43C59E).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                      color: const Color(0xFF43C59E).withValues(alpha: 0.4)),
                 ),
-                // Agent badge
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF43C59E).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: const Color(0xFF43C59E).withValues(alpha: 0.4)),
+                child: const Row(
+                  children: [
+                    Icon(Icons.smart_toy_outlined,
+                        size: 12, color: Color(0xFF43C59E)),
+                    SizedBox(width: 4),
+                    Text('Progress Guardian',
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: Color(0xFF43C59E),
+                            fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          if (!_hasReport && !_loading) ...[
+            _buildGenerateCard(),
+          ] else if (_loading) ...[
+            _buildLoadingCard(),
+          ] else ...[
+            _buildReportCard(),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _downloadPdf,
+                    icon: const Icon(Icons.picture_as_pdf_rounded),
+                    label: const Text('Download PDF'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6C63FF),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                      textStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Nunito'),
+                    ),
                   ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.smart_toy_outlined,
-                          size: 12, color: Color(0xFF43C59E)),
-                      SizedBox(width: 4),
-                      Text('Progress Guardian',
-                          style: TextStyle(
-                              fontSize: 10,
-                              color: Color(0xFF43C59E),
-                              fontWeight: FontWeight.bold)),
-                    ],
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _generateReport,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Refresh'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF43C59E),
+                      side: const BorderSide(color: Color(0xFF43C59E)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                      textStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Nunito'),
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+          ],
 
-            if (!_hasReport && !_loading) ...[
-              _buildGenerateCard(),
-            ] else if (_loading) ...[
-              _buildLoadingCard(),
-            ] else ...[
-              _buildReportCard(),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _downloadPdf,
-                      icon: const Icon(Icons.picture_as_pdf_rounded),
-                      label: const Text('Download PDF'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6C63FF),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
-                        textStyle: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Nunito'),
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  void _initializeSimulatedLogs() {
+    setState(() {
+      _simulatedLogs = [
+        '🧠 [System Initialization] Brain Lab Sandbox active.',
+        '🤖 All 4 specialized backend agents are loaded and idle.',
+        '👇 Select a scenario below and click "Trigger Orchestration" to view real-time dynamic backend adjustments.',
+      ];
+    });
+  }
+
+  void _runOrchestrationSimulation(String scenario) {
+    _simulationTimer?.cancel();
+    setState(() {
+      _isSimulating = true;
+      _simulatedLogs = [
+        '🔄 [Orchestration Initiated] Selected Scenario: ${scenario.toUpperCase()}',
+        '📡 Connecting live telemetry streams to Sitara Adaptive Backend...',
+      ];
+      // Reset parameters based on scenario
+      if (scenario == 'fatigue') {
+        _simulatedComplexity = 4.5;
+        _simulatedFrustration = 20.0;
+        _simulatedSpeed = 1.0;
+        _simulatedUrduAppreciation = 55.0;
+      } else if (scenario == 'success') {
+        _simulatedComplexity = 2.0;
+        _simulatedFrustration = 10.0;
+        _simulatedSpeed = 1.0;
+        _simulatedUrduAppreciation = 50.0;
+      } else if (scenario == 'frustration') {
+        _simulatedComplexity = 6.0;
+        _simulatedFrustration = 75.0;
+        _simulatedSpeed = 1.2;
+        _simulatedUrduAppreciation = 50.0;
+      } else {
+        // sensory
+        _simulatedComplexity = 3.5;
+        _simulatedFrustration = 30.0;
+        _simulatedSpeed = 1.0;
+        _simulatedUrduAppreciation = 80.0;
+      }
+    });
+
+    int step = 0;
+    _simulationTimer = Timer.periodic(const Duration(milliseconds: 2500), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      setState(() {
+        step++;
+        if (scenario == 'fatigue') {
+          if (step == 1) {
+            _simulatedLogs.add('⚠️ [Telemetry Alert] Reaction latency increased from 1.8s to 4.2s.');
+            _simulatedLogs.add('👤 [Attentiveness] Alertness score dropped from 92% to 45%.');
+            _simulatedFrustration = 35.0;
+          } else if (step == 2) {
+            _simulatedLogs.add('🤖 [Story Weaver Agent] Intercepted attention lapse. Initiating mascot engagement.');
+            _simulatedLogs.add('🔊 [Urdu Appreciator] Setting tone to "Warm Encouragement". Boosting voice volume to 85%.');
+            _simulatedUrduAppreciation = 85.0;
+          } else if (step == 3) {
+            _simulatedLogs.add('🛡️ [Therapy Director Agent] Dynamic adaptation triggered.');
+            _simulatedLogs.add('📉 [Adaptation] Dropping Complexity level from 4.5 to 2.5 to restore success locus.');
+            _simulatedComplexity = 2.5;
+            _simulatedSpeed = 0.8;
+          } else if (step == 4) {
+            _simulatedLogs.add('✅ [Telemetry Recovered] Attention restored to 88%. Match response is 100% correct.');
+            _simulatedLogs.add('🧠 [Orchestration Cycle Complete] Backend returned to steady-state optimization loop.');
+            _isSimulating = false;
+            timer.cancel();
+          }
+        } else if (scenario == 'success') {
+          if (step == 1) {
+            _simulatedLogs.add('🚀 [Telemetry Alert] Child achieves a consecutive streak of 6 correct matches.');
+            _simulatedLogs.add('👤 [Progress] Cognitive headroom identified. Frustration remains extremely low at 10%.');
+          } else if (step == 2) {
+            _simulatedLogs.add('🤖 [Cognitive Matcher Agent] Initiating "Dynamic Progression Challenge".');
+            _simulatedLogs.add('📈 [Adaptation] Raising card complexity parameter from 2.0 to 4.0.');
+            _simulatedComplexity = 4.0;
+          } else if (step == 3) {
+            _simulatedLogs.add('🔊 [Urdu Appreciator] Executing high-frequency positive reinforcement triggers.');
+            _simulatedLogs.add('🗣️ [Voice Synthesis] Premium Urdu appreciation audio scale loaded at 90% volume.');
+            _simulatedUrduAppreciation = 90.0;
+            _simulatedSpeed = 1.15;
+          } else if (step == 4) {
+            _simulatedLogs.add('🎉 [Breakthrough Recorded] Child successfully completes the higher-level challenge.');
+            _simulatedLogs.add('🧠 [Orchestration Cycle Complete] Advanced progress logged to Progress Guardian Database.');
+            _isSimulating = false;
+            timer.cancel();
+          }
+        } else if (scenario == 'frustration') {
+          if (step == 1) {
+            _simulatedLogs.add('🚨 [Telemetry Critical Alert] Frustration spikes to 75%. Multiple consecutive errors.');
+            _simulatedLogs.add('👤 [Attention State] Rapid taps detected on screen. Motor control indicates distress.');
+          } else if (step == 2) {
+            _simulatedLogs.add('🛡️ [Progress Guardian Agent] INTERCEPTED. Triggering distress relief fallback.');
+            _simulatedLogs.add('📉 [Adaptation] Slashing Game Complexity from 6.0 to 1.5. Visual distractors disabled.');
+            _simulatedComplexity = 1.5;
+            _simulatedFrustration = 40.0;
+          } else if (step == 3) {
+            _simulatedLogs.add('🔊 [Urdu Appreciator] Playing soothing vocal guidance loop (Loud, clear bilingual speech).');
+            _simulatedUrduAppreciation = 95.0;
+            _simulatedSpeed = 0.7;
+          } else if (step == 4) {
+            _simulatedLogs.add('💖 [Telemetry Recovered] Frustration normalized to 20%. Normal matching pace resumed.');
+            _simulatedLogs.add('🧠 [Orchestration Cycle Complete] Guardrail event cataloged successfully.');
+            _isSimulating = false;
+            timer.cancel();
+          }
+        } else {
+          // sensory
+          if (step == 1) {
+            _simulatedLogs.add('⚡ [Telemetry Alert] High background motion sensitivity and visual saccades detected.');
+          } else if (step == 2) {
+            _simulatedLogs.add('🛡️ [Therapy Director Agent] Triggering "Sensory Lockout Shield".');
+            _simulatedLogs.add('🎨 [Adaptation] Setting canvas to flat high-contrast layout. Disabling animations.');
+            _simulatedSpeed = 0.9;
+          } else if (step == 3) {
+            _simulatedLogs.add('🔊 [Urdu Appreciator] Isolating card pronunciation. Muting ambient noise.');
+            _simulatedUrduAppreciation = 90.0;
+          } else if (step == 4) {
+            _simulatedLogs.add('✅ [Telemetry Recovered] Child focal points aligned. Cognitive load reduced.');
+            _simulatedLogs.add('🧠 [Orchestration Cycle Complete] Sensory adaptation validated successfully.');
+            _isSimulating = false;
+            timer.cancel();
+          }
+        }
+
+        // Auto Scroll to the bottom of terminal
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (_consoleScrollController.hasClients) {
+            _consoleScrollController.animateTo(
+              _consoleScrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+      });
+    });
+  }
+
+  Widget _buildBrainLabView() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header introduction to the Agent Orchestration Sandbox
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1A1040), Color(0xFF2D2060)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFF6C63FF).withValues(alpha: 0.3), width: 1.5),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.smart_toy_rounded, color: Colors.amberAccent, size: 28),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'Sitara Agent Brain Lab',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        fontFamily: 'Nunito',
                       ),
                     ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _isSimulating ? const Color(0xFF2D6A4F) : const Color(0xFF4A4E69),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: _isSimulating ? const Color(0xFF40916C) : const Color(0xFF9A8C98),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: _isSimulating ? Colors.greenAccent : Colors.amberAccent,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _isSimulating ? 'SIMULATING' : 'IDLE',
+                            style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Explore Sitara\'s multi-agent dynamic orchestration live! See how the cognitive, acoustic, and therapeutic models interact behind the scenes during actual gameplay scenarios to guide and adapt for the child.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white70,
+                    height: 1.5,
+                    fontFamily: 'Nunito',
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _generateReport,
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: const Text('Refresh'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF43C59E),
-                        side: const BorderSide(color: Color(0xFF43C59E)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
-                        textStyle: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Nunito'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // ─── ACTIVE AGENT SCHEMAS ────────────────────────────────
+          const Text(
+            'Backend Agent Schemas',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF1A1040),
+                fontFamily: 'Nunito'),
+          ),
+          const SizedBox(height: 12),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.35,
+            children: [
+              _buildAgentSchemaCard(
+                title: 'Therapy Director',
+                role: 'Adaptive Pacing & Layouts',
+                description: 'Adapts match sizes, speeds, and locks sensory visual overload.',
+                icon: Icons.dashboard_customize_rounded,
+                color: const Color(0xFF6C63FF),
+                isActive: _isSimulating && (_selectedScenario == 'fatigue' || _selectedScenario == 'sensory'),
+              ),
+              _buildAgentSchemaCard(
+                title: 'Cognitive Matcher',
+                role: 'Headroom Progression Engine',
+                description: 'Calculates success thresholds, upgrades match complexity.',
+                icon: Icons.extension_rounded,
+                color: const Color(0xFF43C59E),
+                isActive: _isSimulating && _selectedScenario == 'success',
+              ),
+              _buildAgentSchemaCard(
+                title: 'Story Weaver',
+                role: 'Urdu Appreciator & Audio',
+                description: 'Adjusts bilingual volume, vocal accentuation, and mascot presence.',
+                icon: Icons.auto_stories_rounded,
+                color: const Color(0xFFFF6584),
+                isActive: _isSimulating,
+              ),
+              _buildAgentSchemaCard(
+                title: 'Progress Guardian',
+                role: 'Weekly Clinical Reviewer',
+                description: 'Distills session logs into executive clinical reports.',
+                icon: Icons.fact_check_rounded,
+                color: const Color(0xFFFFB800),
+                isActive: _isSimulating && _selectedScenario == 'frustration',
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // ─── TELEMETRY SELECTOR & CONTROLS ───────────────────────
+          const Text(
+            'Scenario Sandbox Controller',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF1A1040),
+                fontFamily: 'Nunito'),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFF6C63FF).withValues(alpha: 0.15), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.settings_input_component_rounded, color: Color(0xFF6C63FF), size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Select Active Telemetry Scenario',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[700],
+                          fontFamily: 'Nunito',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F2FF),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFF6C63FF).withValues(alpha: 0.2)),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedScenario,
+                      isExpanded: true,
+                      dropdownColor: Colors.white,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1A1040),
+                        fontFamily: 'Nunito',
+                      ),
+                      onChanged: _isSimulating
+                          ? null
+                          : (val) {
+                              if (val != null) {
+                                setState(() {
+                                  _selectedScenario = val;
+                                  _initializeSimulatedLogs();
+                                });
+                              }
+                            },
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'fatigue',
+                          child: Text('😴 Child Attention Lapsed & Fatigue'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'success',
+                          child: Text('🚀 Steady Match Success & Level Up'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'frustration',
+                          child: Text('😡 High Frustration Peak Guardrail'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'sensory',
+                          child: Text('⚡ Sensory Overload Prevention'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _isSimulating
+                            ? null
+                            : () => _runOrchestrationSimulation(_selectedScenario),
+                        icon: const Icon(Icons.play_circle_filled_rounded),
+                        label: const Text('Trigger Orchestration'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF43C59E),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, fontFamily: 'Nunito'),
+                        ),
+                      ),
+                    ),
+                    if (_isSimulating) ...[
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          _simulationTimer?.cancel();
+                          setState(() {
+                            _isSimulating = false;
+                            _initializeSimulatedLogs();
+                          });
+                        },
+                        icon: const Icon(Icons.stop_circle_rounded),
+                        label: const Text('Reset'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF6584),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, fontFamily: 'Nunito'),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // ─── LIVE NEON GREEN TRACE TERMINAL ───────────────────────
+          const Text(
+            'Live Backend Trace Logger',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF1A1040),
+                fontFamily: 'Nunito'),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            height: 220,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F0B20),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: _isSimulating ? const Color(0xFF43C59E).withValues(alpha: 0.5) : const Color(0xFF6C63FF).withValues(alpha: 0.3),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: _isSimulating
+                      ? const Color(0xFF43C59E).withValues(alpha: 0.15)
+                      : const Color(0xFF6C63FF).withValues(alpha: 0.05),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: Stack(
+                children: [
+                  ListView.builder(
+                    controller: _consoleScrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _simulatedLogs.length,
+                    itemBuilder: (context, index) {
+                      final log = _simulatedLogs[index];
+                      Color logColor = Colors.white70;
+                      if (log.contains('[Telemetry Alert]') || log.contains('[Telemetry Critical Alert]')) {
+                        logColor = const Color(0xFFFFD166);
+                      } else if (log.contains('[Adaptation]')) {
+                        logColor = const Color(0xFF06D6A0);
+                      } else if (log.contains('Agent]')) {
+                        logColor = const Color(0xFF118AB2);
+                      } else if (log.contains('[Orchestration Cycle Complete]')) {
+                        logColor = const Color(0xFF06D6A0);
+                      } else if (log.contains('System Initialization')) {
+                        logColor = Colors.grey;
+                      }
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Text(
+                          log,
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                            color: logColor,
+                            height: 1.4,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.terminal_rounded, size: 10, color: Colors.greenAccent),
+                          SizedBox(width: 4),
+                          Text(
+                            'CONSOLE',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontFamily: 'monospace',
+                              color: Colors.greenAccent,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ],
               ),
-            ],
+            ),
+          ),
+          const SizedBox(height: 24),
 
-            const SizedBox(height: 40),
-          ],
+          // ─── 4-QUADRANT TELEMETRY DIALS ──────────────────────────
+          const Text(
+            'Live Dynamic Telemetry Parameters',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF1A1040),
+                fontFamily: 'Nunito'),
+          ),
+          const SizedBox(height: 12),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 14,
+            mainAxisSpacing: 14,
+            childAspectRatio: 1.35,
+            children: [
+              _buildParameterCard(
+                title: 'Task Complexity',
+                value: _simulatedComplexity.toStringAsFixed(1),
+                unit: '/ 10',
+                progress: _simulatedComplexity / 10,
+                color: const Color(0xFF6C63FF),
+                icon: Icons.psychology_rounded,
+              ),
+              _buildParameterCard(
+                title: 'Bilingual Audio Vol.',
+                value: '${_simulatedUrduAppreciation.toInt()}%',
+                unit: 'Loud Voice',
+                progress: _simulatedUrduAppreciation / 100,
+                color: const Color(0xFFFF6584),
+                icon: Icons.volume_up_rounded,
+              ),
+              _buildParameterCard(
+                title: 'App Pacing Rate',
+                value: '${_simulatedSpeed.toStringAsFixed(2)}x',
+                unit: 'Adaptive Delay',
+                progress: (_simulatedSpeed / 2.0).clamp(0.0, 1.0),
+                color: const Color(0xFF43C59E),
+                icon: Icons.speed_rounded,
+              ),
+              _buildParameterCard(
+                title: 'Estimated Frustration',
+                value: '${_simulatedFrustration.toInt()}%',
+                unit: 'Attentiveness Alert',
+                progress: _simulatedFrustration / 100,
+                color: const Color(0xFFFFB800),
+                icon: Icons.bar_chart_rounded,
+              ),
+            ],
+          ),
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAgentSchemaCard({
+    required String title,
+    required String role,
+    required String description,
+    required IconData icon,
+    required Color color,
+    required bool isActive,
+  }) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isActive ? color : const Color(0xFF6C63FF).withValues(alpha: 0.15),
+          width: isActive ? 2.5 : 1.5,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: isActive ? color.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.02),
+            blurRadius: isActive ? 12 : 8,
+            spreadRadius: isActive ? 1 : 0,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 16, color: color),
+              ),
+              const Spacer(),
+              if (isActive)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'PULSING',
+                        style: TextStyle(
+                          fontSize: 7,
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF1A1040),
+              fontFamily: 'Nunito',
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            role,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              color: color,
+              fontFamily: 'Nunito',
+            ),
+          ),
+          const SizedBox(height: 4),
+          Expanded(
+            child: Text(
+              description,
+              style: TextStyle(
+                fontSize: 8.5,
+                color: Colors.grey[600],
+                height: 1.3,
+                fontFamily: 'Nunito',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildParameterCard({
+    required String title,
+    required String value,
+    required String unit,
+    required double progress,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.15), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 14, color: color),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[600],
+                    fontFamily: 'Nunito',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Row(
+            textBaseline: TextBaseline.alphabetic,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF1A1040),
+                  fontFamily: 'Nunito',
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                unit,
+                style: TextStyle(
+                  fontSize: 9,
+                  color: Colors.grey[500],
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Nunito',
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 6,
+              backgroundColor: color.withValues(alpha: 0.1),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1333,32 +2232,25 @@ class _ParentDashboardState extends State<ParentDashboard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF8A30FF).withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.stars_rounded, color: Color(0xFF8A30FF), size: 22),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Weekly Therapeutic Overview',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF1A1040),
-                          fontFamily: 'Nunito',
-                        ),
-                      ),
-                    ),
-                  ],
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF8A30FF).withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.stars_rounded, color: Color(0xFF8A30FF), size: 22),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Weekly Therapeutic Overview',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF1A1040),
+                    fontFamily: 'Nunito',
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1551,87 +2443,85 @@ class _ParentDashboardState extends State<ParentDashboard> {
             ],
           ),
           const SizedBox(height: 20),
-          Row(
+          Column(
             children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFB800).withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFFFB800).withValues(alpha: 0.1), width: 1),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              'Frustration Tolerance',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1A1040), fontFamily: 'Nunito'),
-                            ),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFB800).withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFFFB800).withValues(alpha: 0.1), width: 1),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Frustration Tolerance',
+                          style: TextStyle(
+                            fontSize: 13, 
+                            fontWeight: FontWeight.w900, 
+                            color: Color(0xFF1A1040), 
+                            fontFamily: 'Nunito',
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '$frustrationTol%',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFFFFB800),
-                              fontFamily: 'Nunito',
-                            ),
+                        ),
+                        Text(
+                          '$frustrationTol%',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFFFFB800),
+                            fontFamily: 'Nunito',
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      _buildProgressBar(frustrationTol / 100.0, const Color(0xFFFFB800)),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _buildProgressBar(frustrationTol / 100.0, const Color(0xFFFFB800)),
+                  ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFF6584).withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFFF6584).withValues(alpha: 0.1), width: 1),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              'Emotional Regulation',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1A1040), fontFamily: 'Nunito'),
-                            ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF6584).withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFFF6584).withValues(alpha: 0.1), width: 1),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Emotional Regulation',
+                          style: TextStyle(
+                            fontSize: 13, 
+                            fontWeight: FontWeight.w900, 
+                            color: Color(0xFF1A1040), 
+                            fontFamily: 'Nunito',
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '$emotionalReg%',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFFFF6584),
-                              fontFamily: 'Nunito',
-                            ),
+                        ),
+                        Text(
+                          '$emotionalReg%',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFFFF6584),
+                            fontFamily: 'Nunito',
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      _buildProgressBar(emotionalReg / 100.0, const Color(0xFFFF6584)),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _buildProgressBar(emotionalReg / 100.0, const Color(0xFFFF6584)),
+                  ],
                 ),
               ),
             ],
@@ -1792,32 +2682,25 @@ class _ParentDashboardState extends State<ParentDashboard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.emoji_events_rounded, color: Color(0xFFD97706), size: 22),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Key Breakthroughs & Wins',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF78350F),
-                          fontFamily: 'Nunito',
-                        ),
-                      ),
-                    ),
-                  ],
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.emoji_events_rounded, color: Color(0xFFD97706), size: 22),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Key Breakthroughs & Wins',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF78350F),
+                    fontFamily: 'Nunito',
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -2097,32 +2980,25 @@ class _ParentDashboardState extends State<ParentDashboard> {
         children: [
           // Clinic Rx Header
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF8A30FF).withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.assignment_turned_in_rounded, color: Color(0xFF8A30FF), size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Clinical Plan & Recommendations',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF1A1040),
-                          fontFamily: 'Nunito',
-                        ),
-                      ),
-                    ),
-                  ],
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF8A30FF).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.assignment_turned_in_rounded, color: Color(0xFF8A30FF), size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Clinical Plan & Recommendations',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF1A1040),
+                    fontFamily: 'Nunito',
+                  ),
                 ),
               ),
               const SizedBox(width: 12),

@@ -39,19 +39,28 @@ class TtsService {
   Map<String, String>? _femaleUrduVoice;
   Map<String, String>? _femaleFallbackVoice;
 
+  int _speechSessionId = 0;
+  bool _isIntroMusicPlaying = false;
+
   bool get isUrduAvailable => _urduAvailable;
 
   Future<void> playIntroMusic() async {
+    _isIntroMusicPlaying = true;
     try {
       await _bgPlayer.setReleaseMode(ReleaseMode.loop);
-      await _bgPlayer.setVolume(0.4); // Warm and gentle, not too loud!
+      await _bgPlayer.setVolume(0.25); // Gentle volume, perfect for warm welcome
+      if (!_isIntroMusicPlaying) return;
       await _bgPlayer.play(AssetSource('audio/intro_welcoming_music.mp3'));
+      if (!_isIntroMusicPlaying) {
+        await _bgPlayer.stop();
+      }
     } catch (e) {
       debugPrint('TtsService.playIntroMusic error: $e');
     }
   }
 
   Future<void> stopIntroMusic() async {
+    _isIntroMusicPlaying = false;
     try {
       await _bgPlayer.stop();
     } catch (_) {}
@@ -211,6 +220,8 @@ class TtsService {
     if (!_ready) return;
 
     final mode = LocalDbService.instance.getTtsLanguageMode();
+    _speechSessionId++; // Cancel prior overlapping runs
+    final int currentSession = _speechSessionId;
 
     try {
       await _tts.stop();
@@ -223,9 +234,12 @@ class TtsService {
         _audioPlayCompleter!.complete();
       }
 
+      if (currentSession != _speechSessionId) return;
+
       // If english mode, skip Urdu completely and only speak English
       if (mode == 'english') {
         await _setEnglishProfile();
+        if (currentSession != _speechSessionId) return;
         await _tts.speak(nameEnglish);
         return;
       }
@@ -244,6 +258,7 @@ class TtsService {
           
           _audioPlayCompleter = Completer<void>();
           await _audioPlayer.setVolume(1.0);
+          if (currentSession != _speechSessionId) return;
           await _audioPlayer.play(AssetSource(assetKey));
           
           _audioSubscription = _audioPlayer.onPlayerComplete.listen(
@@ -283,26 +298,35 @@ class TtsService {
         }
       }
 
+      if (currentSession != _speechSessionId) return;
+
       if (!playedAudio) {
         // ── 2. Live ur-PK synthesis (mobile / browser with Urdu voice) ─────────
         if (_urduAvailable) {
           await _setUrduProfile();
+          if (currentSession != _speechSessionId) return;
           await _tts.speak(nameUrdu);
           await _awaitCompletion();
+          if (currentSession != _speechSessionId) return;
           await Future.delayed(const Duration(milliseconds: 400));
         } else if (nameRomanUrdu != null && nameRomanUrdu.isNotEmpty) {
           // ── 3. Roman Urdu via South Asian English voice ──────────────────────
           await _setEnglishProfile();
+          if (currentSession != _speechSessionId) return;
           await _tts.speak(nameRomanUrdu);
           await _awaitCompletion();
+          if (currentSession != _speechSessionId) return;
           await Future.delayed(const Duration(milliseconds: 300));
         }
       }
 
       // ── 4. English name (only spoken after Urdu if mode is bilingual) ──────────────────────────
       if (mode == 'bilingual') {
+        if (currentSession != _speechSessionId) return;
         await Future.delayed(const Duration(milliseconds: 300));
+        if (currentSession != _speechSessionId) return;
         await _setEnglishProfile();
+        if (currentSession != _speechSessionId) return;
         await _tts.speak(nameEnglish);
       }
     } catch (e) {
@@ -470,6 +494,7 @@ class TtsService {
 
   /// Stop all audio immediately (called on screen dispose).
   Future<void> stop() async {
+    _speechSessionId++;
     try {
       await _tts.stop();
       await _audioPlayer.stop();

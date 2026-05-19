@@ -216,7 +216,7 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
                       child: Center(
                         child: LayoutBuilder(
                           builder: (ctx, constraints) {
-                            final size = (constraints.maxHeight * 0.78).clamp(0.0, cardWidth * 0.58);
+                            final size = (constraints.maxHeight * 0.86).clamp(0.0, cardWidth * 0.82);
                             return Container(
                               width: size,
                               height: size,
@@ -233,7 +233,7 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
                               ),
                               child: Center(
                                 child: Padding(
-                                  padding: EdgeInsets.all(size * 0.12),
+                                  padding: EdgeInsets.all(size * 0.03),
                                   child: widget.card.imagePath.startsWith('assets/')
                                       ? Image.asset(
                                           widget.card.imagePath,
@@ -241,7 +241,7 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
                                           errorBuilder: (ctx, e, s) => Center(
                                             child: Text(
                                               widget.card.emoji,
-                                              style: TextStyle(fontSize: size * 0.56),
+                                              style: TextStyle(fontSize: size * 0.76),
                                               textAlign: TextAlign.center,
                                             ),
                                           ),
@@ -265,7 +265,7 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
                                           errorBuilder: (ctx, e, s) => Center(
                                             child: Text(
                                               widget.card.emoji,
-                                              style: TextStyle(fontSize: size * 0.56),
+                                              style: TextStyle(fontSize: size * 0.76),
                                               textAlign: TextAlign.center,
                                             ),
                                           ),
