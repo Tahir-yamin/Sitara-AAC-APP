@@ -26,7 +26,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final List<_OnboardingPage> _pages = const [
     _OnboardingPage(
-      emoji: '⭐',
+      icon: Icons.star_rounded,
       title: 'Welcome to Sitara!',
       subtitle: 'ستارہ کی دنیا میں خوش آمدید',
       body: 'A magical learning companion designed for non-verbal children. '
@@ -34,7 +34,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       color: Color(0xFF6C63FF),
     ),
     _OnboardingPage(
-      emoji: '🎮',
+      icon: Icons.sports_esports_rounded,
       title: 'Learn Through Play',
       subtitle: 'کھیل کھیل میں سیکھیں',
       body: 'Our AI watches, listens, and gently adjusts the game — '
@@ -43,7 +43,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       color: Color(0xFF43C59E),
     ),
     _OnboardingPage(
-      emoji: '📊',
+      icon: Icons.analytics_rounded,
       title: 'Parents Stay Informed',
       subtitle: 'ہر پیش قدمی دیکھیں',
       body: 'Weekly warm reports celebrate every milestone. '
@@ -172,8 +172,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   onPressed: _next,
                   child: Text(_currentPage < _pages.length - 1
-                      ? 'Next →'
-                      : 'Start Learning! ⭐'),
+                      ? 'Next'
+                      : 'Start Learning!'),
                 ),
               ),
             ),
@@ -186,10 +186,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 }
 
 class _OnboardingPage {
-  final String emoji, title, subtitle, body;
+  final IconData icon;
+  final String title, subtitle, body;
   final Color color;
   const _OnboardingPage({
-    required this.emoji,
+    required this.icon,
     required this.title,
     required this.subtitle,
     required this.body,
@@ -221,33 +222,40 @@ class _PageView extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-              Text(page.emoji, style: const TextStyle(fontSize: 80)),
-              const SizedBox(height: 32),
-              Text(
-                page.title,
-                style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    fontFamily: 'Nunito'),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                page.subtitle,
-                style: GoogleFonts.notoNastaliqUrdu(
-                    fontSize: 16,
-                    color: page.color,
-                    fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                page.body,
-                style: const TextStyle(
-                    fontSize: 16, height: 1.6, color: Colors.black87),
-                textAlign: TextAlign.center,
-              ),
-            ],
+                    Icon(
+                      page.icon,
+                      size: 96,
+                      color: page.color,
+                    ),
+                    const SizedBox(height: 32),
+                    Text(
+                      page.title,
+                      style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          fontFamily: 'Nunito'),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      page.subtitle,
+                      style: GoogleFonts.notoNastaliqUrdu(
+                          fontSize: 20,
+                          color: page.color,
+                          fontWeight: FontWeight.bold,
+                      ).copyWith(
+                          fontFamilyFallback: const ['sans-serif', 'Arial', 'system-ui'],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      page.body,
+                      style: const TextStyle(
+                          fontSize: 16, height: 1.6, color: Colors.black87),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
               ),
             ),
