@@ -462,6 +462,31 @@ Future<void> speakStoryUrdu(String text, {String? audioPath, String? fallbackTex
 | `lib/services/tts_service.dart` | Modified `speakStoryUrdu` to play the pre-recorded MP3 asset first with double-guarded live Urdu and English fallback. |
 | `lib/screens/storybook_screen.dart` | Integrated the pre-recorded MP3 asset files, and simplified the UI toggles by removing the redundant "English (Female)" button to leave the clean, two-option selector (**English (Male)** and **اردو (Female)**). |
 
+---
+
+## Welcoming Intro Music Integration (Date: 2026-05-19)
+
+> **Commit:** `11ae531`
+> **Files:** `lib/screens/splash_screen.dart`, `assets/audio/intro_welcoming_music.mp3`
+> **Trigger:** User requested a beautiful welcoming intro melody on app startup to make non-verbal / autistic children feel instantly welcomed, ensuring it only plays on fresh app open and not when returning to the home screen.
+
+### implementation
+
+1. **Soothing, High-Quality Music Track**:
+   * Sourced a premium, royalty-free calming instrumental lullaby track ("Lullaby Under the Stars") from the Internet Archive (`jamendo-545267`).
+   * Downloaded and saved the MP3 to `assets/audio/intro_welcoming_music.mp3` using a custom Python script.
+2. **Fresh Boot Setup (`SplashScreen`)**:
+   * Hooked the `AudioPlayer` into `SplashScreen` (which only runs on fresh application load, and is completely bypassed when returning to the Home Screen from other parts of the game).
+   * Started soft playback of the melody inside `initState()`.
+3. **Sensory-Friendly Cleanup**:
+   * Automatically stops and disposes of the audio player inside `dispose()` as the splash screen completes and transitions to Onboarding / Home. This guarantees that background music never overlaps with system voice synthesis, verbal feedback, or card pronunciation, preventing sensory overload for autistic children.
+
+| File | Change |
+|------|--------|
+| `assets/audio/intro_welcoming_music.mp3` | New soothing welcoming lullaby audio file. |
+| `lib/screens/splash_screen.dart` | Integrated the `AudioPlayer` to play the welcoming lullaby on boot and clean it up on transition. |
+
+
 
 
 

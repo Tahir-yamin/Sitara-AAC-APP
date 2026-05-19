@@ -228,6 +228,18 @@
 * **flutter analyze**: 0 errors, 0 warnings (5 pre-existing infos only).
 * **Commit**: `fdcf7a3 fix(storybook): remove redundant English Female option keeping English Male and premium Urdu Female`
 
+#### ⏰ 2026-05-19 (session 5) — Welcoming Intro Music Integration
+
+* **Trigger**: User requested a beautiful, calming welcoming melody on app startup to make autistic/non-verbal kids feel warm and welcomed. The music should play *only* on a fresh application boot (not when returning to the home screen).
+* **Fix & Improvements** (`11ae531`):
+  * **Welcoming Audio Sourcing**: Sourced and downloaded a premium calming instrumental lullaby track ("Lullaby Under the Stars") from Archive.org, saving it as `assets/audio/intro_welcoming_music.mp3`.
+  * **Fresh Boot Setup**: Hooked this into the `SplashScreen`'s `initState()` so it plays immediately on app launch. Since navigation away from game/storyboard back to `/home` bypasses the splash screen completely, it satisfies the strict constraint that it only plays on fresh load.
+  * **Sensory-Friendly Design**: Ensured that the `AudioPlayer` is automatically stopped and disposed when the splash screen is exited (`dispose()`), preventing overlap with voice synthesizers or verbal rewards.
+* **Before**: App opened silently with just visual animations.
+* **After**: Soft, magical lullaby welcoming melody greets the child upon booting the app fresh, stopping when they transition to onboarding or home to prevent sensory overstimulation.
+* **flutter analyze**: 0 errors, 0 warnings (0 issues found!).
+* **Commit**: `11ae531 feat(intro): add beautiful soothing welcoming lullaby on fresh app open`
+
 ---
 
 *Ledger updated by Antigravity on 2026-05-19 (UTC+5).*
