@@ -193,6 +193,16 @@
   * `generate_audio.py` updated with warm soft SSML prosody for wrong-answer (medium rate, not emphatic)
 * **Note**: Run `generate_audio.py` with `GOOGLE_API_KEY` set to upgrade to `ur-PK-Wavenet-A` female voice.
 
+#### ⏰ 2026-05-19 (session 2) — Storybook Urdu Female Narrator Fix
+
+* **Trigger**: User reported "اردو (Female)" button in Sitara Stories does nothing — narrator voice silent or speaking English.
+* **Root cause found at**: `storybook_screen.dart:409-416` — `_narrateCurrentPage()` checked `TtsService().isUrduAvailable` before reading Urdu text. On devices without `ur-PK` listed as an installed TTS language (most devices), this returned `false` — causing the fallback to read `page['en']` (English text!) via `speakStoryEnglishFemale`. The user pressed "اردو" and heard English — the button appeared broken.
+* **Fix** (`943ead4`): Removed the `isUrduAvailable` gate. Now always reads `page['ur']` (Urdu text) via `speakStoryUrdu()` when Urdu mode is selected. Android's South Asian TTS engine can speak Urdu script even when `ur-PK` is not officially listed as installed.
+* **Before**: `if (isUrduAvailable) speakUrdu(page['ur']) else speakEnglishFemale(page['en'])`
+* **After**: `speakStoryUrdu(page['ur'])` — unconditional, always Urdu text
+* **flutter analyze**: 0 errors, 0 warnings (5 pre-existing infos only)
+* **Commit**: `943ead4 fix(storybook): always narrate Urdu text when Female mode selected`
+
 ---
 
 *Ledger updated by Claude Code on 2026-05-19T (UTC+5).*

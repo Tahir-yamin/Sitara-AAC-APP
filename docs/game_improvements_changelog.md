@@ -399,3 +399,35 @@ T2.1–T2.7 (full game loop), T3.1–T3.2 (female voice, warm wrong-answer phras
 - **Root Cause**: PDF generation engine crashed when trying to draw raw RTL Nastaliq fonts without appropriate native text layouts.
 - **Resolution**: Switched PDF rendering to safe standard Western fonts for formatting the bilingual text blocks while keeping English headers, tables, and using clean visual layouts.
 
+---
+
+## Bug Fix: Storybook Urdu Female Narrator Silent (Date: 2026-05-19)
+
+> **Commit:** `943ead4`
+> **File:** `lib/screens/storybook_screen.dart`
+> **Trigger:** User reported "اردو (Female)" narrator button in Sitara Stories does nothing — narrator either silent or speaking English
+
+### Root Cause
+
+`_narrateCurrentPage()` (line 409) gated the Urdu narration path behind `TtsService().isUrduAvailable`. On most devices, Google TTS does not list `ur-PK` as an installed language, so `isUrduAvailable` returned `false`. The fallback then read `page['en']` (English text!) through `speakStoryEnglishFemale` — user pressed "اردو" and heard English.
+
+```dart
+// BEFORE — broken
+if (TtsService().isUrduAvailable) {
+  await TtsService().speakStoryUrdu(page['ur']);
+} else {
+  await TtsService().speakStoryEnglishFemale(page['en']); // ← English text!
+}
+
+// AFTER — fixed
+await TtsService().speakStoryUrdu(page['ur']); // always Urdu text
+```
+
+### Fix
+
+Removed the `isUrduAvailable` gate. `speakStoryUrdu()` now runs unconditionally when Urdu mode is selected. Android's South Asian TTS engine (Hindi voice) can read Urdu script even when `ur-PK` is not officially listed as installed — the narration plays correctly.
+
+| File | Change |
+|------|--------|
+| `lib/screens/storybook_screen.dart:409-416` | Removed `isUrduAvailable` conditional; always reads `page['ur']` text via `speakStoryUrdu()` |
+
