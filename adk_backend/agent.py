@@ -599,6 +599,168 @@ class ReportRequest(BaseModel):
     therapist_insights: str = Field("", max_length=500)
 
 
+# ─── LLM FALLBACK FUNCTIONS ──────────────────────────────────────
+# Tier 2: OpenRouter  (free models — Llama 3.3 70B, Gemma 2, etc.)
+# Tier 3: Amazon Bedrock  (Claude Haiku — ~$0.80/1M tokens, $50 covers ~60M tokens)
+
+_EVAL_SYSTEM_PROMPT = """You are Sitara's Therapy Director — an AI that adapts a symbol-card game for non-verbal autistic children.
+
+Analyse the session data and return a JSON object with this exact structure:
+{
+  "reasoning": "<2-3 sentence clinical reasoning>",
+  "actions": [
+    {"tool": "<tool_name>", "args": {<args>}}
+  ]
+}
+
+Available tools (use at most 2):
+- adjust_difficulty: args: {"cards_per_round": 3-6, "reason": "..."}
+- switch_category:   args: {"target": "<animals|food|family|emotions|daily_routines|transport>"}
+- trigger_reward:    args: {"praise_phrase": "Shabash! Bohat acha!", "reward_type": "star"}
+- send_break_prompt: args: {"break_type": "breathing"}
+- log_insight:       args: {"insight": "..."}
+
+Return ONLY valid JSON. No markdown, no prose outside the JSON."""
+
+def _build_eval_prompt(data: "AdaptationRequest") -> str:
+    return (
+        f"Child: {data.child_id} | Category: {data.category}\n"
+        f"Success rate: {data.success_rate:.0%} | Consecutive failures: {data.consecutive_failures}\n"
+        f"Tap speed: {data.tap_speed:.1f}/s | Duration: {data.session_duration_mins:.1f}min | Cards: {data.cards_attempted}"
+    )
+
+
+async def _evaluate_via_openrouter(data: "AdaptationRequest") -> dict | None:
+    """Tier 2 fallback: OpenRouter free models. Returns parsed actions dict or None."""
+    import httpx
+    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    if not api_key:
+        print("[Fallback-T2] OPENROUTER_API_KEY not set — skipping OpenRouter tier.")
+        return None
+
+    models = [
+        "meta-llama/llama-3.3-70b-instruct:free",
+        "google/gemma-2-9b-it:free",
+        "deepseek/deepseek-v4-flash:free",
+        "openrouter/auto",
+    ]
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://sitara.app",
+        "X-Title": "Sitara Therapy Director",
+    }
+    payload_base = {
+        "messages": [
+            {"role": "system", "content": _EVAL_SYSTEM_PROMPT},
+            {"role": "user", "content": _build_eval_prompt(data)},
+        ],
+        "temperature": 0.3,
+        "max_tokens": 400,
+    }
+
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        for model in models:
+            try:
+                payload = {**payload_base, "model": model}
+                resp = await client.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers=headers,
+                    json=payload,
+                )
+                if resp.status_code != 200:
+                    print(f"[Fallback-T2] OpenRouter {model}: HTTP {resp.status_code}")
+                    continue
+                text = resp.json()["choices"][0]["message"]["content"].strip()
+                # Strip markdown fences if present
+                text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.DOTALL).strip()
+                parsed = json.loads(text)
+                actions = parsed.get("actions", [])
+                reasoning = parsed.get("reasoning", f"OpenRouter/{model} adaptation")
+                print(f"[Fallback-T2] OpenRouter {model} succeeded — {len(actions)} action(s)")
+                return {
+                    "mode": "agentic_openrouter",
+                    "agent": f"therapy_director_via_openrouter/{model}",
+                    "reasoning": reasoning,
+                    "actions": actions,
+                }
+            except json.JSONDecodeError as je:
+                print(f"[Fallback-T2] OpenRouter {model} — JSON parse error: {je}")
+            except Exception as e:
+                print(f"[Fallback-T2] OpenRouter {model} — error: {e}")
+
+    print("[Fallback-T2] All OpenRouter models failed.")
+    return None
+
+
+async def _evaluate_via_bedrock(data: "AdaptationRequest") -> dict | None:
+    """Tier 3 fallback: Amazon Bedrock Claude Haiku. Returns parsed actions dict or None.
+    Cost: ~$0.80 / 1M output tokens.  $50 credit ≈ 62M output tokens.
+    Requires env vars: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION
+    """
+    try:
+        import boto3
+        import asyncio
+    except ImportError:
+        print("[Fallback-T3] boto3 not installed — skipping Bedrock tier.")
+        return None
+
+    aws_key    = os.environ.get("AWS_ACCESS_KEY_ID", "")
+    aws_secret = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+    aws_region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+
+    if not aws_key or not aws_secret:
+        print("[Fallback-T3] AWS credentials not configured — skipping Bedrock tier.")
+        return None
+
+    # Claude Haiku 3.5 — cheapest Anthropic model on Bedrock with strong reasoning
+    model_id = "anthropic.claude-haiku-4-5-20251001"
+
+    try:
+        client = boto3.client(
+            "bedrock-runtime",
+            aws_access_key_id=aws_key,
+            aws_secret_access_key=aws_secret,
+            region_name=aws_region,
+        )
+
+        converse_kwargs = {
+            "modelId": model_id,
+            "system": [{"text": _EVAL_SYSTEM_PROMPT}],
+            "messages": [
+                {"role": "user", "content": [{"text": _build_eval_prompt(data)}]}
+            ],
+            "inferenceConfig": {"maxTokens": 400, "temperature": 0.3},
+        }
+
+        # boto3 is synchronous — run in thread pool to avoid blocking the event loop
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None,
+            lambda: client.converse(**converse_kwargs),
+        )
+
+        text = response["output"]["message"]["content"][0]["text"].strip()
+        text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.DOTALL).strip()
+        parsed = json.loads(text)
+        actions = parsed.get("actions", [])
+        reasoning = parsed.get("reasoning", "Bedrock Claude Haiku adaptation")
+        print(f"[Fallback-T3] Bedrock Claude Haiku succeeded — {len(actions)} action(s)")
+        return {
+            "mode": "agentic_bedrock",
+            "agent": "therapy_director_via_bedrock/claude-haiku",
+            "reasoning": reasoning,
+            "actions": actions,
+        }
+
+    except json.JSONDecodeError as je:
+        print(f"[Fallback-T3] Bedrock — JSON parse error: {je}")
+    except Exception as e:
+        print(f"[Fallback-T3] Bedrock error: {e}")
+
+    return None
+
+
 # ─── ENDPOINTS ───────────────────────────────────────────────────
 
 @app.post("/evaluate-session")
@@ -660,15 +822,28 @@ async def evaluate_session(data: AdaptationRequest):
                         response_text += part.text
 
     except Exception as e:
-        # Check for quota error
         exc_str = str(e).upper()
-        if any(q in exc_str for q in ["429", "RESOURCE_EXHAUSTED", "QUOTA"]):
+        is_quota = any(q in exc_str for q in ["429", "RESOURCE_EXHAUSTED", "QUOTA"])
+        if is_quota:
             trigger_cooldown(user_id)
-        
-        # Fallback to Baseline
+            print(f"[QUOTA] Gemini quota hit for {user_id} — trying OpenRouter (T2) then Bedrock (T3)")
+        else:
+            print(f"[ERROR] Gemini agent error for {user_id}: {e} — trying fallback tiers")
+
+        # ── Tier 2: OpenRouter ──────────────────────────────────────
+        t2 = await _evaluate_via_openrouter(data)
+        if t2:
+            return t2
+
+        # ── Tier 3: Amazon Bedrock Claude Haiku ────────────────────
+        t3 = await _evaluate_via_bedrock(data)
+        if t3:
+            return t3
+
+        # ── Tier 4: Local FixedRuleEngine (always succeeds) ────────
         res = FixedRuleEngine.get_adaptation(data)
         res["mode"] = "baseline_fallback"
-        res["reasoning"] = f"𝐀𝐆𝐄𝐍𝐓𝐈𝐂 𝐄𝐑𝐑𝐎𝐑: {str(e)}. " + res["reasoning"]
+        res["reasoning"] = "𝐓2/𝐓3 𝐔𝐍𝐀𝐕𝐀𝐈𝐋𝐀𝐁𝐋𝐄. " + res["reasoning"]
         return res
 
     return {
