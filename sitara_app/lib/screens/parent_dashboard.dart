@@ -2236,7 +2236,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
             // Report Text Cards
             ...sectionWidgets,
 
-            pw.Spacer(),
+            pw.SizedBox(height: 20),
             pw.Divider(color: PdfColors.grey300, thickness: 0.8),
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,

@@ -8,8 +8,168 @@
   <meta name="google" content="notranslate">
   <title>Sitara</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #1A1040;
+    }
+    .loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #1A1040 0%, #301E67 40%, #5B54FA 75%, #FF6584 100%);
+      z-index: 99999;
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.6s cubic-bezier(0.4, 0.0, 0.2, 1), visibility 0.6s;
+    }
+    .loader-content {
+      text-align: center;
+      color: white;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    .pulsing-star {
+      width: 110px;
+      height: 110px;
+      margin-bottom: 24px;
+      animation: star-pulse 1.8s infinite ease-in-out;
+      filter: drop-shadow(0 0 25px rgba(255, 213, 79, 0.7));
+    }
+    @keyframes star-pulse {
+      0% {
+        transform: scale(0.85) rotate(0deg);
+      }
+      50% {
+        transform: scale(1.06) rotate(15deg);
+      }
+      100% {
+        transform: scale(0.85) rotate(0deg);
+      }
+    }
+    .app-title {
+      font-size: 44px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      margin: 0;
+      color: #FFFFFF;
+      text-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .app-subtitle {
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.85);
+      margin: 8px 0 32px 0;
+      font-weight: 500;
+    }
+    .progress-bar {
+      width: 220px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 0 auto;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 40%;
+      background: linear-gradient(90deg, #FFD54F, #FFCA28);
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(255, 213, 79, 0.8);
+      animation: loading-progress 2.2s infinite cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+    @keyframes loading-progress {
+      0% {
+        transform: translateX(-120%);
+      }
+      50% {
+        transform: translateX(100%);
+      }
+      100% {
+        transform: translateX(200%);
+      }
+    }
+    .loading-message {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.65);
+      margin-top: 16px;
+      letter-spacing: 0.5px;
+      animation: pulse-text 1.8s infinite ease-in-out;
+    }
+    @keyframes pulse-text {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 0.95; }
+    }
+    .hackathon-tag {
+      position: absolute;
+      bottom: 24px;
+      left: 0;
+      right: 0;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.3);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .loader.fade-out {
+      opacity: 0;
+      visibility: hidden;
+    }
+  </style>
 </head>
 <body>
+  <div id="loading-indicator" class="loader">
+    <div class="loader-content">
+      <svg class="pulsing-star" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <path fill="#FFD54F" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+      </svg>
+      <div class="app-title">Sitara</div>
+      <div class="app-subtitle">ستارہ &middot; Your Learning Star</div>
+      <div class="progress-bar">
+        <div class="progress-bar-fill"></div>
+      </div>
+      <div class="loading-message">Preparing clinical play space...</div>
+      <div class="hackathon-tag">Google Antigravity Hackathon Submission</div>
+    </div>
+  </div>
+
+  <script>
+    // Frame-level transition handler
+    window.addEventListener("flutter-first-frame", function() {
+      var loader = document.getElementById("loading-indicator");
+      if (loader) {
+        loader.classList.add("fade-out");
+        setTimeout(function() {
+          loader.remove();
+        }, 600);
+      }
+    });
+
+    // Safety Fallback: If the event is missed but the Flutter canvas or view is active, dismiss loader
+    var checkCount = 0;
+    var checkInterval = setInterval(function() {
+      checkCount++;
+      var flutterView = document.querySelector('flutter-view') || document.querySelector('canvas');
+      if (flutterView) {
+        var loader = document.getElementById("loading-indicator");
+        if (loader && !loader.classList.contains("fade-out")) {
+          loader.classList.add("fade-out");
+          setTimeout(function() {
+            loader.remove();
+          }, 600);
+        }
+        clearInterval(checkInterval);
+      }
+      // Stop checking after 30 seconds
+      if (checkCount > 150) {
+        clearInterval(checkInterval);
+      }
+    }, 200);
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
