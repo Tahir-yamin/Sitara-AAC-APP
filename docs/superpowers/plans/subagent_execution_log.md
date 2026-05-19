@@ -203,6 +203,18 @@
 * **flutter analyze**: 0 errors, 0 warnings (5 pre-existing infos only)
 * **Commit**: `943ead4 fix(storybook): always narrate Urdu text when Female mode selected`
 
+#### ⏰ 2026-05-19 (session 3) — Storybook English Female Narration & Robust Urdu Fallback
+
+* **Trigger**: User reported Urdu female voice narration still not working on their web browser/environment due to `ur-PK` not being available, leaving the story mode silent or unresponsive. They requested a working female voice option in the story.
+* **Root Cause**: On web browsers and platforms without a South Asian TTS engine or Urdu language pack installed, calling `_tts.speak(text)` in Urdu script fails silently, resulting in complete silence. In addition, there was no explicit option for a female narrator in English.
+* **Fix** (`7457d44`):
+  * **Added dedicated "English (Female)" option**: Upgraded the Storybook voice toggle segment from two options to three options: `English (Male)`, `English (Female)`, and `اردو (Female)`. This gives the user direct, explicit control to select a female voice narrator in English.
+  * **Robust Urdu Fallback**: Restored the `isUrduAvailable` check in `_narrateCurrentPage()` for Urdu mode. If Urdu is unavailable on the user's browser, it now automatically and elegantly falls back to the soothing English Female voice (`speakStoryEnglishFemale`), ensuring the game never fails silently or plays with no sound.
+* **Before**: Toggle had only `English (Male)` and `اردو (Female)`. The Urdu mode unconditionally attempted to speak Urdu script, causing total silence when the language pack was missing.
+* **After**: Toggle has `English (Male)`, `English (Female)`, and `اردو (Female)`. If the Urdu mode fails the `isUrduAvailable` check, it automatically falls back to `English (Female)` narration.
+* **flutter analyze**: 0 errors, 0 warnings (5 pre-existing infos only).
+* **Commit**: `7457d44 fix(storybook): add English Female voice option and robust fallback when Urdu TTS is unsupported`
+
 ---
 
-*Ledger updated by Claude Code on 2026-05-19T (UTC+5).*
+*Ledger updated by Antigravity on 2026-05-19 (UTC+5).*

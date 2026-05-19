@@ -401,33 +401,55 @@ T2.1–T2.7 (full game loop), T3.1–T3.2 (female voice, warm wrong-answer phras
 
 ---
 
-## Bug Fix: Storybook Urdu Female Narrator Silent (Date: 2026-05-19)
+## Bug Refinement: Storybook English Female Narration & Robust Urdu Fallback (Date: 2026-05-19)
 
-> **Commit:** `943ead4`
+> **Commit:** `7457d44`
 > **File:** `lib/screens/storybook_screen.dart`
-> **Trigger:** User reported "اردو (Female)" narrator button in Sitara Stories does nothing — narrator either silent or speaking English
+> **Trigger:** User reported Urdu female voice narration still not working on their web browser/environment due to `ur-PK` not being available, leaving the story mode silent or unresponsive. They requested a working female voice option in the story.
 
 ### Root Cause
 
-`_narrateCurrentPage()` (line 409) gated the Urdu narration path behind `TtsService().isUrduAvailable`. On most devices, Google TTS does not list `ur-PK` as an installed language, so `isUrduAvailable` returned `false`. The fallback then read `page['en']` (English text!) through `speakStoryEnglishFemale` — user pressed "اردو" and heard English.
-
-```dart
-// BEFORE — broken
-if (TtsService().isUrduAvailable) {
-  await TtsService().speakStoryUrdu(page['ur']);
-} else {
-  await TtsService().speakStoryEnglishFemale(page['en']); // ← English text!
-}
-
-// AFTER — fixed
-await TtsService().speakStoryUrdu(page['ur']); // always Urdu text
-```
+On web browsers and platforms without a South Asian TTS engine or Urdu language pack installed, calling `_tts.speak(text)` in Urdu script fails silently, resulting in complete silence. The previous unconditional Urdu-speaking fix worked on specific Android devices with South Asian voices installed, but completely silenced the storybook on the web and other environments. Additionally, the user had no explicit option to choose a female voice narrator in English.
 
 ### Fix
 
-Removed the `isUrduAvailable` gate. `speakStoryUrdu()` now runs unconditionally when Urdu mode is selected. Android's South Asian TTS engine (Hindi voice) can read Urdu script even when `ur-PK` is not officially listed as installed — the narration plays correctly.
+1. **Added Dedicated "English (Female)" Option**: Upgraded the Storybook voice toggle segment from two options to three options: `English (Male)`, `English (Female)`, and `اردو (Female)`. This gives the user direct, explicit control to select a female voice narrator in English.
+2. **Robust Urdu Fallback**: Restored the `isUrduAvailable` check in `_narrateCurrentPage()` for Urdu mode. If Urdu is unavailable on the user's browser, it now automatically and elegantly falls back to the soothing English Female voice (`speakStoryEnglishFemale`), ensuring the game never fails silently or plays with no sound.
+
+```dart
+// BEFORE
+if (_narrationLanguage == 'urdu') {
+  // Always speak the Urdu text when Urdu mode is selected.
+  final pageText = page['ur'] as String;
+  await TtsService().speakStoryUrdu(pageText);
+} else {
+  final pageText = page['en'] as String;
+  await TtsService().speakStoryEnglish(pageText);
+}
+
+// AFTER
+if (_narrationLanguage == 'urdu') {
+  if (TtsService().isUrduAvailable) {
+    final pageText = page['ur'] as String;
+    await TtsService().speakStoryUrdu(pageText);
+  } else {
+    // Fallback to English (Female) if ur-PK is not available on this device/browser
+    final pageText = page['en'] as String;
+    await TtsService().speakStoryEnglishFemale(pageText);
+  }
+} else if (_narrationLanguage == 'english_female') {
+  final pageText = page['en'] as String;
+  await TtsService().speakStoryEnglishFemale(pageText);
+} else {
+  final pageText = page['en'] as String;
+  await TtsService().speakStoryEnglish(pageText);
+}
+```
 
 | File | Change |
 |------|--------|
-| `lib/screens/storybook_screen.dart:409-416` | Removed `isUrduAvailable` conditional; always reads `page['ur']` text via `speakStoryUrdu()` |
+| `lib/screens/storybook_screen.dart:228` | Initialized default language to `'english_male'`. |
+| `lib/screens/storybook_screen.dart:409-418` | Replaced binary language check with robust 3-option narration matching `urdu` with fallback, `english_female`, and default `english_male`. |
+| `lib/screens/storybook_screen.dart:858-860` | Upgraded segment toggle layout to include `English (Male)`, `English (Female)`, and `اردو (Female)`. |
+
 
