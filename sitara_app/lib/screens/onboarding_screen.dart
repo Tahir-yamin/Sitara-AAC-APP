@@ -88,6 +88,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       childName: name,
     );
 
+    TtsService().stopIntroMusic();
+
     Navigator.pushReplacementNamed(context, '/home',
         arguments: {'childName': name});
   }

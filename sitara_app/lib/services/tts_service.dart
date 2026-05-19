@@ -29,6 +29,7 @@ class TtsService {
 
   final FlutterTts _tts = FlutterTts();
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final AudioPlayer _bgPlayer = AudioPlayer();
   final Completer<void> _initCompleter = Completer<void>();
   StreamSubscription<void>? _audioSubscription;
   Completer<void>? _audioPlayCompleter;
@@ -39,6 +40,22 @@ class TtsService {
   Map<String, String>? _femaleFallbackVoice;
 
   bool get isUrduAvailable => _urduAvailable;
+
+  Future<void> playIntroMusic() async {
+    try {
+      await _bgPlayer.setReleaseMode(ReleaseMode.loop);
+      await _bgPlayer.setVolume(0.4); // Warm and gentle, not too loud!
+      await _bgPlayer.play(AssetSource('audio/intro_welcoming_music.mp3'));
+    } catch (e) {
+      debugPrint('TtsService.playIntroMusic error: $e');
+    }
+  }
+
+  Future<void> stopIntroMusic() async {
+    try {
+      await _bgPlayer.stop();
+    } catch (_) {}
+  }
 
   // All pre-recorded assets regenerated 2026-05-19 with ur-IN-Chirp3-HD-Kore
   // (female Pakistani WaveNet/Chirp3-HD). Blacklist is now empty — every file

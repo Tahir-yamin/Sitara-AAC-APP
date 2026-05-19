@@ -18,6 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     TtsService().stop(); // Ensure all speech is killed when home screen is loaded or returned to
+    TtsService().stopIntroMusic();
   }
 
 
