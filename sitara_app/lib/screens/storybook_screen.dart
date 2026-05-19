@@ -225,7 +225,7 @@ class _StorybookScreenState extends State<StorybookScreen>
   int _currentPageIndex = 0;
   bool _isPlayingStory = false;
   bool _isNarrating = false;
-  String _narrationLanguage = 'english';
+  String _narrationLanguage = 'english_male';
 
   // Cooldown variables
   bool _cooldownActive = false;
@@ -407,11 +407,17 @@ class _StorybookScreenState extends State<StorybookScreen>
     final page = pages[_currentPageIndex] as Map<String, dynamic>;
 
     if (_narrationLanguage == 'urdu') {
-      // Always speak the Urdu text when Urdu mode is selected.
-      // speakStoryUrdu sets ur-PK profile — Android's South Asian TTS engine
-      // can read Urdu script even when ur-PK is not listed as "available".
-      final pageText = page['ur'] as String;
-      await TtsService().speakStoryUrdu(pageText);
+      if (TtsService().isUrduAvailable) {
+        final pageText = page['ur'] as String;
+        await TtsService().speakStoryUrdu(pageText);
+      } else {
+        // Fallback to English (Female) if ur-PK is not available on this device/browser
+        final pageText = page['en'] as String;
+        await TtsService().speakStoryEnglishFemale(pageText);
+      }
+    } else if (_narrationLanguage == 'english_female') {
+      final pageText = page['en'] as String;
+      await TtsService().speakStoryEnglishFemale(pageText);
     } else {
       final pageText = page['en'] as String;
       await TtsService().speakStoryEnglish(pageText);
@@ -855,7 +861,8 @@ class _StorybookScreenState extends State<StorybookScreen>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildLanguageSegmentButton('english', 'English (Male)', color),
+                _buildLanguageSegmentButton('english_male', 'English (Male)', color),
+                _buildLanguageSegmentButton('english_female', 'English (Female)', color),
                 _buildLanguageSegmentButton('urdu', 'اردو (Female)', color),
               ],
             ),
