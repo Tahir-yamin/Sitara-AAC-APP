@@ -407,13 +407,11 @@ class _StorybookScreenState extends State<StorybookScreen>
     final page = pages[_currentPageIndex] as Map<String, dynamic>;
 
     if (_narrationLanguage == 'urdu') {
-      if (TtsService().isUrduAvailable) {
-        final pageText = page['ur'] as String;
-        await TtsService().speakStoryUrdu(pageText);
-      } else {
-        final pageText = page['en'] as String;
-        await TtsService().speakStoryEnglishFemale(pageText);
-      }
+      // Always speak the Urdu text when Urdu mode is selected.
+      // speakStoryUrdu sets ur-PK profile — Android's South Asian TTS engine
+      // can read Urdu script even when ur-PK is not listed as "available".
+      final pageText = page['ur'] as String;
+      await TtsService().speakStoryUrdu(pageText);
     } else {
       final pageText = page['en'] as String;
       await TtsService().speakStoryEnglish(pageText);
