@@ -33,13 +33,6 @@ class _SplashScreenState extends State<SplashScreen>
       CurvedAnimation(parent: _controller, curve: const Interval(0.5, 1.0)),
     );
     _controller.forward();
-
-    // Safe fallback transition to onboarding if no interaction after 3.5 seconds
-    Future.delayed(const Duration(milliseconds: 3500), () {
-      if (mounted && !_tapped) {
-        Navigator.pushReplacementNamed(context, '/onboarding');
-      }
-    });
   }
 
   void _onTapEnter() {

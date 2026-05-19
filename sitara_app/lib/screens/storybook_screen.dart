@@ -236,6 +236,7 @@ class _StorybookScreenState extends State<StorybookScreen>
   void initState() {
     super.initState();
     TtsService().stop(); // Silence everything on arrival
+    TtsService().stopIntroMusic();
 
     _starController = AnimationController(
       vsync: this,

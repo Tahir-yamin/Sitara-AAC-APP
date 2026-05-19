@@ -55,6 +55,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    TtsService().stopIntroMusic();
     _agentService = context.read<AntigravityService>();
     _tracker = context.read<SessionTracker>();
     _analytics = context.read<AnalyticsService>();

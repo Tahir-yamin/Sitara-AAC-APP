@@ -34,6 +34,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
   void initState() {
     super.initState();
     TtsService().stop(); // Ensure TTS stops immediately when entering parent view
+    TtsService().stopIntroMusic();
     _agentService = context.read<AntigravityService>();
     _tracker = context.read<SessionTracker>();
     _analytics = AnalyticsService(childId: _tracker.childId);
