@@ -215,17 +215,18 @@
 * **flutter analyze**: 0 errors, 0 warnings (5 pre-existing infos only).
 * **Commit**: `7457d44 fix(storybook): add English Female voice option and robust fallback when Urdu TTS is unsupported`
 
-#### ⏰ 2026-05-19 (session 4) — Storybook Pre-Recorded Urdu Narration Integration
+#### ⏰ 2026-05-19 (session 4) — Storybook Pre-Recorded Urdu Narration Integration & Toggle Simplification
 
-* **Trigger**: User requested to pre-record the Urdu female narration for the Storybook pages as audio assets and download them, ensuring robust offline/browser Urdu voice playback.
-* **Fix & Improvements** (`1deaa73`):
+* **Trigger**: User requested to pre-record the Urdu female narration for the Storybook pages as audio assets and download them, ensuring robust offline/browser Urdu voice playback. Following successful integration, the redundant English Female narrator toggle option was removed to keep the interface simple and uncluttered.
+* **Fix & Improvements** (`1deaa73` & `fdcf7a3`):
   * **Automated Audio Generation**: Created `generate_story_audio.py` script in `assets/audio/` using Google Translate TTS API to download **36 high-quality female Urdu voice recordings** for all story pages (`story_0_page_0.mp3` to `story_3_page_8.mp3`).
-  * **Pre-Recorded Audio Playback**: Modified `speakStoryUrdu` in `tts_service.dart` to accept an `audioPath` and `fallbackText`, playing the MP3 asset using `AudioPlayer` if available.
-  * **Triple-Guarded Integration**: Hooked this into the Storybook player. If the Urdu narration is played, it automatically plays the pre-recorded premium MP3 asset, falls back to live Urdu TTS if the file fails, and gracefully falls back to live English Female TTS if both fail.
-* **Before**: Urdu narration only ran via live local system TTS which failed silently on web browsers without Urdu packs.
-* **After**: Plays pre-recorded female Urdu voice files which work flawlessly on all browsers and devices without any local TTS dependencies.
+  * **Pre-Recorded Audio Playback**: Modified `speakStoryUrdu` in `tts_service.dart` to play the pre-recorded MP3 asset using `AudioPlayer` if available.
+  * **Cleaned Up Voice Toggles**: Removed the redundant "English (Female)" option from the segmented toggle and player, leaving the two main targets: **English (Male)** and **Urdu (Female)**.
+  * **Triple-Guarded Integration**: Hooked this into the Storybook player. If the Urdu narration is played, it automatically plays the pre-recorded premium MP3 asset, falls back to live Urdu TTS if the file fails, and gracefully falls back to live English Male TTS if both fail.
+* **Before**: Urdu narration only ran via live local system TTS which failed silently on web browsers without Urdu packs, requiring an English Female toggle option as a backup.
+* **After**: Plays pre-recorded female Urdu voice files which work flawlessly on all browsers and devices without any local TTS dependencies, allowing a clean two-option toggle (**English (Male)** and **اردو (Female)**).
 * **flutter analyze**: 0 errors, 0 warnings (5 pre-existing infos only).
-* **Commit**: `1deaa73 feat(storybook): integrate pre-recorded high-quality female Urdu narration assets for all stories`
+* **Commit**: `fdcf7a3 fix(storybook): remove redundant English Female option keeping English Male and premium Urdu Female`
 
 ---
 

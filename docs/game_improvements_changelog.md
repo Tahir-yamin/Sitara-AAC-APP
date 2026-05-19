@@ -460,7 +460,8 @@ Future<void> speakStoryUrdu(String text, {String? audioPath, String? fallbackTex
 | `assets/audio/generate_story_audio.py` | New python automation script to generate 36 Urdu storybook audio files for free. |
 | `assets/audio/story_*.mp3` | 36 premium pre-recorded female Urdu MP3 files for stories. |
 | `lib/services/tts_service.dart` | Modified `speakStoryUrdu` to play the pre-recorded MP3 asset first with double-guarded live Urdu and English fallback. |
-| `lib/screens/storybook_screen.dart` | Passed `audioPath` and `fallbackText` into `speakStoryUrdu` during page narration. |
+| `lib/screens/storybook_screen.dart` | Integrated the pre-recorded MP3 asset files, and simplified the UI toggles by removing the redundant "English (Female)" button to leave the clean, two-option selector (**English (Male)** and **اردو (Female)**). |
+
 
 
 
