@@ -210,7 +210,7 @@ Testers can manually trigger the ADK agent endpoints on the FastAPI server to in
 *   **Purpose**: Verify the Therapy Director evaluates session logs and triggers real-time adaptations (e.g. reducing choices to lower frustration).
 *   **cURL Command**:
     ```bash
-    curl -X POST "https://sitara-backend-178558547254.asia-south1.run.app/evaluate-session" \
+    curl -X POST "https://[YOUR-CLOUD-RUN-URL]/evaluate-session" \
       -H "Content-Type: application/json" \
       -H "X-Sitara-Token: dev-token-sitara" \
       -d '{
@@ -230,7 +230,7 @@ Testers can manually trigger the ADK agent endpoints on the FastAPI server to in
 *   **Purpose**: Verify the Story Weaver creates personalized bilingual quests utilizing specific child parameters.
 *   **cURL Command**:
     ```bash
-    curl -X POST "https://sitara-backend-178558547254.asia-south1.run.app/generate-quest" \
+    curl -X POST "https://[YOUR-CLOUD-RUN-URL]/generate-quest" \
       -H "Content-Type: application/json" \
       -H "X-Sitara-Token: dev-token-sitara" \
       -d '{
@@ -247,7 +247,7 @@ Testers can manually trigger the ADK agent endpoints on the FastAPI server to in
 *   **Purpose**: Verify the Progress Guardian synthesizes the extensive 800-1200 word clinical report with the required 7 headers and lists.
 *   **cURL Command**:
     ```bash
-    curl -X POST "https://sitara-backend-178558547254.asia-south1.run.app/weekly-report" \
+    curl -X POST "https://[YOUR-CLOUD-RUN-URL]/weekly-report" \
       -H "Content-Type: application/json" \
       -H "X-Sitara-Token: dev-token-sitara" \
       -d '{
@@ -263,7 +263,7 @@ Testers can manually trigger the ADK agent endpoints on the FastAPI server to in
 *   **Purpose**: Verify the backend token-validation middleware automatically blocks request payloads that do not supply security headers to protect sensitive child session data.
 *   **cURL Command**:
     ```bash
-    curl -X POST "https://sitara-backend-178558547254.asia-south1.run.app/evaluate-session" \
+    curl -X POST "https://[YOUR-CLOUD-RUN-URL]/evaluate-session" \
       -H "Content-Type: application/json" \
       -d '{
         "child_id": "zara_01",
@@ -282,7 +282,7 @@ Testers can manually trigger the ADK agent endpoints on the FastAPI server to in
 *   **Purpose**: Verify the token-validation middleware rejects requests attempting to bypass authentication with bad credentials.
 *   **cURL Command**:
     ```bash
-    curl -X POST "https://sitara-backend-178558547254.asia-south1.run.app/evaluate-session" \
+    curl -X POST "https://[YOUR-CLOUD-RUN-URL]/evaluate-session" \
       -H "Content-Type: application/json" \
       -H "X-Sitara-Token: bad-token-hacker-123" \
       -d '{

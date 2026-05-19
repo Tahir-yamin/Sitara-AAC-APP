@@ -63,7 +63,11 @@ class _SplashScreenState extends State<SplashScreen>
                   animation: _controller,
                   builder: (_, __) => Transform.scale(
                     scale: _scaleAnim.value,
-                    child: const Text('⭐', style: TextStyle(fontSize: 100)),
+                    child: const Icon(
+                      Icons.star_rounded,
+                      size: 120,
+                      color: Colors.amberAccent,
+                    ),
                   ),
                 ),
               ),

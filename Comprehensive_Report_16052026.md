@@ -188,7 +188,7 @@ Map<String, dynamic> _summariseEvents(List<SessionEvent> events) {
 Actually safe due to isEmpty check, but pattern is error-prone
 Fix: Use .fold(0.0, (a, b) => a + b) / events.length for clarity
 ISSUE: Hardcoded Backend URL
-static const String _baseUrl = 'https://sitara-backend-178558547254.asia-south1.run.app';
+static const String _baseUrl = 'https://[YOUR-CLOUD-RUN-URL]';
 No way to point to local backend during testing
 Exposes GCP project number in client code
 Fix: Read from environment or config file; provide localhost default for debug builds

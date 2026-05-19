@@ -11,9 +11,11 @@ import httpx
 import json
 
 def test_openrouter():
-    part1 = "sk-or-v"
-    part2 = "1-d881eec854cfdd672760021386772059c8f69584dd2d148663f5563997d04803"
-    api_key = part1 + part2
+    import os
+    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    if not api_key:
+        print("OPENROUTER_API_KEY env variable not set!")
+        return
     url = "https://openrouter.ai/api/v1/chat/completions"
     
     headers = {

@@ -2,7 +2,7 @@
 import requests
 import json
 
-url = "https://sitara-backend-178558547254.asia-south1.run.app/evaluate-session"
+url = "https://[YOUR-CLOUD-RUN-URL]/evaluate-session"
 payload = {
     "child_id": "test_child_123",
     "success_rate": 0.2,

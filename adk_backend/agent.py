@@ -902,9 +902,11 @@ async def generate_report(data: ReportRequest):
     ]
     
     url = "https://openrouter.ai/api/v1/chat/completions"
-    part1 = "sk-or-v"
-    part2 = "1-d881eec854cfdd672760021386772059c8f69584dd2d148663f5563997d04803"
-    api_key = part1 + part2
+    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    if not api_key:
+        print("[WARNING] OPENROUTER_API_KEY not configured. Falling back to structured local report.")
+        trigger_cooldown(user_id)
+        return {"report": _build_local_report(data), "mode": "baseline_fallback"}
 
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -912,6 +914,7 @@ async def generate_report(data: ReportRequest):
         "HTTP-Referer": "https://sitara.app",
         "X-Title": "Sitara App"
     }
+
 
     for model in candidate_models:
         payload = {

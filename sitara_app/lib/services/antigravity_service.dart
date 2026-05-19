@@ -7,7 +7,7 @@ class AntigravityService extends ChangeNotifier {
   // Override at build time: flutter run --dart-define=BACKEND_URL=http://10.0.2.2:8000
   static const String _baseUrl = String.fromEnvironment(
     'BACKEND_URL',
-    defaultValue: 'https://sitara-backend-178558547254.asia-south1.run.app',
+    defaultValue: 'https://[YOUR-CLOUD-RUN-URL]',
   );
 
   // Trace log for judge panel — stored locally, shown in UI
@@ -206,19 +206,7 @@ class AntigravityService extends ChangeNotifier {
       debugPrint('[WeeklyReport Backend Error] $e');
     }
 
-    // 2. Client-side direct OpenRouter fallback
-    debugPrint('[WeeklyReport] Direct OpenRouter fallback triggered...');
-    final directReport = await _callOpenRouterDirect(childName, summary);
-    if (directReport.isNotEmpty) {
-      _addTrace(
-        agent: 'Progress Guardian (Client-Direct)',
-        reasoning: 'Generated weekly parent report directly via OpenRouter client for $childName',
-        actions: [],
-      );
-      return directReport;
-    }
-
-    // 3. Structured local report fallback
+    // 2. Structured local report fallback
     debugPrint('[WeeklyReport] Falling back to local offline structured report...');
     _addTrace(
       agent: 'Progress Guardian (Local-Fallback)',
@@ -228,107 +216,6 @@ class AntigravityService extends ChangeNotifier {
     return _generateLocalClinicalReport(childName, summary);
   }
 
-  Future<String> _callOpenRouterDirect(String childName, Map<String, dynamic> summary) async {
-    const String p1 = 'sk-or-v';
-    const String p2 = '1-d881eec854cfdd672760021386772059c8f69584dd2d148663f5563997d04803';
-    const String openRouterKey = p1 + p2;
-    final url = Uri.parse('https://openrouter.ai/api/v1/chat/completions');
-    final insights = _extractInsightsFromTrace();
-    
-    final prompt = """
-    You are the Progress Guardian — an elite Pediatric Cognitive Behavioral Therapist (CBT) and senior Speech-Language Pathologist (SLP) specializing in AAC (Augmentative and Alternative Communication) intervention for autistic and non-verbal children in Pakistan.
-
-    Your goal is to analyze raw child session summaries and write a comprehensive, professional, clinical-grade CBT & AAC Therapist Progress Report for $childName. The report must be highly detailed (aim for 600-800 words), scientifically grounded, yet deeply warm and encouraging to the parent.
-
-    Use a natural, clinical-yet-encouraging tone, combining standard professional English with heartful Urdu appreciation words ("Assalamu Alaikum", "Masha'Allah", "Zabardast!", "Shabash!", "Bahut achha!", "Allah bless you").
-
-    IMPORTANT: The parent mobile application uses a custom markdown renderer. You must format your response exactly using these 7 sections, with a single "# " markdown header at the start of each section. Do NOT use standard bold syntax (**text**) except to highlight specific values, because the renderer will highlight bold elements. Use list bullets starting with "- " for observations and suggestions.
-
-    Child name: $childName
-    Session metrics: ${jsonEncode(summary)}
-    Therapy insights: $insights
-
-    Here is the exact 7-section report format you must generate:
-
-    # 🌟 Assalamu Alaikum! Weekly Therapeutic Overview
-    - Open with a warm Islamic and professional greeting to the parents.
-    - Provide a detailed clinical overview of the child's weekly activity, praising the family's dedication and recognizing the child's courage and efforts. Acknowledge the parent's emotional and therapeutic burden with deep compassion.
-
-    # 🧠 Cognitive & Communication Focus
-    - Detail the cognitive domain and target vocabulary category active this week (e.g., Emotions, Animals, Daily Routines).
-    - Explain the therapeutic purpose of targeting this domain (e.g., emotional regulation, semantic categorization, building daily request pathways).
-    - Analyze the child's comprehension speed, vocabulary assimilation, and how effectively the child linked symbols to meanings (semantic mapping).
-
-    # 🎭 CBT & Behavioral Response Analysis
-    - Focus heavily on frustration tolerance and self-regulation. Analyze behavioral patterns observed during the sessions, specifically how the child responded to consecutive failures or high-difficulty situations.
-    - Discuss emotional recovery patterns: did successive failures trigger immediate difficulty adaptations (reducing options or rotating cards), and how did the child respond to this intervention (e.g., maintaining focus, avoiding emotional shutdown)?
-    - Assess their response to praise and rewards (e.g., spark of motivation upon winning virtual stars, auditory Urdu praise).
-
-    # 🖐️ AAC Interaction & Physical Tap Patterns
-    - Assess motor planning and hand-eye coordination based on tap speed and accuracy metrics.
-    - Address display adaptations: did the child perform better with larger card displays or fewer cards per round (e.g., moving from 4 cards to 2)?
-    - Discuss how physical interactions (motor pathways) reflect cognitive confidence and coordination over the course of sessions.
-
-    # 🏆 Key Breakthroughs & Quantified Wins
-    - Present precise quantified achievements: state exact sessions completed, success rate percentage, card attempts, and best consecutive streak.
-    - Highlight specific breakthrough moments, such as specific cards mastered or rapid recovery after a failure.
-    - Frame these numbers in a deeply celebratory, motivational light.
-
-    # 🏡 Home-Based Play & Therapeutic Activities
-    - Provide exactly 3 highly actionable, fun, and easy home play activities tailored to reinforce the weekly target category.
-    - Each activity must have a clear Urdu-English name (e.g., "Aaina Game (Mirror Play)" or "Khana Time (Feeding Practice)") and step-by-step instructions.
-    - Give advice on how parents can use Urdu prompts naturally at home to bridge digital play to real-world social interaction.
-
-    # 📋 Therapist Clinical Recommendations
-    - State a concrete 3-point clinical action plan for next week (e.g., adjusting card sizes, increasing category rotation, scheduling sessions to prevent fatigue).
-    - Conclude with a powerful, supportive message for the parent: "Mehnat karein, aap kar saktay hain!" (Work hard, you can do it!) and a prayer/blessing for the child's path.
-    """;
-
-    final List<String> candidateModels = [
-      'google/gemini-2.0-flash-lite:free',
-      'meta-llama/llama-3.3-70b-instruct:free',
-      'openrouter/auto',
-    ];
-
-    for (final model in candidateModels) {
-      try {
-        debugPrint('[DirectOpenRouter] Trying model: $model...');
-        final res = await http.post(
-          url,
-          headers: {
-            'Authorization': 'Bearer $openRouterKey',
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://sitara.app',
-            'X-Title': 'Sitara App',
-          },
-          body: jsonEncode({
-            'model': model,
-            'messages': [
-              {
-                'role': 'user',
-                'content': prompt.trim(),
-              }
-            ],
-            'temperature': 0.7,
-          }),
-        ).timeout(const Duration(seconds: 12));
-
-        if (res.statusCode == 200) {
-          final parsed = jsonDecode(res.body) as Map<String, dynamic>;
-          final reportText = parsed['choices'][0]['message']['content'] as String;
-          if (reportText.isNotEmpty) {
-            debugPrint('[DirectOpenRouter] Success with $model!');
-            return reportText;
-          }
-        } else {
-          debugPrint('[DirectOpenRouter Error] $model returned ${res.statusCode}: ${res.body}');
-        }
-      } catch (e) {
-        debugPrint('[DirectOpenRouter Exception] $model failed: $e');
-      }
-    }
-    return '';
-  }
 
   /// Beautiful, comprehensive clinical progress report builder when offline
   String _generateLocalClinicalReport(String childName, Map<String, dynamic> summary) {

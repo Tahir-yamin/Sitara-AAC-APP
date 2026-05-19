@@ -10,7 +10,7 @@ This document serves as the comprehensive session log containing all key improve
 
 *   **Live Firebase Web App**: 🔗 **[https://sitara-v1.web.app/](https://sitara-v1.web.app/)**
 *   **Production Release APK**: `D:\my-dev-knowledge-base\sitara\sitara_app\build\app\outputs\flutter-apk\app-release.apk` *(File Size: 50.7 MB)*
-*   **FastAPI Backend on Cloud Run**: `https://sitara-backend-178558547254.asia-south1.run.app`
+*   **FastAPI Backend on Cloud Run**: `https://[YOUR-CLOUD-RUN-URL]`
 
 ---
 

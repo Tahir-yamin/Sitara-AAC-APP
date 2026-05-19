@@ -173,7 +173,7 @@ We have systematically verified the implementation of all 13 issues in the codeb
     ```dart
     static const String _baseUrl = String.fromEnvironment(
       'BACKEND_URL',
-      defaultValue: 'https://sitara-backend-178558547254.asia-south1.run.app',
+      defaultValue: 'https://[YOUR-CLOUD-RUN-URL]',
     );
     ```
 

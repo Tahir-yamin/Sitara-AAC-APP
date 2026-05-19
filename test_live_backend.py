@@ -1,7 +1,7 @@
 import requests
 import json
 
-BASE_URL = "https://sitara-backend-178558547254.asia-south1.run.app"
+BASE_URL = "https://[YOUR-CLOUD-RUN-URL]"
 
 def test_evaluate_session():
     print(f"Testing {BASE_URL}/evaluate-session...")
