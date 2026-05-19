@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/tts_service.dart';
+import '../services/local_db_service.dart';
+import '../services/session_tracker.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -47,9 +50,21 @@ class _SplashScreenState extends State<SplashScreen>
     // Fun visual pop animation on tap
     _controller.forward(from: 0.0);
     
+    final activeChild = LocalDbService.instance.getActiveChild();
+    
     Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/onboarding');
+        if (activeChild != null) {
+          context.read<SessionTracker>().startNewSession(
+            childId: activeChild['childId']!,
+            childName: activeChild['childName']!,
+          );
+          TtsService().stopIntroMusic();
+          Navigator.pushReplacementNamed(context, '/home',
+              arguments: {'childName': activeChild['childName']!});
+        } else {
+          Navigator.pushReplacementNamed(context, '/onboarding');
+        }
       }
     });
   }

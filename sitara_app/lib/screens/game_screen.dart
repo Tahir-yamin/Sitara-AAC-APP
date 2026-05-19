@@ -125,7 +125,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   /// Announce the target card: "بلی … Billi … Cat"
   Future<void> _speakTarget() async {
-    if (_targetCard == null) return;
+    if (!mounted || _targetCard == null) return;
     await _tts.speakCard(
       _targetCard!.nameUrdu,
       _targetCard!.nameEnglish,
@@ -378,24 +378,34 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (isCorrect) {
       final phrase = PhrasePool.pickPraise(streak: _currentStreak);
       _showReward(phrase.displayText);
-      await _speakPraiseUrdu(phrase);
-      await Future.delayed(const Duration(milliseconds: 2000));
+      
+      // Play speech in the background so it doesn't block the screen pop or transition
+      _speakPraiseUrdu(phrase);
+      
+      await Future.delayed(const Duration(milliseconds: 1800));
       if (mounted) {
         setState(() => _feedbackCardId = null);
         _loadCards();
+        _processingTap = false;
       }
     } else {
-      await _speakPraiseUrdu(PhrasePool.tryAgain);
-      if (mounted) setState(() => _feedbackCardId = null);
+      // Play speech in the background so wrong tap feedback clears quickly and user can try again
+      _speakPraiseUrdu(PhrasePool.tryAgain);
+      
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (mounted) {
+        setState(() => _feedbackCardId = null);
+        _processingTap = false;
+      }
     }
-
-    if (mounted) _processingTap = false;
   }
 
   Future<void> _speakPraiseUrdu(Phrase phrase) async {
+    if (!mounted) return;
     try {
       await _tts.speakPraise(phrase);
     } catch (_) {
+      if (!mounted) return;
       await _tts.speak(phrase.romanUrdu);
     }
   }

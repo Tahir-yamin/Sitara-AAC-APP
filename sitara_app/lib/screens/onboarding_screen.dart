@@ -87,6 +87,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       childId: childId,
       childName: name,
     );
+    LocalDbService.instance.saveActiveChild(
+      childId: childId,
+      childName: name,
+    );
 
     TtsService().stopIntroMusic();
 

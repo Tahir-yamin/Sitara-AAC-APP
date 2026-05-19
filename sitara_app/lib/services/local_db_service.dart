@@ -273,4 +273,20 @@ class LocalDbService {
     final raw = _p?.getString(_lastStoryPlayTimeKey);
     return raw != null ? DateTime.parse(raw) : null;
   }
+
+  // ─── ACTIVE CHILD PERSISTENCE (WORKS EVERYWHERE INCLUDING WEB) ──────────────
+
+  Future<void> saveActiveChild({required String childId, required String childName}) async {
+    await _p?.setString('active_child_id', childId);
+    await _p?.setString('active_child_name', childName);
+  }
+
+  Map<String, String>? getActiveChild() {
+    final id = _p?.getString('active_child_id');
+    final name = _p?.getString('active_child_name');
+    if (id != null && name != null) {
+      return {'childId': id, 'childName': name};
+    }
+    return null;
+  }
 }
