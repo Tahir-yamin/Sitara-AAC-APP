@@ -117,6 +117,36 @@ To guarantee the highest quality submission, we resolved the device-level Urdu T
 2. **Native Web Playback**: Removed the web dynamic TTS bypasses. The live Firebase Web application now plays native MP3 assets seamlessly via browser HTML5 audio element through the `audioplayers` package, resolving robotic Roman Urdu audio fallback on desktop browsers.
 3. **Progress Guardian Overhaul**: Fully refactored the therapist report agent to yield 800–1200 word clinical-grade CBT & SLP Weekly Progress Reports utilizing high-contrast H1 sections and lists, stripped of raw bold asterisks (`**`) to protect the custom mobile renderer from layout breaks.
 
+### 🎙️ Google Cloud TTS Technology Stack & Generation Pipeline
+
+To ensure professional quality, we bypassed general free-tier TTS engines and engineered a custom production-grade audio generation pipeline:
+
+*   **API & Endpoint**: Utilized the **Google Cloud Text-to-Speech REST API v1** (`https://texttospeech.googleapis.com/v1/text:synthesize`) for high-throughput, neural speech synthesis.
+*   **Cutting-Edge Neural Architectures**:
+    *   **Google Chirp3-HD**: Leveraged Google's newest and highest-fidelity localized neural models (`ur-IN-Chirp3-HD-Kore`, `ur-IN-Chirp3-HD-Zephyr`, `ur-IN-Chirp3-HD-Gacrux`). These models represent the state-of-the-art in bilingual South Asian speech generation, delivering a realistic, warm, 25-30 year-old female Pakistani accent.
+    *   **WaveNet Fallback**: Incorporated `ur-IN-Wavenet-A` as a stable fallback voice for extreme rate adjustments.
+*   **Phonetic Homograph Disambiguation**: 
+    *   Urdu is a highly contextual script where different words share identical spelling (homographs). For example, **کشتی** can mean *boat* (kashti) or *wrestling* (kushthi).
+    *   To prevent the engine from mispronouncing cards, we utilized explicit Arabic/Urdu diacritical markers (**Harakat**) in the generation payload (e.g., `کَشْتِی` for boat, `نَہانا` for bathing), resulting in flawless articulation.
+*   **SSML (Speech Synthesis Markup Language) Engineering**: We designed five custom SSML markup wrappers to programmatically control rate, pitch, and volume focus for autistic child learners:
+    ```xml
+    <!-- Card Names: Slow and clear for sensory processing and phonetic emulation -->
+    <speak><prosody rate="slow" pitch="+1st">{word}</prosody></speak>
+
+    <!-- Try Again / Comfort: Warm and gentle, avoiding demoralization -->
+    <speak><prosody rate="medium" pitch="+2st"><emphasis level="moderate">{text}</emphasis></prosody></speak>
+
+    <!-- Praise Tier 1 (Streak 1-2): Warm, joyful reinforcement -->
+    <speak><prosody rate="medium" pitch="+2st"><emphasis level="moderate">{text}</emphasis></prosody></speak>
+
+    <!-- Praise Tier 2 (Streak 3-5): Noticeably high energy and excited delivery -->
+    <speak><prosody rate="medium" pitch="+3st"><emphasis level="strong">{text}</emphasis></prosody></speak>
+
+    <!-- Praise Tier 3 (Streak 6+): Peak therapeutic reward energy -->
+    <speak><prosody rate="fast" pitch="+5st"><emphasis level="strong">{text}</emphasis><break time="100ms"/></prosody></speak>
+    ```
+*   **Unified Generation Pipeline (`generate_audio.py`)**: Built a robust Python script under `sitara_app/assets/audio/generate_audio.py` that processes the asset list, requests JSON payloads, handles Windows Unicode (`utf-8`) rendering constraints, and automatically outputs production-ready `.mp3` assets matching Flutter's asset keys.
+
 ---
 
 ## 🤖 Revised System & Tester Prompts Runbook
