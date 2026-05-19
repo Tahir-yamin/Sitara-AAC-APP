@@ -38,6 +38,8 @@ class TtsService {
   Map<String, String>? _femaleUrduVoice;
   Map<String, String>? _femaleFallbackVoice;
 
+  bool get isUrduAvailable => _urduAvailable;
+
   // All pre-recorded assets regenerated 2026-05-19 with ur-IN-Chirp3-HD-Kore
   // (female Pakistani WaveNet/Chirp3-HD). Blacklist is now empty — every file
   // is good quality and should play directly.
@@ -250,7 +252,12 @@ class TtsService {
           );
           playedAudio = true;
         } catch (e) {
-          debugPrint('TtsService: audio asset failed ($audioPath): $e');
+          final errStr = e.toString();
+          if (errStr.contains('NotAllowedError') || errStr.contains('play() failed')) {
+            debugPrint('TtsService: Browser auto-play blocked card sound ($audioPath). Awaiting user interaction.');
+          } else {
+            debugPrint('TtsService: audio asset failed ($audioPath): $e');
+          }
         }
       }
 
@@ -356,6 +363,11 @@ class TtsService {
         },
       );
     } catch (e) {
+      final errStr = e.toString();
+      if (errStr.contains('NotAllowedError') || errStr.contains('play() failed')) {
+        debugPrint('TtsService: Browser auto-play blocked praise. Awaiting user interaction.');
+        return;
+      }
       debugPrint('TtsService.speakPraise error: $e');
       // Fallback: live TTS — must be FEMALE and energetic.
       //
@@ -513,6 +525,30 @@ class TtsService {
       await _awaitCompletion();
     } catch (e) {
       debugPrint('TtsService.speakStoryEnglish error: $e');
+    }
+  }
+
+  Future<void> _setEnglishFemaleProfile() async {
+    await _tts.setLanguage('en-US');
+    if (_femaleFallbackVoice != null) {
+      await _tts.setVoice(_femaleFallbackVoice!);
+    }
+    await _tts.setPitch(1.2); // Expressive, high-pitched female tone
+    await _tts.setSpeechRate(0.36); // Soothing, slow pacing
+  }
+
+  /// Speak arbitrary English text in a warm, soothing female narrator tone.
+  Future<void> speakStoryEnglishFemale(String text) async {
+    await _ensureReady();
+    if (!_ready) return;
+    try {
+      await _tts.stop();
+      await _audioPlayer.stop();
+      await _setEnglishFemaleProfile();
+      await _tts.speak(text);
+      await _awaitCompletion();
+    } catch (e) {
+      debugPrint('TtsService.speakStoryEnglishFemale error: $e');
     }
   }
 

@@ -405,11 +405,17 @@ class _StorybookScreenState extends State<StorybookScreen>
     final story = _stories[_selectedStoryIndex];
     final pages = story['pages'] as List<dynamic>;
     final page = pages[_currentPageIndex] as Map<String, dynamic>;
-    final pageText = _narrationLanguage == 'urdu' ? page['ur'] as String : page['en'] as String;
 
     if (_narrationLanguage == 'urdu') {
-      await TtsService().speakStoryUrdu(pageText);
+      if (TtsService().isUrduAvailable) {
+        final pageText = page['ur'] as String;
+        await TtsService().speakStoryUrdu(pageText);
+      } else {
+        final pageText = page['en'] as String;
+        await TtsService().speakStoryEnglishFemale(pageText);
+      }
     } else {
+      final pageText = page['en'] as String;
       await TtsService().speakStoryEnglish(pageText);
     }
 

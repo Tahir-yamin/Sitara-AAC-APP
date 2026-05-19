@@ -1995,7 +1995,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
     final doc = pw.Document();
     
     // PDF Inline Bold Parser
-    List<pw.TextSpan> parsePdfInlineBold(String text) {
+    List<pw.TextSpan> parsePdfInlineBold(String text, {PdfColor? textColor}) {
       final parts = text.split('**');
       final List<pw.TextSpan> spans = [];
       for (var i = 0; i < parts.length; i++) {
@@ -2006,6 +2006,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
             style: pw.TextStyle(
               fontSize: 10,
               lineSpacing: 1.5,
+              color: textColor ?? PdfColors.grey900,
               fontWeight: (i % 2 == 1) ? pw.FontWeight.bold : pw.FontWeight.normal,
             ),
           ),
@@ -2020,6 +2021,11 @@ class _ParentDashboardState extends State<ParentDashboard> {
     pw.Widget buildPdfSectionCard(String title, String content, PdfColor color) {
       final lines = content.split('\n');
       final List<pw.Widget> listItems = [];
+
+      final hsl = color.toHsl();
+      final bgColor = color.shade(1.5 - (0.96 / hsl.lightness));
+      final borderColor = color.shade(1.5 - (0.88 / hsl.lightness));
+      final textColor = color.shade(1.5 - (0.22 / hsl.lightness));
 
       for (var line in lines) {
         final trimmed = line.trim();
@@ -2038,14 +2044,14 @@ class _ParentDashboardState extends State<ParentDashboard> {
                     width: 4,
                     height: 4,
                     decoration: pw.BoxDecoration(
-                      color: color,
+                      color: textColor,
                       shape: pw.BoxShape.circle,
                     ),
                   ),
                   pw.Expanded(
                     child: pw.RichText(
                       text: pw.TextSpan(
-                        children: parsePdfInlineBold(bulletText),
+                        children: parsePdfInlineBold(bulletText, textColor: PdfColors.grey900),
                       ),
                     ),
                   ),
@@ -2059,7 +2065,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
               padding: const pw.EdgeInsets.only(bottom: 6),
               child: pw.RichText(
                 text: pw.TextSpan(
-                  children: parsePdfInlineBold(trimmed),
+                  children: parsePdfInlineBold(trimmed, textColor: PdfColors.grey900),
                 ),
               ),
             ),
@@ -2072,9 +2078,9 @@ class _ParentDashboardState extends State<ParentDashboard> {
         margin: const pw.EdgeInsets.only(bottom: 12),
         padding: const pw.EdgeInsets.all(12),
         decoration: pw.BoxDecoration(
-          color: color.shade(50),
+          color: bgColor,
           borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-          border: pw.Border.all(color: color.shade(100), width: 0.8),
+          border: pw.Border.all(color: borderColor, width: 0.8),
         ),
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -2084,7 +2090,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
               style: pw.TextStyle(
                 fontWeight: pw.FontWeight.bold,
                 fontSize: 12,
-                color: color.shade(900),
+                color: textColor,
               ),
             ),
             pw.SizedBox(height: 8),
@@ -2264,25 +2270,30 @@ class _ParentDashboardState extends State<ParentDashboard> {
   }
 
   pw.Widget _buildPdfStatBox(String label, String value, PdfColor color) {
+    final hsl = color.toHsl();
+    final bgColor = color.shade(1.5 - (0.96 / hsl.lightness));
+    final borderColor = color.shade(1.5 - (0.85 / hsl.lightness));
+    final textColor = color.shade(1.5 - (0.25 / hsl.lightness));
+
     return pw.Expanded(
       child: pw.Container(
         padding: const pw.EdgeInsets.all(10),
         decoration: pw.BoxDecoration(
-          color: color.shade(50),
+          color: bgColor,
           borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-          border: pw.Border.all(color: color.shade(200), width: 1),
+          border: pw.Border.all(color: borderColor, width: 1),
         ),
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
             pw.Text(
               label,
-              style: pw.TextStyle(fontSize: 8, color: color.shade(900), fontWeight: pw.FontWeight.bold),
+              style: pw.TextStyle(fontSize: 8, color: textColor, fontWeight: pw.FontWeight.bold),
             ),
             pw.SizedBox(height: 4),
             pw.Text(
               value,
-              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: color.shade(900)),
+              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: textColor),
             ),
           ],
         ),
