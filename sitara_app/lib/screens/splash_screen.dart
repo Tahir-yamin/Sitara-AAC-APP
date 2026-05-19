@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,10 +13,13 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _controller;
   late Animation<double> _scaleAnim;
   late Animation<double> _fadeAnim;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
     super.initState();
+    _playIntroMusic();
+    
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
@@ -33,8 +37,18 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
+  Future<void> _playIntroMusic() async {
+    try {
+      await _audioPlayer.play(AssetSource('audio/intro_welcoming_music.mp3'));
+    } catch (e) {
+      debugPrint('Error playing intro music: $e');
+    }
+  }
+
   @override
   void dispose() {
+    _audioPlayer.stop();
+    _audioPlayer.dispose();
     _controller.dispose();
     super.dispose();
   }
