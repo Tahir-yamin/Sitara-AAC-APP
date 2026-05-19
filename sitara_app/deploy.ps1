@@ -22,16 +22,16 @@ Write-Host "✅ Found $dartCount Dart files in lib/" -ForegroundColor Green
 gcloud run deploy sitara-frontend `
     --source . `
     --region asia-south1 `
-    --project [GCP-PROJECT-ID] `
+    --project sitara-v1-495117 `
     --allow-unauthenticated `
     --quiet
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
     Write-Host "✅ Deploy succeeded!" -ForegroundColor Green
-    Write-Host "🌐 URL: https://[YOUR-CLOUD-RUN-FRONTEND-URL]" -ForegroundColor Cyan
+    Write-Host "🌐 URL: https://sitara-frontend-178558547254.asia-south1.run.app" -ForegroundColor Cyan
 } else {
     Write-Host ""
     Write-Host "❌ Deploy failed. Check Cloud Build logs:" -ForegroundColor Red
-    Write-Host "   https://console.cloud.google.com/cloud-build/builds?project=[GCP-PROJECT-ID]" -ForegroundColor Yellow
+    Write-Host "   https://console.cloud.google.com/cloud-build/builds?project=sitara-v1-495117" -ForegroundColor Yellow
 }

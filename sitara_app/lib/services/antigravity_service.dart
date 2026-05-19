@@ -7,7 +7,7 @@ class AntigravityService extends ChangeNotifier {
   // Override at build time: flutter run --dart-define=BACKEND_URL=http://10.0.2.2:8000
   static const String _baseUrl = String.fromEnvironment(
     'BACKEND_URL',
-    defaultValue: 'https://[YOUR-CLOUD-RUN-URL]',
+    defaultValue: 'https://sitara-backend-178558547254.asia-south1.run.app',
   );
 
   // Trace log for judge panel — stored locally, shown in UI

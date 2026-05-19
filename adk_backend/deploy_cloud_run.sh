@@ -2,7 +2,7 @@
 # deploy_cloud_run.sh
 # Deployment script for Sitara ADK Backend
 
-PROJECT_ID="[GCP-PROJECT-ID]"
+PROJECT_ID="sitara-v1-495117"
 REGION="asia-south1"
 SERVICE_NAME="sitara-backend"
 
