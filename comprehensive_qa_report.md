@@ -259,6 +259,45 @@ Testers can manually trigger the ADK agent endpoints on the FastAPI server to in
     ```
 *   **Expected Response**: A markdown report starting with `# 🌟 Assalamu Alaikum! Weekly Therapeutic Overview` and containing all 7 target headings structured with lists and no raw bold formatting.
 
+#### Test 4: Security Verification — Block Unauthorized Request (No Token)
+*   **Purpose**: Verify the backend token-validation middleware automatically blocks request payloads that do not supply security headers to protect sensitive child session data.
+*   **cURL Command**:
+    ```bash
+    curl -X POST "https://sitara-backend-178558547254.asia-south1.run.app/evaluate-session" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "child_id": "zara_01",
+        "success_rate": 0.50,
+        "consecutive_failures": 0,
+        "tap_speed": 1.5,
+        "category": "animals"
+      }'
+    ```
+*   **Expected Response**: `401 Unauthorized` with JSON payload:
+    ```json
+    {"error": "Unauthorized"}
+    ```
+
+#### Test 5: Security Verification — Block Bad Token Credentials
+*   **Purpose**: Verify the token-validation middleware rejects requests attempting to bypass authentication with bad credentials.
+*   **cURL Command**:
+    ```bash
+    curl -X POST "https://sitara-backend-178558547254.asia-south1.run.app/evaluate-session" \
+      -H "Content-Type: application/json" \
+      -H "X-Sitara-Token: bad-token-hacker-123" \
+      -d '{
+        "child_id": "zara_01",
+        "success_rate": 0.50,
+        "consecutive_failures": 0,
+        "tap_speed": 1.5,
+        "category": "animals"
+      }'
+    ```
+*   **Expected Response**: `401 Unauthorized` with JSON payload:
+    ```json
+    {"error": "Unauthorized"}
+    ```
+
 ---
 
 ## 📊 Overall Readiness Score
