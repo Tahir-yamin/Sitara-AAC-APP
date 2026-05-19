@@ -239,6 +239,11 @@
 * **After**: Soft, magical lullaby welcoming melody greets the child upon booting the app fresh, stopping when they transition to onboarding or home to prevent sensory overstimulation.
 * **flutter analyze**: 0 errors, 0 warnings (0 issues found!).
 * **Commit**: `11ae531 feat(intro): add beautiful soothing welcoming lullaby on fresh app open`
+* **Web Autoplay Resolution** (`27d30d5`):
+  * **Interactive Gesture Bypass**: Wrapped `SplashScreen` in a `GestureDetector` that plays the music immediately upon tapping anywhere. Added a pulsing bilingual touch callout (`Tap to Enter · ٹیپ کریں`) to prompt interaction.
+  * **Continuous Background Looping**: Sourced the audio through a dedicated background player `_bgPlayer` in the singleton `TtsService`. Music now loops continuously across both Splash and Onboarding screens without cutoffs.
+  * **Clean Lobby Fades**: Automatically terminates background music when transitioning to `/home` from either the home initializer or the onboarding completion screen, ensuring zero gameplay audio overlap.
+* **Commit**: `27d30d5 fix(intro): play intro music seamlessly across splash and onboarding screen on user interaction`
 
 ---
 

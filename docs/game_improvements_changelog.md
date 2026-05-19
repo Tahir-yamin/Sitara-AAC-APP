@@ -486,6 +486,34 @@ Future<void> speakStoryUrdu(String text, {String? audioPath, String? fallbackTex
 | `assets/audio/intro_welcoming_music.mp3` | New soothing welcoming lullaby audio file. |
 | `lib/screens/splash_screen.dart` | Integrated the `AudioPlayer` to play the welcoming lullaby on boot and clean it up on transition. |
 
+---
+
+## Web Autoplay Resolution for Welcoming Intro Music (Date: 2026-05-19)
+
+> **Commit:** `27d30d5`
+> **Files:** `lib/screens/splash_screen.dart`, `lib/services/tts_service.dart`, `lib/screens/onboarding_screen.dart`, `lib/screens/home_screen.dart`
+> **Trigger:** Deployed app on Firebase web hosting was blocking the auto-playing splash screen audio because web browsers (Chrome, Edge, Safari, Firefox) have a strict security policy requiring user interaction before playing audio.
+
+### implementation
+
+1. **Interactive Splash Screen Prompt**:
+   * Wrapped the `SplashScreen` in an interactive `GestureDetector` so tapping anywhere on the screen satisfies the browser's user-interaction requirement.
+   * Added a premium, pulsing gold icon and a bilingual prompt (`Tap to Enter · ٹیپ کریں`) to guide kids and parents to interact.
+   * On tap, it instantly starts the audio, scales up the star in an elegant pop micro-animation, and navigates.
+2. **Continuous Music Playback**:
+   * Created a dedicated background music player (`_bgPlayer` with looping enabled) in the singleton `TtsService`.
+   * The welcoming melody plays seamlessly across BOTH the `SplashScreen` and the entire `OnboardingScreen` name-entry wizard.
+3. **Safe Cross-Screen Stops**:
+   * Programmatically stops and cleans up the background music player (`stopIntroMusic()`) exactly when entering the main game lobby (`HomeScreen` or when completing onboarding), preventing any overlap with gameplay voices.
+
+| File | Change |
+|------|--------|
+| `lib/services/tts_service.dart` | Added a dedicated looping background player `_bgPlayer` and controls `playIntroMusic()` / `stopIntroMusic()`. |
+| `lib/screens/splash_screen.dart` | Added pulsing touch visual indicators, gestural input triggers to bypass browser autoplay, and micro-animations. |
+| `lib/screens/onboarding_screen.dart` | Stopped background intro music once onboarding is finished. |
+| `lib/screens/home_screen.dart` | Stopped background intro music once the main game lobby is loaded. |
+
+
 
 
 
