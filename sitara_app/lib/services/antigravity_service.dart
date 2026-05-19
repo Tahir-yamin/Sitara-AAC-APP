@@ -46,7 +46,7 @@ class AntigravityService extends ChangeNotifier {
     if (consecutiveFails >= 3 || successRate < 0.3) {
       return [
         AdaptationAction(type: 'adjust_difficulty', data: {
-          'cards_per_round': 2,
+          'cards_per_round': 3,
           'card_size': 'large',
           'reason': 'Heuristic: high frustration',
         })
@@ -407,6 +407,10 @@ $therapistRecommendations
           return {'quest': data};
         }
         return data;
+      } else if (res.statusCode == 429) {
+        // API quota exceeded — fall back to local heuristic silently.
+        debugPrint('[AntigravityService] Backend quota exceeded (429). Using local heuristic.');
+        return _localFallback(endpoint, body);
       } else {
         return _localFallback(endpoint, body);
       }

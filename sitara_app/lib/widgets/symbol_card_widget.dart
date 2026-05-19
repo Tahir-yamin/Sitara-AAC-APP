@@ -120,7 +120,7 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
 
     final borderColor = _flashColor ??
         (_isPressed ? accent : accent.withValues(alpha: 0.35));
-    final borderWidth = (_flashColor != null || _isPressed) ? 3.0 : 1.8;
+    final borderWidth = _flashColor != null ? 4.0 : (_isPressed ? 3.0 : 1.8);
 
     return Semantics(
       label: '${widget.card.nameEnglish}, ${widget.card.nameRomanUrdu}',
@@ -160,7 +160,7 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
             duration: const Duration(milliseconds: 130),
             decoration: BoxDecoration(
               color: _flashColor != null
-                  ? _flashColor!.withValues(alpha: 0.12)
+                  ? _flashColor!.withValues(alpha: 0.35)
                   : bg,
               borderRadius: BorderRadius.circular(22),
               border: Border.all(color: borderColor, width: borderWidth),
@@ -178,37 +178,6 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
                 final cardWidth = cardConstraints.maxWidth;
                 return Column(
                   children: [
-                    // ── CATEGORY PILL ──────────────────────────────────────────────
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        cardWidth * 0.05,
-                        cardWidth * 0.05,
-                        cardWidth * 0.05,
-                        0,
-                      ),
-                      child: Align(
-                        alignment: Alignment.topLeft,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: cardWidth * 0.05,
-                            vertical: cardWidth * 0.015,
-                          ),
-                          decoration: BoxDecoration(
-                            color: accent.withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            _style.label,
-                            style: TextStyle(
-                              fontSize: (cardWidth * 0.07).clamp(8.0, 11.0),
-                              fontWeight: FontWeight.w700,
-                              color: accent,
-                              letterSpacing: 0.4,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
 
                     // ── PICTOGRAM VISUAL WITH EMOJI FALLBACK ────────────────────────
                     Expanded(

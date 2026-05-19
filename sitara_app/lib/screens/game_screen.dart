@@ -33,6 +33,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   SymbolCard? _targetCard;       // Card the child should find
   String? _feedbackCardId;       // ID of most-recently tapped card (for visual feedback)
   bool _lastCorrect = false;     // Whether that tap was correct
+  bool _processingTap = false;   // Guard: prevents concurrent tap handlers
   bool _showTracePanel = false;  // Toggle for judges
   Timer? _agentCheckTimer;
 
@@ -181,7 +182,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         }
         setState(() {
           _displayCards = (SymbolsData.getCardsByCategory(_currentCategory)..shuffle())
-              .take(count.clamp(2, 6)).toList();
+              .take(count.clamp(3, 6)).toList();
           _targetCard = _displayCards[Random().nextInt(_displayCards.length)];
         });
         _speakTarget();
@@ -335,6 +336,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _onCardTapped(SymbolCard card) async {
+    // Guard: prevent concurrent taps from interfering with feedback state.
+    if (_processingTap) return;
+    _processingTap = true;
+
     final isCorrect = card.id == _targetCard?.id;
 
     _tracker.recordEvent(
@@ -347,11 +352,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       properties: {'card_id': card.id, 'category': _currentCategory, 'correct': isCorrect},
     );
 
+    // Force a null→id transition so didUpdateWidget always sees false→true,
+    // even when the same wrong card is tapped twice in a row.
+    setState(() => _feedbackCardId = null);
+    await Future.microtask(() {});
+
     setState(() {
       _feedbackCardId = card.id;
       _lastCorrect = isCorrect;
       if (isCorrect) {
-        _sessionScore += 10 + _currentStreak * 2; // bonus for streak
+        _sessionScore += 10 + _currentStreak * 2;
         _currentStreak++;
         if (_currentStreak > _bestStreak) _bestStreak = _currentStreak;
       } else {
@@ -369,20 +379,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       final phrase = PhrasePool.pickPraise(streak: _currentStreak);
       _showReward(phrase.displayText);
       await _speakPraiseUrdu(phrase);
-      
-      // Delay to let the child celebrate and enjoy confetti before next round target speech
       await Future.delayed(const Duration(milliseconds: 2000));
-      
       if (mounted) {
-        setState(() {
-          _feedbackCardId = null;
-        });
+        setState(() => _feedbackCardId = null);
         _loadCards();
       }
     } else {
       await _speakPraiseUrdu(PhrasePool.tryAgain);
       if (mounted) setState(() => _feedbackCardId = null);
     }
+
+    if (mounted) _processingTap = false;
   }
 
   Future<void> _speakPraiseUrdu(Phrase phrase) async {
