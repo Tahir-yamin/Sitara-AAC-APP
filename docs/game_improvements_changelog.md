@@ -509,9 +509,13 @@ Future<void> speakStoryUrdu(String text, {String? audioPath, String? fallbackTex
 | File | Change |
 |------|--------|
 | `lib/services/tts_service.dart` | Added a dedicated looping background player `_bgPlayer` and controls `playIntroMusic()` / `stopIntroMusic()`. |
-| `lib/screens/splash_screen.dart` | Added pulsing touch visual indicators, gestural input triggers to bypass browser autoplay, and micro-animations. |
+| `lib/screens/splash_screen.dart` | Added pulsing touch visual indicators, gestural input triggers to bypass browser autoplay, and micro-animations. Removed the automatic bypass timer so the app stops and waits indefinitely for user interaction. |
 | `lib/screens/onboarding_screen.dart` | Stopped background intro music once onboarding is finished. |
 | `lib/screens/home_screen.dart` | Stopped background intro music once the main game lobby is loaded. |
+| `lib/screens/game_screen.dart` | Explicitly stopped background music when entering gameplay activities. |
+| `lib/screens/storybook_screen.dart` | Explicitly stopped background music when entering the story library. |
+| `lib/screens/parent_dashboard.dart` | Explicitly stopped background music when opening parent reports. |
+
 
 
 
