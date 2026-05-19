@@ -46,13 +46,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.all(20),
                     child: Row(
                       children: [
-                        const Text('⭐', style: TextStyle(fontSize: 32)),
+                        const Icon(Icons.star_rounded, size: 36, color: Colors.amberAccent),
                         const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Salaam, $childName! 👋',
+                              'Salaam, $childName!',
                               style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 20,
@@ -148,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             label: 'Start game session',
                             button: true,
                             child: _ActionCard(
-                              emoji: '🎮',
+                              icon: Icons.sports_esports_rounded,
                               title: 'Play Now!',
                               subtitle: 'Tap & learn with Sitara',
                               color: const Color(0xFF6C63FF),
@@ -164,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               Expanded(
                                 child: _SmallCard(
-                                  emoji: '📖',
+                                  icon: Icons.book_rounded,
                                   title: 'Stories',
                                   color: const Color(0xFF43C59E),
                                   onTap: () {
@@ -176,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               const SizedBox(width: 16),
                               Expanded(
                                 child: _SmallCard(
-                                  emoji: '📊',
+                                  icon: Icons.analytics_rounded,
                                   title: 'Progress',
                                   color: const Color(0xFFFA824C),
                                   onTap: () => Navigator.pushNamed(
@@ -194,12 +194,27 @@ class _HomeScreenState extends State<HomeScreen> {
                   // ─── FOOTER ────────────────────────────────────────────
                   Padding(
                     padding: const EdgeInsets.all(20),
-                    child: Text(
-                      'Powered by Google ADK  ·  Built with ❤️ for Pakistan',
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.35),
-                          fontSize: 11),
-                      textAlign: TextAlign.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Powered by Google ADK  ·  Built with ',
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.35),
+                              fontSize: 11),
+                        ),
+                        Icon(
+                          Icons.favorite_rounded,
+                          color: const Color(0xFFFF6584).withValues(alpha: 0.6),
+                          size: 13,
+                        ),
+                        Text(
+                          ' for Pakistan',
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.35),
+                              fontSize: 11),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -305,7 +320,7 @@ class _PulsingStarState extends State<_PulsingStar>
               ]),
             ),
             child: const Center(
-              child: Text('⭐', style: TextStyle(fontSize: 80)),
+              child: Icon(Icons.star_rounded, size: 84, color: Colors.amberAccent),
             ),
           ),
         ),
@@ -313,12 +328,13 @@ class _PulsingStarState extends State<_PulsingStar>
 }
 
 class _ActionCard extends StatelessWidget {
-  final String emoji, title, subtitle;
+  final IconData icon;
+  final String title, subtitle;
   final Color color;
   final VoidCallback onTap;
 
   const _ActionCard({
-    required this.emoji,
+    required this.icon,
     required this.title,
     required this.subtitle,
     required this.color,
@@ -349,7 +365,7 @@ class _ActionCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 48)),
+            Icon(icon, size: 48, color: Colors.white),
             const SizedBox(width: 20),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -377,12 +393,13 @@ class _ActionCard extends StatelessWidget {
 }
 
 class _SmallCard extends StatelessWidget {
-  final String emoji, title;
+  final IconData icon;
+  final String title;
   final Color color;
   final VoidCallback onTap;
 
   const _SmallCard({
-    required this.emoji,
+    required this.icon,
     required this.title,
     required this.color,
     required this.onTap,
@@ -401,7 +418,7 @@ class _SmallCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 36)),
+            Icon(icon, size: 36, color: color),
             const SizedBox(height: 8),
             Text(title,
                 style: TextStyle(
