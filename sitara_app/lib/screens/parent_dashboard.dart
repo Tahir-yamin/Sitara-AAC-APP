@@ -1659,7 +1659,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
             ),
             const SizedBox(height: 6),
             Text(
-              'As Zara plays, the Antigravity Agent will dynamically optimize difficulty and pacing in real time.',
+              'As ${_tracker.childName} plays, the Antigravity Agent will dynamically optimize difficulty and pacing in real time.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: Colors.grey[500], height: 1.5),
             ),
@@ -1834,7 +1834,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
           ),
           const SizedBox(height: 10),
           Text(
-            'The Progress Guardian AI will compile a detailed clinical Cognitive Behavioral Therapy (CBT) and Speech-Language Pathology (SLP) progress assessment for Zara.',
+            'The Progress Guardian AI will compile a detailed clinical Cognitive Behavioral Therapy (CBT) and Speech-Language Pathology (SLP) progress assessment for ${_tracker.childName}.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14, color: Colors.grey[600], height: 1.6),
           ),
@@ -1893,8 +1893,8 @@ class _ParentDashboardState extends State<ParentDashboard> {
             ),
           ),
           const SizedBox(height: 24),
-          const Text(
-            'Progress Guardian is compiling Zara\'s clinical report…',
+          Text(
+            'Progress Guardian is compiling ${_tracker.childName}\'s clinical report…',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,

@@ -22,7 +22,8 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
     
-    // Attempt auto-play on start (works on native platforms immediately)
+    // Start music on native platforms immediately.
+    // On web, autoplay is blocked until user interaction — the tap handler picks it up.
     TtsService().playIntroMusic();
     
     _controller = AnimationController(
@@ -44,7 +45,9 @@ class _SplashScreenState extends State<SplashScreen>
       _tapped = true;
     });
     
-    // Start music on user interaction (satisfies web autoplay policy!)
+    // On web: first user interaction allows autoplay — start music here.
+    // On native: music already playing from initState; this is a no-op if
+    // _isIntroMusicPlaying is already true.
     TtsService().playIntroMusic();
     
     // Fun visual pop animation on tap

@@ -293,7 +293,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         final questData = await _agentService.generateQuest(
           childId: _tracker.childId,
           preferredCategory: _currentCategory,
-          childName: 'Tahir',
+          childName: _tracker.childName,
           difficulty: 'adaptive',
         );
         if (mounted) {
@@ -783,7 +783,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _roundTimer?.cancel();
     _sessionMinuteTimer?.cancel();
     _confettiController.dispose();
-    _tts.stop(); // Stop any in-progress utterance when leaving screen
+    // Cancel both audio player and TTS immediately on exit —
+    // prevents card-name speech leaking into the HomeScreen.
+    _tts.stopSync();
     super.dispose();
   }
 }

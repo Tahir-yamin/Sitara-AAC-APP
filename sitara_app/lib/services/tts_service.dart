@@ -45,15 +45,14 @@ class TtsService {
   bool get isUrduAvailable => _urduAvailable;
 
   Future<void> playIntroMusic() async {
+    // Idempotent: if already playing, don't restart.
+    if (_isIntroMusicPlaying) return;
     _isIntroMusicPlaying = true;
     try {
       await _bgPlayer.setReleaseMode(ReleaseMode.loop);
-      await _bgPlayer.setVolume(0.25); // Gentle volume, perfect for warm welcome
+      await _bgPlayer.setVolume(0.25);
       if (!_isIntroMusicPlaying) return;
       await _bgPlayer.play(AssetSource('audio/intro_welcoming_music.mp3'));
-      if (!_isIntroMusicPlaying) {
-        await _bgPlayer.stop();
-      }
     } catch (e) {
       debugPrint('TtsService.playIntroMusic error: $e');
     }
@@ -443,6 +442,20 @@ class TtsService {
         }
       } catch (_) {}
     }
+  }
+
+  /// Synchronous best-effort stop — safe to call from dispose() without await.
+  /// Increments _speechSessionId to cancel any in-flight speakCard/speakPraise.
+  void stopSync() {
+    _speechSessionId++;
+    _audioSubscription?.cancel();
+    _audioSubscription = null;
+    if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
+      _audioPlayCompleter!.complete();
+    }
+    // Fire-and-forget — dispose() cannot await
+    _tts.stop().catchError((_) {});
+    _audioPlayer.stop().catchError((_) {});
   }
 
   /// Speak a story page or narrator line slowly and soothingly.
