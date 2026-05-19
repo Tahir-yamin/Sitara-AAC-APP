@@ -411,9 +411,6 @@ class _StorybookScreenState extends State<StorybookScreen>
       final pageTextEn = page['en'] as String;
       final audioPath = 'assets/audio/story_${_selectedStoryIndex}_page_$_currentPageIndex.mp3';
       await TtsService().speakStoryUrdu(pageTextUr, audioPath: audioPath, fallbackText: pageTextEn);
-    } else if (_narrationLanguage == 'english_female') {
-      final pageText = page['en'] as String;
-      await TtsService().speakStoryEnglishFemale(pageText);
     } else {
       final pageText = page['en'] as String;
       await TtsService().speakStoryEnglish(pageText);
@@ -858,7 +855,6 @@ class _StorybookScreenState extends State<StorybookScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildLanguageSegmentButton('english_male', 'English (Male)', color),
-                _buildLanguageSegmentButton('english_female', 'English (Female)', color),
                 _buildLanguageSegmentButton('urdu', 'اردو (Female)', color),
               ],
             ),
