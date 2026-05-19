@@ -407,14 +407,10 @@ class _StorybookScreenState extends State<StorybookScreen>
     final page = pages[_currentPageIndex] as Map<String, dynamic>;
 
     if (_narrationLanguage == 'urdu') {
-      if (TtsService().isUrduAvailable) {
-        final pageText = page['ur'] as String;
-        await TtsService().speakStoryUrdu(pageText);
-      } else {
-        // Fallback to English (Female) if ur-PK is not available on this device/browser
-        final pageText = page['en'] as String;
-        await TtsService().speakStoryEnglishFemale(pageText);
-      }
+      final pageTextUr = page['ur'] as String;
+      final pageTextEn = page['en'] as String;
+      final audioPath = 'assets/audio/story_${_selectedStoryIndex}_page_$_currentPageIndex.mp3';
+      await TtsService().speakStoryUrdu(pageTextUr, audioPath: audioPath, fallbackText: pageTextEn);
     } else if (_narrationLanguage == 'english_female') {
       final pageText = page['en'] as String;
       await TtsService().speakStoryEnglishFemale(pageText);

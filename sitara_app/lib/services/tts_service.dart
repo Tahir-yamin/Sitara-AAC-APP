@@ -498,16 +498,63 @@ class TtsService {
     await _tts.setSpeechRate(0.32); // Soothing, slow pacing
   }
 
-  /// Speak arbitrary Urdu text slowly and emotionally.
-  Future<void> speakStoryUrdu(String text) async {
+  /// Speak arbitrary Urdu text slowly and emotionally, using pre-recorded audio if available.
+  Future<void> speakStoryUrdu(String text, {String? audioPath, String? fallbackText}) async {
     await _ensureReady();
     if (!_ready) return;
     try {
       await _tts.stop();
       await _audioPlayer.stop();
-      await _setUrduFemaleNarratorProfile();
-      await _tts.speak(text);
-      await _awaitCompletion();
+      _audioSubscription?.cancel();
+      _audioSubscription = null;
+
+      // 1. Play pre-recorded high-quality female Urdu audio if provided
+      if (audioPath != null && audioPath.isNotEmpty) {
+        try {
+          final assetKey = audioPath.startsWith('assets/')
+              ? audioPath.substring('assets/'.length)
+              : audioPath;
+          
+          _audioPlayCompleter = Completer<void>();
+          await _audioPlayer.play(AssetSource(assetKey));
+          
+          _audioSubscription = _audioPlayer.onPlayerComplete.listen(
+            (_) {
+              if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
+                _audioPlayCompleter!.complete();
+              }
+            },
+            onError: (_) {
+              if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
+                _audioPlayCompleter!.complete();
+              }
+            },
+            onDone: () {
+              if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
+                _audioPlayCompleter!.complete();
+              }
+            },
+          );
+          
+          await _audioPlayCompleter!.future;
+          return; // Completed successfully!
+        } catch (e) {
+          debugPrint('TtsService.speakStoryUrdu pre-recorded audio failed: $e. Falling back to live TTS.');
+        }
+      }
+
+      // 2. Fall back to live Urdu TTS if supported by the device/browser
+      if (_urduAvailable) {
+        await _setUrduFemaleNarratorProfile();
+        await _tts.speak(text);
+        await _awaitCompletion();
+      } else if (fallbackText != null && fallbackText.isNotEmpty) {
+        // If neither pre-recorded audio worked nor Urdu TTS is available, fall back to English female voice with English text
+        debugPrint('TtsService.speakStoryUrdu: Urdu TTS not available. Falling back to English female narration.');
+        await _setEnglishFemaleProfile();
+        await _tts.speak(fallbackText);
+        await _awaitCompletion();
+      }
     } catch (e) {
       debugPrint('TtsService.speakStoryUrdu error: $e');
     }
