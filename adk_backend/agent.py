@@ -6,7 +6,6 @@
 import json
 import os
 import re
-import asyncio
 import time
 from collections import deque
 from datetime import datetime, timedelta
@@ -694,56 +693,49 @@ async def _evaluate_via_openrouter(data: "AdaptationRequest") -> dict | None:
 
 
 async def _evaluate_via_bedrock(data: "AdaptationRequest") -> dict | None:
-    """Tier 3 fallback: Amazon Bedrock Claude Haiku. Returns parsed actions dict or None.
+    """Tier 3 fallback: Amazon Bedrock via Bearer token API key.
+    Uses AWS_BEARER_TOKEN_BEDROCK — the Bedrock Gateway API key credential.
     Cost: ~$0.80 / 1M output tokens.  $50 credit ≈ 62M output tokens.
-    Requires env vars: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION
+    Calls Bedrock Converse API directly via httpx + Bearer auth (no boto3/SigV4 needed).
     """
-    try:
-        import boto3
-        import asyncio
-    except ImportError:
-        print("[Fallback-T3] boto3 not installed — skipping Bedrock tier.")
-        return None
+    import httpx
 
-    aws_key    = os.environ.get("AWS_ACCESS_KEY_ID", "")
-    aws_secret = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
-    aws_region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+    bearer_token = os.environ.get("AWS_BEARER_TOKEN_BEDROCK", "")
+    aws_region   = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
 
-    if not aws_key or not aws_secret:
-        print("[Fallback-T3] AWS credentials not configured — skipping Bedrock tier.")
+    if not bearer_token:
+        print("[Fallback-T3] AWS_BEARER_TOKEN_BEDROCK not set — skipping Bedrock tier.")
         return None
 
     # Claude Haiku 3.5 — cheapest Anthropic model on Bedrock with strong reasoning
     model_id = "anthropic.claude-haiku-4-5-20251001"
+    url = f"https://bedrock-runtime.{aws_region}.amazonaws.com/model/{model_id}/converse"
+
+    headers = {
+        "Authorization": f"Bearer {bearer_token}",
+        "Content-Type": "application/json",
+    }
+
+    body = {
+        "system": [{"text": _EVAL_SYSTEM_PROMPT}],
+        "messages": [
+            {"role": "user", "content": [{"text": _build_eval_prompt(data)}]}
+        ],
+        "inferenceConfig": {"maxTokens": 400, "temperature": 0.3},
+    }
 
     try:
-        client = boto3.client(
-            "bedrock-runtime",
-            aws_access_key_id=aws_key,
-            aws_secret_access_key=aws_secret,
-            region_name=aws_region,
-        )
+        async with httpx.AsyncClient(timeout=25.0) as client:
+            resp = await client.post(url, headers=headers, json=body)
 
-        converse_kwargs = {
-            "modelId": model_id,
-            "system": [{"text": _EVAL_SYSTEM_PROMPT}],
-            "messages": [
-                {"role": "user", "content": [{"text": _build_eval_prompt(data)}]}
-            ],
-            "inferenceConfig": {"maxTokens": 400, "temperature": 0.3},
-        }
+        if resp.status_code != 200:
+            print(f"[Fallback-T3] Bedrock HTTP {resp.status_code}: {resp.text[:200]}")
+            return None
 
-        # boto3 is synchronous — run in thread pool to avoid blocking the event loop
-        loop = asyncio.get_event_loop()
-        response = await loop.run_in_executor(
-            None,
-            lambda: client.converse(**converse_kwargs),
-        )
-
-        text = response["output"]["message"]["content"][0]["text"].strip()
+        text = resp.json()["output"]["message"]["content"][0]["text"].strip()
         text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.DOTALL).strip()
         parsed = json.loads(text)
-        actions = parsed.get("actions", [])
+        actions  = parsed.get("actions", [])
         reasoning = parsed.get("reasoning", "Bedrock Claude Haiku adaptation")
         print(f"[Fallback-T3] Bedrock Claude Haiku succeeded — {len(actions)} action(s)")
         return {
@@ -754,7 +746,7 @@ async def _evaluate_via_bedrock(data: "AdaptationRequest") -> dict | None:
         }
 
     except json.JSONDecodeError as je:
-        print(f"[Fallback-T3] Bedrock — JSON parse error: {je}")
+        print(f"[Fallback-T3] Bedrock JSON parse error: {je}")
     except Exception as e:
         print(f"[Fallback-T3] Bedrock error: {e}")
 
