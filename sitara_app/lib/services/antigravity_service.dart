@@ -395,7 +395,7 @@ $therapistRecommendations
             Uri.parse('$_baseUrl/$endpoint'),
             headers: {
               'Content-Type': 'application/json',
-              'X-Sitara-Token': const String.fromEnvironment('BACKEND_TOKEN', defaultValue: ''),
+              'X-Sitara-Token': const String.fromEnvironment('BACKEND_TOKEN', defaultValue: 'dev-token-sitara'),
             },
             body: jsonEncode(body),
           )
