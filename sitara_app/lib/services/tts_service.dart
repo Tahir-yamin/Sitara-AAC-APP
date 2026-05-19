@@ -30,6 +30,8 @@ class TtsService {
   final FlutterTts _tts = FlutterTts();
   final AudioPlayer _audioPlayer = AudioPlayer();
   final Completer<void> _initCompleter = Completer<void>();
+  StreamSubscription<void>? _audioSubscription;
+  Completer<void>? _audioPlayCompleter;
 
   bool _ready = false;
   bool _urduAvailable = false;
@@ -192,6 +194,11 @@ class TtsService {
     try {
       await _tts.stop();
       await _audioPlayer.stop();
+      _audioSubscription?.cancel();
+      _audioSubscription = null;
+      if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
+        _audioPlayCompleter!.complete();
+      }
 
       // If english mode, skip Urdu completely and only speak English
       if (mode == 'english') {
@@ -211,9 +218,36 @@ class TtsService {
           final assetKey = audioPath.startsWith('assets/')
               ? audioPath.substring('assets/'.length)
               : audioPath;
+          
+          _audioPlayCompleter = Completer<void>();
           await _audioPlayer.play(AssetSource(assetKey));
-          await _audioPlayer.onPlayerComplete.first
-              .timeout(const Duration(seconds: 6));
+          
+          _audioSubscription = _audioPlayer.onPlayerComplete.listen(
+            (_) {
+              if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
+                _audioPlayCompleter!.complete();
+              }
+            },
+            onError: (_) {
+              if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
+                _audioPlayCompleter!.complete();
+              }
+            },
+            onDone: () {
+              if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
+                _audioPlayCompleter!.complete();
+              }
+            },
+          );
+
+          await _audioPlayCompleter!.future.timeout(
+            const Duration(seconds: 6),
+            onTimeout: () {
+              if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
+                _audioPlayCompleter!.complete();
+              }
+            },
+          );
           playedAudio = true;
         } catch (e) {
           debugPrint('TtsService: audio asset failed ($audioPath): $e');
@@ -281,14 +315,46 @@ class TtsService {
     try {
       await _tts.stop();
       await _audioPlayer.stop();
+      _audioSubscription?.cancel();
+      _audioSubscription = null;
+      if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
+        _audioPlayCompleter!.complete();
+      }
 
       // All assets are now high-quality — play directly without bypass.
       if (_badAudioAssets.contains(phrase.audioAsset)) {
         throw Exception('Bypassed low-quality audio asset');
       }
 
+      _audioPlayCompleter = Completer<void>();
       await _audioPlayer.play(AssetSource(phrase.audioAsset));
-      await _audioPlayer.onPlayerComplete.first;
+      
+      _audioSubscription = _audioPlayer.onPlayerComplete.listen(
+        (_) {
+          if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
+            _audioPlayCompleter!.complete();
+          }
+        },
+        onError: (_) {
+          if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
+            _audioPlayCompleter!.complete();
+          }
+        },
+        onDone: () {
+          if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
+            _audioPlayCompleter!.complete();
+          }
+        },
+      );
+
+      await _audioPlayCompleter!.future.timeout(
+        const Duration(seconds: 6),
+        onTimeout: () {
+          if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
+            _audioPlayCompleter!.complete();
+          }
+        },
+      );
     } catch (e) {
       debugPrint('TtsService.speakPraise error: $e');
       // Fallback: live TTS — must be FEMALE and energetic.
@@ -370,7 +436,84 @@ class TtsService {
     try {
       await _tts.stop();
       await _audioPlayer.stop();
+      _audioSubscription?.cancel();
+      _audioSubscription = null;
+      if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
+        _audioPlayCompleter!.complete();
+      }
     } catch (_) {}
+  }
+
+  Future<void> _setEnglishMaleProfile() async {
+    try {
+      final List<dynamic>? voices = await _tts.getVoices;
+      Map<String, String>? maleVoice;
+      if (voices != null) {
+        for (var v in voices) {
+          final name = v['name'].toString().toLowerCase();
+          final locale = v['locale'].toString();
+          final gender = v['gender']?.toString().toLowerCase();
+          if (locale.startsWith('en')) {
+            if (gender == 'male' || name.contains('male') || name.contains('david') || name.contains('ravi')) {
+              maleVoice = {
+                'name': v['name'].toString(),
+                'locale': v['locale'].toString()
+              };
+              break;
+            }
+          }
+        }
+      }
+      if (maleVoice != null) {
+        await _tts.setLanguage(maleVoice['locale']!);
+        await _tts.setVoice(maleVoice);
+      } else {
+        await _tts.setLanguage('en-US');
+      }
+    } catch (_) {
+      await _tts.setLanguage('en-US');
+    }
+    await _tts.setPitch(0.9); // Deep, male pitch
+    await _tts.setSpeechRate(0.38); // Slow and clear
+  }
+
+  Future<void> _setUrduFemaleNarratorProfile() async {
+    await _tts.setLanguage('ur-PK');
+    if (_femaleUrduVoice != null) {
+      await _tts.setVoice(_femaleUrduVoice!);
+    }
+    await _tts.setPitch(1.25); // Expressive, high-pitched emotional tone
+    await _tts.setSpeechRate(0.32); // Soothing, slow pacing
+  }
+
+  /// Speak arbitrary Urdu text slowly and emotionally.
+  Future<void> speakStoryUrdu(String text) async {
+    await _ensureReady();
+    if (!_ready) return;
+    try {
+      await _tts.stop();
+      await _audioPlayer.stop();
+      await _setUrduFemaleNarratorProfile();
+      await _tts.speak(text);
+      await _awaitCompletion();
+    } catch (e) {
+      debugPrint('TtsService.speakStoryUrdu error: $e');
+    }
+  }
+
+  /// Speak arbitrary English text in a warm male narrator tone.
+  Future<void> speakStoryEnglish(String text) async {
+    await _ensureReady();
+    if (!_ready) return;
+    try {
+      await _tts.stop();
+      await _audioPlayer.stop();
+      await _setEnglishMaleProfile();
+      await _tts.speak(text);
+      await _awaitCompletion();
+    } catch (e) {
+      debugPrint('TtsService.speakStoryEnglish error: $e');
+    }
   }
 
   Future<void> _awaitCompletion() async {

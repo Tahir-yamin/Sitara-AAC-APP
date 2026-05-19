@@ -1952,9 +1952,46 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
+  String _sanitizeForPdf(String text) {
+    var result = text;
+    final Map<String, String> translationMap = {
+      'مچھلی': 'Machli', 'گھوڑا': 'Ghoora', 'کتا': 'Kutta', 'بلی': 'Billi',
+      'پرندہ': 'Parinda', 'گائے': 'Gaaye', 'ہاتھی': 'Haathi', 'خرگوش': 'Khargosh',
+      'تتلی': 'Titli', 'شیر': 'Sher', 'آم': 'Aam', 'روٹی': 'Roti', 'چاول': 'Chawal',
+      'پانی': 'Paani', 'سیب': 'Saib', 'کیلا': 'Kela', 'دودھ': 'Doodh', 'انڈا': 'Anda',
+      'ڈبل روٹی': 'Double Roti', 'مالٹا': 'Malta', 'امّی': 'Ammi', 'ابّو': 'Abu',
+      'دادی': 'Dadi', 'بھائی': 'Bhai', 'بہن': 'Behan', 'دادا': 'Dada', 'بچہ': 'Bachcha',
+      'ستارہ': 'Sitara', 'خوش': 'Khush', 'وداس': 'Udaas', 'بھوکا': 'Bhooka',
+      'غصہ': 'Gussa', 'ڈرا': 'Dara', 'تھکا': 'Thaka', 'سونا': 'Sona',
+      'کھانا': 'Khaana', 'نہانا': 'Nahana', 'کھیلنا': 'Khelna', 'چلنا': 'Chalna',
+      'پڑھنا': 'Parhna',
+    };
+    translationMap.forEach((urdu, roman) {
+      result = result.replaceAll(urdu, roman);
+    });
+    final buffer = StringBuffer();
+    for (var i = 0; i < result.length; i++) {
+      final charCode = result.codeUnitAt(i);
+      if (charCode <= 127 || charCode == 10 || charCode == 13) {
+        buffer.write(result[i]);
+      } else {
+        if (charCode == 8217 || charCode == 8216) {
+          buffer.write("'");
+        } else if (charCode == 8220 || charCode == 8221) {
+          buffer.write('"');
+        } else if (charCode == 8211 || charCode == 8212) {
+          buffer.write("-");
+        }
+      }
+    }
+    return buffer.toString();
+  }
+
   Future<void> _downloadPdf() async {
     if (_report.isEmpty) return;
 
+    final sanitizedReport = _sanitizeForPdf(_report);
+    final sanitizedChildName = _sanitizeForPdf(_tracker.childName);
     final doc = pw.Document();
     
     // PDF Inline Bold Parser
@@ -1977,7 +2014,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
       return spans;
     }
 
-    final sections = _parseReportToSections(_report);
+    final sections = _parseReportToSections(sanitizedReport);
     final List<pw.Widget> sectionWidgets = [];
 
     pw.Widget buildPdfSectionCard(String title, String content, PdfColor color) {
@@ -2059,7 +2096,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
 
     if (sections.length <= 1) {
       // Legacy simple markdown rendering in PDF
-      final lines = _report.split('\n');
+      final lines = sanitizedReport.split('\n');
       for (var line in lines) {
         final trimmed = line.trim();
         if (trimmed.isEmpty) continue;
@@ -2164,7 +2201,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
                     pw.Text(
-                      'Child: ${_tracker.childName}',
+                      'Child: $sanitizedChildName',
                       style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
                     ),
                     pw.Text(
@@ -2185,13 +2222,13 @@ class _ParentDashboardState extends State<ParentDashboard> {
             pw.SizedBox(height: 6),
             pw.Row(
               children: [
-                _buildPdfStatBox('🎮 Sessions', '$traceCount', PdfColors.indigo),
+                _buildPdfStatBox('Sessions', '$traceCount', PdfColors.indigo),
                 pw.SizedBox(width: 8),
-                _buildPdfStatBox('🤖 AI Actions', '$adaptations', PdfColors.teal),
+                _buildPdfStatBox('AI Actions', '$adaptations', PdfColors.teal),
                 pw.SizedBox(width: 8),
-                _buildPdfStatBox('⭐ Score', '${_tracker.sessionScore}', PdfColors.amber),
+                _buildPdfStatBox('Score', '${_tracker.sessionScore}', PdfColors.amber),
                 pw.SizedBox(width: 8),
-                _buildPdfStatBox('🔥 Streak', '×${_tracker.bestStreak}', PdfColors.pink),
+                _buildPdfStatBox('Streak', 'x${_tracker.bestStreak}', PdfColors.pink),
               ],
             ),
             pw.SizedBox(height: 16),
@@ -2209,7 +2246,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                   style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey500),
                 ),
                 pw.Text(
-                  'Mehnat karein, aap kar saktay hain! Masha\'Allah',
+                  "Mehnat karein, aap kar saktay hain! Masha'Allah",
                   style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.teal900),
                 ),
               ],
@@ -2222,7 +2259,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
     // Save and lay out standard PDF system printer dialogue
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => doc.save(),
-      name: 'Sitara_Weekly_Report_${_tracker.childName}.pdf',
+      name: 'Sitara_Weekly_Report_$sanitizedChildName.pdf',
     );
   }
 

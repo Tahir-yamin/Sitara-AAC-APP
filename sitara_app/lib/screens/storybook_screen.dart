@@ -225,6 +225,7 @@ class _StorybookScreenState extends State<StorybookScreen>
   int _currentPageIndex = 0;
   bool _isPlayingStory = false;
   bool _isNarrating = false;
+  String _narrationLanguage = 'english';
 
   // Cooldown variables
   bool _cooldownActive = false;
@@ -276,6 +277,7 @@ class _StorybookScreenState extends State<StorybookScreen>
 
     _checkCooldown();
   }
+
 
   void _onStarTapped() {
     TtsService().speakSoundCue('Ting!');
@@ -401,10 +403,15 @@ class _StorybookScreenState extends State<StorybookScreen>
     setState(() => _isNarrating = true);
 
     final story = _stories[_selectedStoryIndex];
-    final pages = story['pages'] as List<Map<String, String>>;
-    final pageText = pages[_currentPageIndex]['en']!;
+    final pages = story['pages'] as List<dynamic>;
+    final page = pages[_currentPageIndex] as Map<String, dynamic>;
+    final pageText = _narrationLanguage == 'urdu' ? page['ur'] as String : page['en'] as String;
 
-    await TtsService().speakNarratorLine(pageText);
+    if (_narrationLanguage == 'urdu') {
+      await TtsService().speakStoryUrdu(pageText);
+    } else {
+      await TtsService().speakStoryEnglish(pageText);
+    }
 
     if (mounted) {
       setState(() => _isNarrating = false);
@@ -831,7 +838,25 @@ class _StorybookScreenState extends State<StorybookScreen>
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
+
+          // Narrator Voice Toggle Segment
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildLanguageSegmentButton('english', 'English (Male)', color),
+                _buildLanguageSegmentButton('urdu', 'اردو (Female)', color),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
 
           // Illustration card
           Expanded(
@@ -953,6 +978,36 @@ class _StorybookScreenState extends State<StorybookScreen>
           ),
           const SizedBox(height: 14),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageSegmentButton(String lang, String label, Color color) {
+    final isSelected = _narrationLanguage == lang;
+    return GestureDetector(
+      onTap: () {
+        TtsService().stop();
+        setState(() {
+          _narrationLanguage = lang;
+          _isNarrating = false;
+        });
+        _narrateCurrentPage();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? color : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.outfit(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: isSelected ? Colors.white : Colors.white60,
+          ),
+        ),
       ),
     );
   }
