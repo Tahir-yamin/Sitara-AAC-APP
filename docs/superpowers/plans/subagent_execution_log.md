@@ -245,6 +245,33 @@
   * **Lobby & Activity Safety Stops**: Automatically terminates welcoming background music when entering `/home` (the lobby), `/game` (interactive cards), `/storybook` (readings), or `/parent` (dashboard progress), ensuring zero interference with system voiceovers or therapy directors.
 * **Commit**: `18597ab fix(intro): remove auto-bypass timer to wait indefinitely for tap, and stop music in game/stories/progress`
 
+#### ⏰ 2026-05-20 — Post-Session Audit: 4 Verified Bugs Fixed (Commit `65d3436`)
+
+**Context:** User ran a cross-session review comparing Gemini CLI and Claude Code sessions. Several issues were reported:
+
+1. **Hardcoded `childName: 'Tahir'` in game_screen.dart:296**
+   * **Bug**: Quest generation was hardcoding the developer's own name instead of the actual child's name.
+   * **Fix**: `childName: 'Tahir'` → `childName: _tracker.childName`
+   * **Impact**: Every child now gets a quest personalised with their real name.
+
+2. **Hardcoded `'Zara'` × 3 in parent_dashboard.dart**
+   * **Bug**: Three UI strings in the Parent Dashboard showed "Zara" regardless of who the actual child was.
+   * **Locations**: Lines 1662, 1837, 1897 — "As Zara plays…", "assessment for Zara.", "compiling Zara's clinical report…"
+   * **Fix**: All replaced with `_tracker.childName` interpolation.
+
+3. **Card TTS leaking into HomeScreen on navigate-back**
+   * **Bug**: `dispose()` called `_tts.stop()` which is async — in `dispose()` you cannot `await`. The async stop ran too late; in-flight `speakCard` completed after the user had already returned to HomeScreen.
+   * **Fix**: Added `stopSync()` to `TtsService` — synchronously increments `_speechSessionId` (cancels any in-flight `speakCard`/`speakPraise` loop) + fire-and-forget stops on both `_tts` and `_audioPlayer`. Called `_tts.stopSync()` from `dispose()` in game_screen.
+
+4. **`playIntroMusic()` restarting on tap (double-call in splash_screen)**
+   * **Bug**: `playIntroMusic()` was called in both `initState()` AND `_onTapEnter()`. On native (Android/iOS), music started in `initState` then restarted from the beginning on tap.
+   * **Fix**: Made `playIntroMusic()` idempotent — returns immediately if `_isIntroMusicPlaying == true`. Comments clarify why both call sites exist (native: initState fires immediately; web: autoplay requires user interaction, so tap fires it instead).
+
+* **"Sovereign Trace exhausted" explanation**: This is NOT a bug. When Gemini API quota hits 429, the trace panel shows `MODE: SOVEREIGN BASELINE (HEURISTIC)`. This is the intended heuristic fallback showing its mode label. See `docs/game_improvements_changelog.md` → Quota Exhaustion section for alternative LLM options.
+* **flutter analyze**: 0 errors, 0 warnings
+* **flutter test**: 19/19 pass
+* **Commit**: `65d3436`
+
 ---
 
-*Ledger updated by Antigravity on 2026-05-19 (UTC+5).*
+*Ledger updated by Claude Code on 2026-05-20T (UTC+5).*

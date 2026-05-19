@@ -522,3 +522,51 @@ Future<void> speakStoryUrdu(String text, {String? audioPath, String? fallbackTex
 
 
 
+
+---
+
+## Bug Fix Session: 4 Verified Bugs (Date: 2026-05-20, Commit: 65d3436)
+
+> **Trigger:** Post-session audit comparing Gemini CLI and Claude Code outputs. User identified card TTS leaking into HomeScreen, hardcoded developer name, hardcoded demo child name in dashboard, and music restarting on tap.
+
+| # | File | Bug | Fix |
+|---|---|---|---|
+| 1 | `game_screen.dart:296` | `childName: 'Tahir'` hardcoded — developer's name sent to quest generator | Changed to `_tracker.childName` |
+| 2 | `parent_dashboard.dart:1662,1837,1897` | `'Zara'` hardcoded in 3 UI strings regardless of real child | Replaced all 3 with `_tracker.childName` |
+| 3 | `game_screen.dart dispose()` | `_tts.stop()` called without `await` in dispose — async stop ran too late, card name leaked into HomeScreen | Added `TtsService.stopSync()`: increments `_speechSessionId` synchronously, fire-and-forget audio stop |
+| 4 | `splash_screen.dart + tts_service.dart` | `playIntroMusic()` called in both `initState()` and `_onTapEnter()` — restarted music from beginning on tap | Made `playIntroMusic()` idempotent: returns early if `_isIntroMusicPlaying == true` |
+
+---
+
+## Quota Exhaustion & LLM Fallback Chain (Reference)
+
+### What "Sovereign Trace Exhausted" means
+
+When Gemini API returns HTTP 429 (Resource Exhausted / quota exceeded), the trace panel shows:
+```
+MODE: SOVEREIGN BASELINE (HEURISTIC)
+```
+This is NOT a crash. It is the intentional fallback: the Therapy Director is bypassed and local deterministic rules adapt the game. The child continues playing — they never see a frozen screen.
+
+### Current fallback chain
+
+| Endpoint | Tier 1 | Tier 2 | Tier 3 |
+|---|---|---|---|
+| `POST /evaluate-session` | Gemini 2.0 Flash (ADK) | 60s cooldown + heuristic rules | Local Flutter rules (`actions:[]`) |
+| `POST /weekly-report` | Gemini 2.0 Flash (ADK) | **OpenRouter** (Llama/Gemma/Mistral free) | Local structured text report |
+| `POST /generate-quest` | Gemini 2.0 Flash (ADK) | Static fallback quest | — |
+
+### Alternative LLM options for Tier 2 on `/evaluate-session`
+
+| Option | Cost | Setup | Quality |
+|---|---|---|---|
+| **OpenRouter (already in `/weekly-report`)** | Free tier (Llama 3.1, Gemma 2, Mistral) | Add `OPENROUTER_API_KEY` to Cloud Run Secret Manager. Re-use same pattern as `generate_weekly_report_via_openrouter()` in `agent.py:876` | Medium — adequate for therapy adaptations |
+| **Gemini Flash Lite** | Lower quota consumption | Change model name in `LlmAgent` from `gemini-2.0-flash` to `gemini-2.0-flash-lite` | Slightly less reasoning depth |
+| **Google AI Studio paid tier** | ~$0.075 / 1M tokens | Enable billing on Google Cloud project | Full Gemini quality, no 429s |
+| **Amazon Bedrock (Claude Haiku)** | AWS pay-per-use | Requires new AWS account + `boto3` client in `agent.py` — not currently in codebase | High quality, complex setup |
+
+### Recommended action (hackathon deadline May 20)
+
+**Fastest**: Extend OpenRouter to cover `/evaluate-session` too. The code pattern already exists in `agent.py` for weekly reports. Estimated effort: 1 hour.
+
+**Simplest**: Raise the 60s cooldown to a smarter sliding window and improve the heuristic fallback to return richer adaptation actions (currently returns `actions:[]`).
