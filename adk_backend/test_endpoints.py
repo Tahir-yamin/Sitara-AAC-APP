@@ -6,6 +6,11 @@ Prerequisites: uvicorn agent:app --reload --port 8000
 
 import requests
 import json
+import sys
+
+# Force UTF-8 encoding on Windows standard output
+if sys.platform.startswith('win'):
+    sys.stdout.reconfigure(encoding='utf-8')
 
 BASE_URL = "http://localhost:8000"
 
@@ -41,7 +46,12 @@ def test_evaluate_frustration():
         "cards_attempted": 7,
     }
     try:
-        r = requests.post(f"{BASE_URL}/evaluate-session", json=data, timeout=60)
+        r = requests.post(
+            f"{BASE_URL}/evaluate-session",
+            json=data,
+            headers={"X-Sitara-Token": "dev-token-sitara"},
+            timeout=60
+        )
         print(f"Status: {r.status_code}")
         body = r.json()
         print(f"Agent: {body.get('agent')}")
@@ -74,7 +84,12 @@ def test_evaluate_success():
         "cards_attempted": 10,
     }
     try:
-        r = requests.post(f"{BASE_URL}/evaluate-session", json=data, timeout=60)
+        r = requests.post(
+            f"{BASE_URL}/evaluate-session",
+            json=data,
+            headers={"X-Sitara-Token": "dev-token-sitara"},
+            timeout=60
+        )
         print(f"Status: {r.status_code}")
         body = r.json()
         print(f"Actions: {json.dumps(body.get('actions', []), indent=2)}")
@@ -94,7 +109,12 @@ def test_generate_quest():
         "recent_mastery": "just mastered cat and dog cards",
     }
     try:
-        r = requests.post(f"{BASE_URL}/generate-quest", json=data, timeout=60)
+        r = requests.post(
+            f"{BASE_URL}/generate-quest",
+            json=data,
+            headers={"X-Sitara-Token": "dev-token-sitara"},
+            timeout=60
+        )
         print(f"Status: {r.status_code}")
         quest = r.json()
         print(json.dumps(quest, indent=2, ensure_ascii=False))
@@ -126,7 +146,12 @@ def test_weekly_report():
         "therapist_insights": "Child shows strong preference for animal cards. Responded positively to reduce-difficulty adaptation at 8-minute mark.",
     }
     try:
-        r = requests.post(f"{BASE_URL}/weekly-report", json=data, timeout=90)
+        r = requests.post(
+            f"{BASE_URL}/weekly-report",
+            json=data,
+            headers={"X-Sitara-Token": "dev-token-sitara"},
+            timeout=90
+        )
         print(f"Status: {r.status_code}")
         body = r.json()
         report = body.get("report", "")

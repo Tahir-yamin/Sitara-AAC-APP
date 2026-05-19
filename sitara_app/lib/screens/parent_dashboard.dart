@@ -1,4 +1,4 @@
-
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pdf/pdf.dart';
@@ -30,6 +30,14 @@ class _ParentDashboardState extends State<ParentDashboard> {
   bool _hasReport = false;
   int _todayMinutes = 0;
 
+  // Parental Consent Gate State (COPPA Compliance)
+  bool _unlocked = false;
+  int _num1 = 0;
+  int _num2 = 0;
+  int _correctAnswer = 0;
+  String _parentInput = '';
+  String _errorMessage = '';
+
   @override
   void initState() {
     super.initState();
@@ -39,6 +47,315 @@ class _ParentDashboardState extends State<ParentDashboard> {
     _tracker = context.read<SessionTracker>();
     _analytics = AnalyticsService(childId: _tracker.childId);
     _loadTodayUsage();
+    _generateMathProblem();
+  }
+
+  void _generateMathProblem() {
+    final random = math.Random();
+    _num1 = random.nextInt(8) + 3; // 3 to 10
+    _num2 = random.nextInt(8) + 2; // 2 to 9
+    _correctAnswer = _num1 + _num2;
+    _parentInput = '';
+    _errorMessage = '';
+  }
+
+  void _handleKeyPress(String value) {
+    setState(() {
+      _errorMessage = '';
+      if (_parentInput.length < 3) {
+        _parentInput += value;
+      }
+    });
+  }
+
+  void _handleBackspace() {
+    setState(() {
+      _errorMessage = '';
+      if (_parentInput.isNotEmpty) {
+        _parentInput = _parentInput.substring(0, _parentInput.length - 1);
+      }
+    });
+  }
+
+  void _handleClear() {
+    setState(() {
+      _errorMessage = '';
+      _parentInput = '';
+    });
+  }
+
+  void _verifyAnswer() {
+    final answer = int.tryParse(_parentInput);
+    if (answer == _correctAnswer) {
+      setState(() {
+        _unlocked = true;
+      });
+    } else {
+      setState(() {
+        _errorMessage = 'Incorrect answer, try again / غلط جواب، دوبارہ کوشش کریں';
+        _parentInput = '';
+        _generateMathProblem();
+      });
+    }
+  }
+
+  Widget _buildParentalGate() {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF1A1040), Color(0xFF2D2060)],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Title / Mascot Icon
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.3), width: 1.5),
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.security_rounded, size: 40, color: Colors.amberAccent),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Text instructions
+                  const Text(
+                    'Parent Verification',
+                    style: TextStyle(
+                      fontFamily: 'Nunito',
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'والدین کی تصدیق',
+                    style: TextStyle(
+                      fontFamily: 'NotoNastaliqUrdu',
+                      color: Color(0xFFB8B0FF),
+                      fontSize: 18,
+                      height: 1.8,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Please solve to unlock parent dashboard / آگے بڑھنے کے لیے حل کریں',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Nunito',
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Math Equation display container
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              '$_num1 + $_num2 = ',
+                              style: const TextStyle(
+                                fontFamily: 'Nunito',
+                                color: Colors.white,
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Container(
+                              width: 80,
+                              height: 50,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _errorMessage.isNotEmpty
+                                      ? Colors.redAccent
+                                      : Colors.amberAccent.withValues(alpha: 0.5),
+                                  width: 2,
+                                ),
+                              ),
+                              child: Text(
+                                _parentInput.isEmpty ? '?' : _parentInput,
+                                style: TextStyle(
+                                  fontFamily: 'Nunito',
+                                  color: _parentInput.isEmpty ? Colors.white54 : Colors.amberAccent,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_errorMessage.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            _errorMessage,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.redAccent,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Custom Number Pad
+                  SizedBox(
+                    width: 280,
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildKeypadButton('1'),
+                            _buildKeypadButton('2'),
+                            _buildKeypadButton('3'),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildKeypadButton('4'),
+                            _buildKeypadButton('5'),
+                            _buildKeypadButton('6'),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildKeypadButton('7'),
+                            _buildKeypadButton('8'),
+                            _buildKeypadButton('9'),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildKeypadActionButton('C', Colors.redAccent.withValues(alpha: 0.2), _handleClear),
+                            _buildKeypadButton('0'),
+                            _buildKeypadActionButton('⌫', Colors.orangeAccent.withValues(alpha: 0.2), _handleBackspace),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Verify / Action Buttons
+                  SizedBox(
+                    width: 260,
+                    height: 52,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF43C59E),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      icon: const Icon(Icons.check_circle_outline_rounded),
+                      label: const Text(
+                        'Verify & Open / تصدیق کریں',
+                        style: TextStyle(
+                          fontFamily: 'Nunito',
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      onPressed: _parentInput.isEmpty ? null : _verifyAnswer,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton.icon(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.arrow_back_rounded, color: Colors.white54, size: 18),
+                    label: const Text(
+                      'Cancel & Go Back / منسوخ کریں',
+                      style: TextStyle(
+                        fontFamily: 'Nunito',
+                        color: Colors.white54,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKeypadButton(String digit) {
+    return _buildKeypadActionButton(
+      digit,
+      Colors.white.withValues(alpha: 0.08),
+      () => _handleKeyPress(digit),
+    );
+  }
+
+  Widget _buildKeypadActionButton(String label, Color bgColor, VoidCallback onTap) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(36),
+        child: Container(
+          width: 68,
+          height: 68,
+          decoration: BoxDecoration(
+            color: bgColor,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontFamily: 'Nunito',
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _loadTodayUsage() async {
@@ -90,6 +407,9 @@ class _ParentDashboardState extends State<ParentDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_unlocked) {
+      return _buildParentalGate();
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFF8F7FF),
       appBar: AppBar(
@@ -505,15 +825,20 @@ class _ParentDashboardState extends State<ParentDashboard> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          entry.agent,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w900,
-                            color: agentColor,
-                            fontFamily: 'Nunito',
+                        Expanded(
+                          child: Text(
+                            entry.agent,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                              color: agentColor,
+                              fontFamily: 'Nunito',
+                            ),
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Text(
                           _formatTime(entry.timestamp),
                           style: TextStyle(
@@ -1010,28 +1335,33 @@ class _ParentDashboardState extends State<ParentDashboard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF8A30FF).withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF8A30FF).withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.stars_rounded, color: Color(0xFF8A30FF), size: 22),
                     ),
-                    child: const Icon(Icons.stars_rounded, color: Color(0xFF8A30FF), size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Weekly Therapeutic Overview',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF1A1040),
-                      fontFamily: 'Nunito',
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Weekly Therapeutic Overview',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF1A1040),
+                          fontFamily: 'Nunito',
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
@@ -1090,13 +1420,15 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 child: const Icon(Icons.record_voice_over_rounded, color: Color(0xFF43C59E), size: 20),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'Speech & Language Pathology',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF1A1040),
-                  fontFamily: 'Nunito',
+              const Expanded(
+                child: Text(
+                  'Speech & Language Pathology',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF1A1040),
+                    fontFamily: 'Nunito',
+                  ),
                 ),
               ),
             ],
@@ -1205,13 +1537,15 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 child: const Icon(Icons.psychology_rounded, color: Color(0xFFFFB800), size: 20),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'CBT & Behavioral Analysis',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF1A1040),
-                  fontFamily: 'Nunito',
+              const Expanded(
+                child: Text(
+                  'CBT & Behavioral Analysis',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF1A1040),
+                    fontFamily: 'Nunito',
+                  ),
                 ),
               ),
             ],
@@ -1233,10 +1567,15 @@ class _ParentDashboardState extends State<ParentDashboard> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Frustration Tolerance',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1A1040), fontFamily: 'Nunito'),
+                          const Expanded(
+                            child: Text(
+                              'Frustration Tolerance',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1A1040), fontFamily: 'Nunito'),
+                            ),
                           ),
+                          const SizedBox(width: 4),
                           Text(
                             '$frustrationTol%',
                             style: const TextStyle(
@@ -1269,10 +1608,15 @@ class _ParentDashboardState extends State<ParentDashboard> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Emotional Regulation',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1A1040), fontFamily: 'Nunito'),
+                          const Expanded(
+                            child: Text(
+                              'Emotional Regulation',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1A1040), fontFamily: 'Nunito'),
+                            ),
                           ),
+                          const SizedBox(width: 4),
                           Text(
                             '$emotionalReg%',
                             style: const TextStyle(
@@ -1335,13 +1679,15 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 child: const Icon(Icons.analytics_rounded, color: Color(0xFF6C63FF), size: 20),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'AAC Telemetry & Coordination',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF1A1040),
-                  fontFamily: 'Nunito',
+              const Expanded(
+                child: Text(
+                  'AAC Telemetry & Coordination',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF1A1040),
+                    fontFamily: 'Nunito',
+                  ),
                 ),
               ),
             ],
@@ -1448,28 +1794,33 @@ class _ParentDashboardState extends State<ParentDashboard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.emoji_events_rounded, color: Color(0xFFD97706), size: 22),
                     ),
-                    child: const Icon(Icons.emoji_events_rounded, color: Color(0xFFD97706), size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Key Breakthroughs & Wins',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF78350F),
-                      fontFamily: 'Nunito',
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Key Breakthroughs & Wins',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF78350F),
+                          fontFamily: 'Nunito',
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
@@ -1655,13 +2006,15 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 child: const Icon(Icons.volunteer_activism_rounded, color: Color(0xFF43C59E), size: 20),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'Strategic Home Care Plan',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF1A1040),
-                  fontFamily: 'Nunito',
+              const Expanded(
+                child: Text(
+                  'Strategic Home Care Plan',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF1A1040),
+                    fontFamily: 'Nunito',
+                  ),
                 ),
               ),
             ],
@@ -1703,13 +2056,15 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 child: const Icon(Icons.star_outline_rounded, color: Color(0xFF6C63FF), size: 20),
               ),
               const SizedBox(width: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF1A1040),
-                  fontFamily: 'Nunito',
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF1A1040),
+                    fontFamily: 'Nunito',
+                  ),
                 ),
               ),
             ],
@@ -1744,28 +2099,33 @@ class _ParentDashboardState extends State<ParentDashboard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF8A30FF).withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF8A30FF).withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.assignment_turned_in_rounded, color: Color(0xFF8A30FF), size: 20),
                     ),
-                    child: const Icon(Icons.assignment_turned_in_rounded, color: Color(0xFF8A30FF), size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Clinical Plan & Recommendations',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF1A1040),
-                      fontFamily: 'Nunito',
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Clinical Plan & Recommendations',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF1A1040),
+                          fontFamily: 'Nunito',
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 12),
               const Text(
                 'Rx FORM',
                 style: TextStyle(

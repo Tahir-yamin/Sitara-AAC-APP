@@ -166,7 +166,8 @@ class TtsService {
       await _tts.setVoice(_femaleUrduVoice!);
     }
     await _tts.setPitch(1.1);
-    await _tts.setSpeechRate(0.40);
+    await _tts.setVolume(1.0);
+    await _tts.setSpeechRate(0.35);
   }
 
   Future<void> _setEnglishProfile() async {
@@ -189,7 +190,8 @@ class TtsService {
     }
 
     await _tts.setPitch(1.1);
-    await _tts.setSpeechRate(0.45);
+    await _tts.setVolume(1.0);
+    await _tts.setSpeechRate(0.40);
   }
 
   /// Speak the card name using pre-recorded Urdu audio first, then English TTS.
@@ -213,6 +215,8 @@ class TtsService {
     try {
       await _tts.stop();
       await _audioPlayer.stop();
+      await _tts.setVolume(1.0);
+      await _audioPlayer.setVolume(1.0);
       _audioSubscription?.cancel();
       _audioSubscription = null;
       if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
@@ -239,6 +243,7 @@ class TtsService {
               : audioPath;
           
           _audioPlayCompleter = Completer<void>();
+          await _audioPlayer.setVolume(1.0);
           await _audioPlayer.play(AssetSource(assetKey));
           
           _audioSubscription = _audioPlayer.onPlayerComplete.listen(
@@ -339,6 +344,8 @@ class TtsService {
     try {
       await _tts.stop();
       await _audioPlayer.stop();
+      await _tts.setVolume(1.0);
+      await _audioPlayer.setVolume(1.0);
       _audioSubscription?.cancel();
       _audioSubscription = null;
       if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
@@ -351,6 +358,7 @@ class TtsService {
       }
 
       _audioPlayCompleter = Completer<void>();
+      await _audioPlayer.setVolume(1.0);
       await _audioPlayer.play(AssetSource(phrase.audioAsset));
       
       _audioSubscription = _audioPlayer.onPlayerComplete.listen(
@@ -522,6 +530,8 @@ class TtsService {
     try {
       await _tts.stop();
       await _audioPlayer.stop();
+      await _tts.setVolume(1.0);
+      await _audioPlayer.setVolume(1.0);
       _audioSubscription?.cancel();
       _audioSubscription = null;
 
@@ -533,6 +543,7 @@ class TtsService {
               : audioPath;
           
           _audioPlayCompleter = Completer<void>();
+          await _audioPlayer.setVolume(1.0);
           await _audioPlayer.play(AssetSource(assetKey));
           
           _audioSubscription = _audioPlayer.onPlayerComplete.listen(

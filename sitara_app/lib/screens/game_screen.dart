@@ -7,6 +7,7 @@ import '../services/antigravity_service.dart';
 import '../services/session_tracker.dart';
 import '../services/analytics_service.dart';
 import '../models/game_event.dart';
+import '../models/session_event.dart';
 import '../widgets/symbol_card_widget.dart';
 import '../widgets/agent_trace_widget.dart';
 import '../data/symbols_data.dart';
@@ -206,6 +207,131 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         }
         break;
     }
+  }
+
+  Future<void> _handleSimulation(String type) async {
+    switch (type) {
+      case 'success':
+        // Simulate high success streak
+        final mockEvents = List<SessionEvent>.generate(5, (_) => SessionEvent(
+          childId: _tracker.childId,
+          eventType: 'card_success',
+          timestamp: DateTime.now(),
+          cardId: 'mock_success',
+          category: _currentCategory,
+          isSuccess: true,
+          tapSpeed: 1.2,
+        ));
+        setState(() {
+          _sessionScore += 50;
+          _currentStreak = 5;
+          if (_currentStreak > _bestStreak) _bestStreak = _currentStreak;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Simulating Success: Triggering Therapy Director...'),
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
+
+        final actions = await _agentService.evaluateSession(
+          childId: _tracker.childId,
+          recentEvents: mockEvents,
+        );
+        for (final action in actions) {
+          _applyAction(action);
+        }
+        break;
+
+      case 'frustration':
+        // Simulate consecutive failure frustration
+        final mockEvents = List<SessionEvent>.generate(3, (_) => SessionEvent(
+          childId: _tracker.childId,
+          eventType: 'card_fail',
+          timestamp: DateTime.now(),
+          cardId: 'mock_fail',
+          category: _currentCategory,
+          isSuccess: false,
+          tapSpeed: 4.5,
+        ));
+        setState(() {
+          _currentStreak = 0;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Simulating Frustration: Reducing complexity...'),
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
+        
+        final actions = await _agentService.evaluateSession(
+          childId: _tracker.childId,
+          recentEvents: mockEvents,
+        );
+        for (final action in actions) {
+          _applyAction(action);
+        }
+        break;
+
+      case 'quest':
+        // Simulate Story Weaver delegation
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Story Weaver: Initiating personalized quest...'),
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
+        final questData = await _agentService.generateQuest(
+          childId: _tracker.childId,
+          preferredCategory: _currentCategory,
+          childName: 'Tahir',
+          difficulty: 'adaptive',
+        );
+        if (mounted) {
+          Navigator.pushNamed(context, '/quest', arguments: questData);
+        }
+        break;
+
+      case 'evaluate':
+        // Immediate evaluation of actual gameplay events
+        final recentEvents = _tracker.getRecentEvents(seconds: 60);
+        if (recentEvents.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('No active interactions yet. Tap some cards first!'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+          return;
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Evaluating active session logs...'),
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
+        final actions = await _agentService.evaluateSession(
+          childId: _tracker.childId,
+          recentEvents: recentEvents,
+        );
+        for (final action in actions) {
+          _applyAction(action);
+        }
+        break;
+    }
+    if (mounted) setState(() {});
   }
 
   Future<void> _onCardTapped(SymbolCard card) async {
@@ -439,7 +565,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             if (_showTracePanel)
               Semantics(
                 excludeSemantics: true,
-                child: AgentTraceWidget(traces: _agentService.traceLog),
+                child: AgentTraceWidget(
+                  traces: _agentService.traceLog,
+                  onSimulate: _handleSimulation,
+                ),
               ),
           ],
         ),

@@ -173,145 +173,167 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
                 ),
               ],
             ),
-            child: Column(
-              children: [
-                // ── CATEGORY PILL ──────────────────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                  child: Align(
-                    alignment: Alignment.topLeft,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 2.5),
-                      decoration: BoxDecoration(
-                        color: accent.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(20),
+            child: LayoutBuilder(
+              builder: (context, cardConstraints) {
+                final cardWidth = cardConstraints.maxWidth;
+                return Column(
+                  children: [
+                    // ── CATEGORY PILL ──────────────────────────────────────────────
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        cardWidth * 0.05,
+                        cardWidth * 0.05,
+                        cardWidth * 0.05,
+                        0,
                       ),
-                      child: Text(
-                        _style.label,
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                          color: accent,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // ── PICTOGRAM VISUAL WITH EMOJI FALLBACK ────────────────────────
-                Expanded(
-                  flex: 5,
-                  child: Center(
-                    child: LayoutBuilder(
-                      builder: (ctx, constraints) {
-                        final size = constraints.maxHeight * 0.78;
-                        return Container(
-                          width: size,
-                          height: size,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: accent.withValues(alpha: 0.18),
-                                blurRadius: 10,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: cardWidth * 0.05,
+                            vertical: cardWidth * 0.015,
                           ),
-                          child: Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(size * 0.12),
-                              child: widget.card.imagePath.startsWith('assets/')
-                                  ? Image.asset(
-                                      widget.card.imagePath,
-                                      fit: BoxFit.contain,
-                                      errorBuilder: (ctx, e, s) => Center(
-                                        child: Text(
-                                          widget.card.emoji,
-                                          style: TextStyle(fontSize: size * 0.56),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ),
-                                    )
-                                  : Image.network(
-                                      widget.card.imagePath,
-                                      fit: BoxFit.contain,
-                                      loadingBuilder: (ctx, child, progress) {
-                                        if (progress == null) return child;
-                                        return Center(
-                                          child: CircularProgressIndicator(
-                                            value: progress.expectedTotalBytes != null
-                                                ? progress.cumulativeBytesLoaded /
-                                                    progress.expectedTotalBytes!
-                                                : null,
-                                            color: accent,
-                                            strokeWidth: 2,
-                                          ),
-                                        );
-                                      },
-                                      errorBuilder: (ctx, e, s) => Center(
-                                        child: Text(
-                                          widget.card.emoji,
-                                          style: TextStyle(fontSize: size * 0.56),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ),
-                                    ),
+                          decoration: BoxDecoration(
+                            color: accent.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            _style.label,
+                            style: TextStyle(
+                              fontSize: (cardWidth * 0.07).clamp(8.0, 11.0),
+                              fontWeight: FontWeight.w700,
+                              color: accent,
+                              letterSpacing: 0.4,
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 6),
-
-                // ── LABEL BAR ─────────────────────────────────────────────────
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(6, 8, 6, 10),
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.10),
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft:  Radius.circular(20),
-                      bottomRight: Radius.circular(20),
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Urdu — Noto Nastaliq for correct script rendering
-                      Text(
-                        widget.card.nameUrdu,
-                        textDirection: TextDirection.rtl,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontFamily: 'NotoNastaliqUrdu', 
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: accent,
-                          height: 1.5,
                         ),
                       ),
-                      const SizedBox(height: 1),
-                      // English — small, muted
-                      Text(
-                        widget.card.nameEnglish,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey[600],
-                          letterSpacing: 0.2,
+                    ),
+
+                    // ── PICTOGRAM VISUAL WITH EMOJI FALLBACK ────────────────────────
+                    Expanded(
+                      flex: 5,
+                      child: Center(
+                        child: LayoutBuilder(
+                          builder: (ctx, constraints) {
+                            final size = (constraints.maxHeight * 0.78).clamp(0.0, cardWidth * 0.58);
+                            return Container(
+                              width: size,
+                              height: size,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.85),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: accent.withValues(alpha: 0.18),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(size * 0.12),
+                                  child: widget.card.imagePath.startsWith('assets/')
+                                      ? Image.asset(
+                                          widget.card.imagePath,
+                                          fit: BoxFit.contain,
+                                          errorBuilder: (ctx, e, s) => Center(
+                                            child: Text(
+                                              widget.card.emoji,
+                                              style: TextStyle(fontSize: size * 0.56),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ),
+                                        )
+                                      : Image.network(
+                                          widget.card.imagePath,
+                                          fit: BoxFit.contain,
+                                          loadingBuilder: (ctx, child, progress) {
+                                            if (progress == null) return child;
+                                            return Center(
+                                              child: CircularProgressIndicator(
+                                                value: progress.expectedTotalBytes != null
+                                                    ? progress.cumulativeBytesLoaded /
+                                                        progress.expectedTotalBytes!
+                                                    : null,
+                                                color: accent,
+                                                strokeWidth: 2,
+                                              ),
+                                            );
+                                          },
+                                          errorBuilder: (ctx, e, s) => Center(
+                                            child: Text(
+                                              widget.card.emoji,
+                                              style: TextStyle(fontSize: size * 0.56),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ],
+                    ),
+
+                    SizedBox(height: cardWidth * 0.02),
+
+                    // ── LABEL BAR ─────────────────────────────────────────────────
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: cardWidth * 0.04,
+                        vertical: cardWidth * 0.04,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.10),
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft:  Radius.circular(20),
+                          bottomRight: Radius.circular(20),
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Urdu — Noto Nastaliq for correct script rendering
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              widget.card.nameUrdu,
+                              textDirection: TextDirection.rtl,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: 'NotoNastaliqUrdu', 
+                                fontSize: (cardWidth * 0.12).clamp(11.0, 18.0),
+                                fontWeight: FontWeight.w700,
+                                color: accent,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: cardWidth * 0.01),
+                          // English — small, muted
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              widget.card.nameEnglish,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: (cardWidth * 0.08).clamp(8.0, 13.0),
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[600],
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ),

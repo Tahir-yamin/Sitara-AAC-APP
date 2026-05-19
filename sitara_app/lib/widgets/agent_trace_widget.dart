@@ -5,7 +5,13 @@ import '../services/antigravity_service.dart';
 
 class AgentTraceWidget extends StatelessWidget {
   final List<TraceEntry> traces;
-  const AgentTraceWidget({super.key, required this.traces});
+  final Function(String)? onSimulate;
+  
+  const AgentTraceWidget({
+    super.key,
+    required this.traces,
+    this.onSimulate,
+  });
 
 
   @override
@@ -13,7 +19,7 @@ class AgentTraceWidget extends StatelessWidget {
     final service = context.watch<AntigravityService>();
     
     return Container(
-      height: 250, // Slightly taller to fit toggle
+      height: 310, // Increased height to comfortably fit sandbox buttons
       decoration: const BoxDecoration(
         color: Color(0xFF1A1A2E), // Dark terminal look
         borderRadius: BorderRadius.only(
@@ -94,7 +100,57 @@ class AgentTraceWidget extends StatelessWidget {
               ],
             ),
           ),
-          const Divider(color: Colors.white10),
+          const Divider(color: Colors.white10, height: 4),
+
+          // Judge Sandbox Controls
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "𝐉𝐔𝐃𝐆𝐄 𝐒𝐀𝐍𝐃𝐁𝐎𝐗: 𝐓𝐑𝐈𝐆𝐆𝐄𝐑 𝐎𝐑𝐂𝐇𝐄𝐒𝐓𝐑𝐀𝐓𝐈𝐎𝐍",
+                  style: TextStyle(color: Colors.white54, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+                ),
+                const SizedBox(height: 6),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildSandboxButton(
+                        icon: Icons.emoji_events_rounded,
+                        label: "Simulate Wins",
+                        color: const Color(0xFF00FF88),
+                        onPressed: () => onSimulate?.call('success'),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildSandboxButton(
+                        icon: Icons.warning_amber_rounded,
+                        label: "Simulate Fails",
+                        color: Colors.orangeAccent,
+                        onPressed: () => onSimulate?.call('frustration'),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildSandboxButton(
+                        icon: Icons.menu_book_rounded,
+                        label: "Story Quest",
+                        color: Colors.cyanAccent,
+                        onPressed: () => onSimulate?.call('quest'),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildSandboxButton(
+                        icon: Icons.refresh_rounded,
+                        label: "Eval Now",
+                        color: Colors.purpleAccent,
+                        onPressed: () => onSimulate?.call('evaluate'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(color: Colors.white10, height: 4),
 
           // Trace log (scrollable)
           Expanded(
@@ -151,6 +207,45 @@ class AgentTraceWidget extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSandboxButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: color.withValues(alpha: 0.35), width: 1),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 11),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Courier',
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
