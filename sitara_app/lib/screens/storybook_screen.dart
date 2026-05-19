@@ -625,7 +625,7 @@ class _StorybookScreenState extends State<StorybookScreen>
             const SizedBox(height: 8),
             Text(
               'ستارہ تاروں کے نیچے آرام کر رہی ہے…',
-              style: GoogleFonts.notoNastaliqUrdu(
+              style: TextStyle(fontFamily: 'NotoNastaliqUrdu', 
                 fontSize: 16,
                 height: 2.0,
                 color: const Color(0xFFB8B0FF),
@@ -700,7 +700,7 @@ class _StorybookScreenState extends State<StorybookScreen>
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Text(
             'کہانی پڑھو — اردو اور انگلش میں',
-            style: GoogleFonts.notoNastaliqUrdu(
+            style: TextStyle(fontFamily: 'NotoNastaliqUrdu', 
               fontSize: 14,
               height: 2.0,
               color: const Color(0xFFB8B0FF),
@@ -770,7 +770,7 @@ class _StorybookScreenState extends State<StorybookScreen>
                                 Text(
                                   story['titleUrdu'] as String,
                                   textDirection: TextDirection.rtl,
-                                  style: GoogleFonts.notoNastaliqUrdu(
+                                  style: TextStyle(fontFamily: 'NotoNastaliqUrdu', 
                                     fontSize: 13,
                                     height: 1.8,
                                     color: color.withValues(alpha: 0.85),
@@ -882,7 +882,7 @@ class _StorybookScreenState extends State<StorybookScreen>
                         page['ur']!,
                         textDirection: TextDirection.rtl,
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.notoNastaliqUrdu(
+                        style: TextStyle(fontFamily: 'NotoNastaliqUrdu', 
                           fontSize: 15,
                           height: 2.0,
                           color: color.withValues(alpha: 0.9),

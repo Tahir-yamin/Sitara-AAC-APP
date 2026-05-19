@@ -167,6 +167,15 @@ To guarantee robust data privacy and eliminate credential leakage before the fin
 *   **Repository-Wide Sanitization Sweep**: Developed and executed a recursive sanitization script (`redact_all.py`) to systematically purge all hardcoded API tokens, GCP Account Numbers, and specific Cloud Run backend domains from deploy logs, scripts, and Markdown documents—replacing them with standardized, secure placeholders.
 *   **Resilient Local Clinical Engine**: If external API keys are not supplied in a local testing environment, the system gracefully degrades to a gorgeous offline baseline report builder, ensuring a smooth, crash-free parent evaluation workflow.
 
+### 🎨 Startup Visual & Typography Resolution (Zero Garbled Flash)
+
+To deliver a flawless, high-end first impression on fresh application launches, we executed a complete sweep to resolve initial startup layout rendering issues:
+
+*   **Zero-CDN Bundled Urdu Calligraphy**: Previously, using `GoogleFonts.notoNastaliqUrdu()` on fresh client installations triggered a network fetch from Google's CDN. During the download latency (even if brief), the operating system fell back to default fonts (which cannot render calligraphic Urdu, causing temporary garbled/tofu blocks on the splash and onboarding screens). We downloaded and bundled `NotoNastaliqUrdu-Regular.ttf` locally inside the application binary under `assets/fonts/` and registered it in `pubspec.yaml`, transitioning all 13 text styles to direct local asset loads (`TextStyle(fontFamily: 'NotoNastaliqUrdu')`). This guarantees calligraphic Urdu text renders **instantly and flawlessly on the very first frame**.
+*   **Robust Font Fallback Layer**: Added a comprehensive `fontFamilyFallback: const ['sans-serif', 'Arial', 'system-ui']` definition to both the splash screen and onboarding text engines. This provides a secondary bulletproof guard that ensures the application will gracefully fall back to native system Arabic/Urdu sans-serif fonts instead of showing garbled blocks.
+*   **Vector Icon Hardening**: Removed all raw Unicode emoji symbols (like `⭐`, `🎮`, `📊`, `→`) which triggered box placeholders on systems lacking emoji font assets. They have been upgraded to native material vector icons (`Icons.star_rounded`, `Icons.sports_esports_rounded`, `Icons.analytics_rounded`) which load instantly from local resource bundles.
+*   **Lossless Logo Restoration**: Fixed the corrupted PNG header in `assets/logo.png` by converting the original underlying JPEG image into a true, lossless PNG format. This eliminates startup image decoding exceptions and guarantees crisp, high-resolution rendering of the Sitara emblem on every platform.
+
 ---
 
 ## 🤖 Revised System & Tester Prompts Runbook

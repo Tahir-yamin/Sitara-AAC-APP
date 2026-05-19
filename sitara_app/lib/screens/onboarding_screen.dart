@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'dart:math';
 import '../services/local_db_service.dart';
@@ -239,7 +238,7 @@ class _PageView extends StatelessWidget {
                     const SizedBox(height: 12),
                     Text(
                       page.subtitle,
-                      style: GoogleFonts.notoNastaliqUrdu(
+                      style: TextStyle(fontFamily: 'NotoNastaliqUrdu', 
                           fontSize: 20,
                           color: page.color,
                           fontWeight: FontWeight.bold,

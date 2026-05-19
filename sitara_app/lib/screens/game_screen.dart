@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:confetti/confetti.dart';
 import 'dart:async';
@@ -382,7 +381,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       Text(
                         _targetCard!.nameUrdu,
                         textDirection: TextDirection.rtl,
-                        style: GoogleFonts.notoNastaliqUrdu(
+                        style: TextStyle(fontFamily: 'NotoNastaliqUrdu', 
                           fontSize: 26,
                           fontWeight: FontWeight.w900,
                           color: const Color(0xFF6C63FF),
@@ -576,7 +575,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 child: Text(
                   _rewardText!,
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.notoNastaliqUrdu(
+                  style: TextStyle(fontFamily: 'NotoNastaliqUrdu', 
                     fontSize: 26,
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -702,7 +701,7 @@ class _BreakOverlayState extends State<_BreakOverlay>
             Text(
               'وقفہ کریں',
               textDirection: TextDirection.rtl,
-              style: GoogleFonts.notoNastaliqUrdu(fontSize: 32, color: Colors.white, fontWeight: FontWeight.bold),
+              style: TextStyle(fontFamily: 'NotoNastaliqUrdu', fontSize: 32, color: Colors.white, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text(

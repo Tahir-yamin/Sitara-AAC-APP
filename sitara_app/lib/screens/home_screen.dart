@@ -91,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'ستارہ آپ کا انتظار کر رہی ہے!',
-                    style: GoogleFonts.notoNastaliqUrdu(
+                    style: TextStyle(fontFamily: 'NotoNastaliqUrdu', 
                         color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 14,
                         height: 1.5),
@@ -243,7 +243,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 8),
                         Text(
                           'ستارہ آپ کے لیے ایک خوبصورت کہانی بنا رہی ہے…',
-                          style: GoogleFonts.notoNastaliqUrdu(
+                          style: TextStyle(fontFamily: 'NotoNastaliqUrdu', 
                             fontSize: 16,
                             height: 2.0,
                             color: const Color(0xFF6C63FF),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../services/tts_service.dart';
 
 /// QuestScreen — rendered when Therapy Director triggers 'generate_quest_via_story_weaver'.
@@ -230,7 +229,7 @@ class _QuestScreenState extends State<QuestScreen>
                           _urduHook,
                           textDirection: TextDirection.rtl,
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.notoNastaliqUrdu(
+                          style: TextStyle(fontFamily: 'NotoNastaliqUrdu', 
                             fontSize: 28,
                             fontWeight: FontWeight.w900,
                             color: const Color(0xFFFFD700),

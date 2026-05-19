@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../models/symbol_card.dart';
 import '../services/tts_service.dart';
 
@@ -290,7 +289,7 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
                         widget.card.nameUrdu,
                         textDirection: TextDirection.rtl,
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.notoNastaliqUrdu(
+                        style: TextStyle(fontFamily: 'NotoNastaliqUrdu', 
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: accent,
