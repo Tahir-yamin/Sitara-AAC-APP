@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../app.dart';
 import '../data/symbols_data.dart';
 import '../services/tts_service.dart';
 
@@ -10,15 +11,40 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with RouteAware {
   String _selectedCategory = 'animals';
   final bool _loadingStory = false;
 
   @override
   void initState() {
     super.initState();
-    TtsService().stop(); // Ensure all speech is killed when home screen is loaded or returned to
+    // First load: stop any stale audio and start welcoming music.
+    TtsService().stop();
     TtsService().playIntroMusic();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null) {
+      sitaraRouteObserver.subscribe(this, route as ModalRoute<void>);
+    }
+  }
+
+  /// Called when the user pops back to this screen from any child route.
+  @override
+  void didPopNext() {
+    // Stop any in-flight card TTS from the previous screen immediately.
+    TtsService().stop();
+    // Resume welcoming music for the home context.
+    TtsService().playIntroMusic();
+  }
+
+  @override
+  void dispose() {
+    sitaraRouteObserver.unsubscribe(this);
+    super.dispose();
   }
 
 

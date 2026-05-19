@@ -489,11 +489,16 @@ BACKEND_TOKEN = os.environ.get("BACKEND_TOKEN", "dev-token-sitara")
 @app.middleware("http")
 async def verify_token(request: Request, call_next):
     """Simple shared secret check to protect against unauthorized usage."""
+    # Allow OPTIONS requests for CORS preflight
+    if request.method == "OPTIONS":
+        return await call_next(request)
+        
     if request.url.path not in ["/", "/health", "/docs", "/openapi.json"]:
         token = request.headers.get("X-Sitara-Token")
         if not token or token != BACKEND_TOKEN:
             return JSONResponse(status_code=401, content={"error": "Unauthorized"})
     return await call_next(request)
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

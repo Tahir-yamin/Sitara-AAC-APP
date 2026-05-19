@@ -2148,6 +2148,8 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 ),
                 Expanded(
                   child: RichText(
+                    softWrap: true,
+                    overflow: TextOverflow.visible,
                     text: TextSpan(
                       children: _parseInlineBold(cleanText, baseTextStyle, boldTextStyle),
                     ),
@@ -2162,6 +2164,8 @@ class _ParentDashboardState extends State<ParentDashboard> {
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: RichText(
+              softWrap: true,
+              overflow: TextOverflow.visible,
               text: TextSpan(
                 children: _parseInlineBold(trimmed, baseTextStyle, boldTextStyle),
               ),

@@ -212,65 +212,63 @@ class _SymbolCardWidgetState extends State<SymbolCardWidget>
 
                     // ── PICTOGRAM VISUAL WITH EMOJI FALLBACK ────────────────────────
                     Expanded(
-                      flex: 5,
+                      flex: 6,
                       child: Center(
                         child: LayoutBuilder(
                           builder: (ctx, constraints) {
-                            final size = (constraints.maxHeight * 0.86).clamp(0.0, cardWidth * 0.82);
+                            final size = (constraints.maxHeight * 0.96).clamp(0.0, cardWidth * 0.90);
                             return Container(
                               width: size,
                               height: size,
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.85),
-                                shape: BoxShape.circle,
+                                color: Colors.white.withValues(alpha: 0.90),
+                                borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: accent.withValues(alpha: 0.18),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 3),
+                                    color: accent.withValues(alpha: 0.22),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
                                   ),
                                 ],
                               ),
-                              child: Center(
-                                child: Padding(
-                                  padding: EdgeInsets.all(size * 0.03),
-                                  child: widget.card.imagePath.startsWith('assets/')
-                                      ? Image.asset(
-                                          widget.card.imagePath,
-                                          fit: BoxFit.contain,
-                                          errorBuilder: (ctx, e, s) => Center(
-                                            child: Text(
-                                              widget.card.emoji,
-                                              style: TextStyle(fontSize: size * 0.76),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ),
-                                        )
-                                      : Image.network(
-                                          widget.card.imagePath,
-                                          fit: BoxFit.contain,
-                                          loadingBuilder: (ctx, child, progress) {
-                                            if (progress == null) return child;
-                                            return Center(
-                                              child: CircularProgressIndicator(
-                                                value: progress.expectedTotalBytes != null
-                                                    ? progress.cumulativeBytesLoaded /
-                                                        progress.expectedTotalBytes!
-                                                    : null,
-                                                color: accent,
-                                                strokeWidth: 2,
-                                              ),
-                                            );
-                                          },
-                                          errorBuilder: (ctx, e, s) => Center(
-                                            child: Text(
-                                              widget.card.emoji,
-                                              style: TextStyle(fontSize: size * 0.76),
-                                              textAlign: TextAlign.center,
-                                            ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: widget.card.imagePath.startsWith('assets/')
+                                    ? Image.asset(
+                                        widget.card.imagePath,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (ctx, e, s) => Center(
+                                          child: Text(
+                                            widget.card.emoji,
+                                            style: TextStyle(fontSize: size * 0.72),
+                                            textAlign: TextAlign.center,
                                           ),
                                         ),
-                                ),
+                                      )
+                                    : Image.network(
+                                        widget.card.imagePath,
+                                        fit: BoxFit.contain,
+                                        loadingBuilder: (ctx, child, progress) {
+                                          if (progress == null) return child;
+                                          return Center(
+                                            child: CircularProgressIndicator(
+                                              value: progress.expectedTotalBytes != null
+                                                  ? progress.cumulativeBytesLoaded /
+                                                      progress.expectedTotalBytes!
+                                                  : null,
+                                              color: accent,
+                                              strokeWidth: 2,
+                                            ),
+                                          );
+                                        },
+                                        errorBuilder: (ctx, e, s) => Center(
+                                          child: Text(
+                                            widget.card.emoji,
+                                            style: TextStyle(fontSize: size * 0.72),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                      ),
                               ),
                             );
                           },

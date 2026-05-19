@@ -8,12 +8,17 @@ import 'screens/quest_screen.dart';
 import 'screens/parent_dashboard.dart';
 import 'screens/storybook_screen.dart';
 
+/// Global route observer — HomeScreen subscribes to get didPopNext callbacks.
+final RouteObserver<ModalRoute<void>> sitaraRouteObserver =
+    RouteObserver<ModalRoute<void>>();
+
 class SitaraApp extends StatelessWidget {
   const SitaraApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorObservers: [sitaraRouteObserver],
       title: 'Sitara ⭐',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
