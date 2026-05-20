@@ -29,7 +29,6 @@ try:
     from rich.panel import Panel
     from rich.table import Table
     from rich.tree import Tree
-    from rich.text import Text
     from rich.rule import Rule
     from rich import box
 except ImportError:
@@ -97,9 +96,24 @@ SCENARIOS = {
 }
 
 
+PROD_URL = "https://sitara-backend-178558547254.asia-south1.run.app"
+
+
 def parse_args():
-    p = argparse.ArgumentParser(description="Sitara Agentic Workflow Demo Trace")
+    p = argparse.ArgumentParser(
+        description="Sitara Agentic Workflow Demo Trace",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  python demo_trace.py                     # local backend\n"
+            "  python demo_trace.py --prod              # live Cloud Run backend\n"
+            "  python demo_trace.py --prod --all        # all 3 scenarios on live backend\n"
+            "  python demo_trace.py --scenario thriving # specific scenario (local)\n"
+        ),
+    )
     p.add_argument("--url", default="http://localhost:8000", help="Backend base URL")
+    p.add_argument("--prod", action="store_true",
+                   help=f"Use live Cloud Run backend ({PROD_URL})")
     p.add_argument("--token", default="dev-token-sitara", help="X-Sitara-Token header")
     p.add_argument(
         "--scenario", default="frustrated",
@@ -415,6 +429,7 @@ def _build_synthetic_trace(active_tier: str, data: dict) -> list:
 # ── Entry point ────────────────────────────────────────────────────
 def main():
     args    = parse_args()
+    url     = PROD_URL if args.prod else args.url
     headers = {
         "Content-Type":  "application/json",
         "X-Sitara-Token": args.token,
@@ -422,7 +437,7 @@ def main():
 
     show_banner()
     show_agent_hierarchy()
-    show_tier_health(args.url, headers)
+    show_tier_health(url, headers)
 
     scenarios_to_run = (
         list(SCENARIOS.values()) if args.all
@@ -435,11 +450,11 @@ def main():
             console.print(Rule(style="dim"))
             console.print()
         show_session_input(scenario)
-        show_agentic_trace(args.url, headers, scenario)
+        show_agentic_trace(url, headers, scenario)
 
     console.print(Rule("[dim]End of Demo Trace[/]", style="dim"))
     console.print(
-        f"[dim]Backend: {args.url}  ·  "
+        f"[dim]Backend: {url}  ·  "
         f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}[/]"
     )
     console.print()
