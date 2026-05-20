@@ -1242,9 +1242,8 @@ async def root():
 async def health():
     active_tier = (
         "T1:Gemini"     if _tier_health["gemini"]     else
-        "T2:Bedrock"    if _tier_health["bedrock"]    else
-        "T3:OpenRouter" if _tier_health["openrouter"] else
-        "T4:Heuristic"
+        "T2:OpenRouter" if _tier_health["openrouter"] else
+        "T3:Heuristic"
     )
     return {
         "status": "running",
@@ -1255,7 +1254,6 @@ async def health():
             "gemini":           _tier_health["gemini"],
             "openrouter":       _tier_health["openrouter"],
             "openrouter_model": _tier_health["openrouter_model"],
-            "bedrock":          _tier_health["bedrock"],
             "last_probed":      _tier_health["last_probed"].isoformat()
                                 if _tier_health["last_probed"] else None,
         },
