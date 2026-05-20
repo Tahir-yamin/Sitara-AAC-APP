@@ -25,7 +25,7 @@
 - [x] **OBSERVE → INFER → DECIDE → ACT → LOG** reasoning protocol in prompts
 - [x] **QC gate** — `_validate_quest()` validates Story Weaver output before returning to Flutter
 - [x] **Sovereign Baseline** — `FixedRuleEngine` heuristic for apples-to-apples comparison
-- [x] Backend deployed on **Cloud Run** — `https://[YOUR-CLOUD-RUN-URL]`
+- [x] Backend deployed on **Cloud Run** — `https://sitara-backend-178558547254.asia-south1.run.app`
 - [x] `/health` endpoint returns `{"status": "running", "agents": [...], "model": "gemini-2.0-flash"}`
 
 ---
@@ -86,7 +86,7 @@
 | Agent prompts & schemas | `sitara/antigravity_agents.md` | ✅ Complete |
 | Backend source | `sitara/adk_backend/agent.py` | ✅ Complete |
 | Flutter app source | `sitara/sitara_app/lib/` | ✅ Complete |
-| Live backend URL | `https://[YOUR-CLOUD-RUN-URL]` | ✅ Deployed |
+| Live backend URL | `https://sitara-backend-178558547254.asia-south1.run.app` | ✅ Deployed |
 | APK | TBD (`flutter build apk --release`) | ⏳ Pending |
 
 ---
@@ -95,7 +95,7 @@
 
 - [ ] `flutter pub get` — verify no dependency errors
 - [ ] Check `android/app/build.gradle` — `minSdkVersion 21` (flutter_secure_storage requires ≥18)
-- [ ] `flutter build apk --release --dart-define=BACKEND_URL=https://[YOUR-CLOUD-RUN-URL]`
+- [ ] `flutter build apk --release --dart-define=BACKEND_URL=https://sitara-backend-178558547254.asia-south1.run.app`
 - [ ] Install APK on test device — verify TTS speaks on first tap
 - [ ] Toggle AI/Rules mode — verify both paths work
 - [ ] Generate weekly report — verify fallback works if quota hit

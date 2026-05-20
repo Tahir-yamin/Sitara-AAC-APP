@@ -1,7 +1,7 @@
 import requests
 import json
 
-BASE_URL = "https://[YOUR-CLOUD-RUN-URL]"
+BASE_URL = "https://sitara-backend-178558547254.asia-south1.run.app"
 
 def test_evaluate_session():
     print(f"Testing {BASE_URL}/evaluate-session...")
@@ -15,8 +15,12 @@ def test_evaluate_session():
         "cards_attempted": 10
     }
     try:
-        response = requests.post(f"{BASE_URL}/evaluate-session", json=payload)
-        print(f"Status Code: {response.statusCode if hasattr(response, 'statusCode') else response.status_code}")
+        response = requests.post(
+            f"{BASE_URL}/evaluate-session",
+            json=payload,
+            headers={"X-Sitara-Token": "dev-token-sitara"}
+        )
+        print(f"Status Code: {response.status_code}")
         print(f"Response: {json.dumps(response.json(), indent=2)}")
     except Exception as e:
         print(f"Error: {e}")
