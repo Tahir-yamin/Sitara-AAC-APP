@@ -9,9 +9,9 @@ import re
 import time
 from collections import deque
 from datetime import datetime, timedelta
-from typing import Dict, Optional
+from typing import Dict
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -21,7 +21,6 @@ from google.adk.sessions import InMemorySessionService, DatabaseSessionService
 from google.adk.errors.already_exists_error import AlreadyExistsError
 from google.genai import types
 from google.cloud import firestore
-from google.adk.models.google_llm import _ResourceExhaustedError, ClientError
 
 # Load environment variables
 load_dotenv()
@@ -74,6 +73,110 @@ os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 # key: child_id, value: timestamp of last 429
 quota_cooldowns: Dict[str, datetime] = {}
 COOLDOWN_SECONDS = 60
+
+# ─── TIER HEALTH CACHE ────────────────────────────────────────────
+# Probed once at startup and refreshed every TIER_RECHECK_SECONDS.
+# Allows /evaluate-session to skip straight to the first live tier
+# rather than retrying a known-down tier on every request.
+_tier_health: Dict[str, object] = {
+    "gemini":          True,   # Assumed live; set False on 429
+    "openrouter":      None,   # None = not yet probed
+    "openrouter_model": None,  # Best working model found at probe
+    "bedrock":         None,   # None = not yet probed
+    "last_probed":     None,   # datetime of last probe run
+}
+TIER_RECHECK_SECONDS = 180  # Re-probe every 3 minutes
+
+
+async def _probe_openrouter() -> tuple[bool, str | None]:
+    """Send a 1-token ping to OpenRouter. Returns (success, best_model)."""
+    import httpx
+    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    if not api_key:
+        return False, None
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://sitara.app",
+        "X-Title": "Sitara Tier Probe",
+    }
+    probe_models = [
+        "google/gemini-2.0-flash-001",
+        "anthropic/claude-haiku-4-5",
+        "meta-llama/llama-3.3-70b-instruct",
+        "meta-llama/llama-3.3-70b-instruct:free",
+    ]
+    payload_base = {
+        "messages": [{"role": "user", "content": "Reply with just: OK"}],
+        "max_tokens": 5,
+        "temperature": 0,
+    }
+    async with httpx.AsyncClient(timeout=8.0) as client:
+        for model in probe_models:
+            try:
+                resp = await client.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers=headers,
+                    json={**payload_base, "model": model},
+                )
+                if resp.status_code == 200:
+                    print(f"[TierProbe] OpenRouter ✅ — model: {model}")
+                    return True, model
+            except Exception as e:
+                print(f"[TierProbe] OpenRouter {model} probe failed: {e}")
+    return False, None
+
+
+async def _probe_bedrock() -> bool:
+    """Send a 1-token ping to Bedrock. Returns True if reachable."""
+    import httpx
+    token  = os.environ.get("AWS_BEARER_TOKEN_BEDROCK", "")
+    region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+    if not token:
+        return False
+    model_id = "anthropic.claude-haiku-4-5-20251001"
+    url = f"https://bedrock-runtime.{region}.amazonaws.com/model/{model_id}/converse"
+    body = {
+        "messages": [{"role": "user", "content": [{"text": "Reply: OK"}]}],
+        "inferenceConfig": {"maxTokens": 5, "temperature": 0},
+    }
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.post(
+                url,
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                json=body,
+            )
+        ok = resp.status_code == 200
+        print(f"[TierProbe] Bedrock {'✅' if ok else '❌'} — HTTP {resp.status_code}")
+        return ok
+    except Exception as e:
+        print(f"[TierProbe] Bedrock probe failed: {e}")
+        return False
+
+
+async def _refresh_tier_health():
+    """Probe all tiers and update _tier_health cache."""
+    now = datetime.now()
+    last = _tier_health.get("last_probed")
+    if last and (now - last).total_seconds() < TIER_RECHECK_SECONDS:
+        return  # Still fresh — skip re-probe
+
+    print("[TierProbe] Probing all AI tiers...")
+    or_ok, or_model = await _probe_openrouter()
+    bd_ok           = await _probe_bedrock()
+
+    _tier_health["openrouter"]       = or_ok
+    _tier_health["openrouter_model"] = or_model
+    _tier_health["bedrock"]          = bd_ok
+    _tier_health["last_probed"]      = now
+
+    active = ("gemini" if _tier_health["gemini"] else
+              "openrouter" if or_ok else
+              "bedrock"    if bd_ok else
+              "heuristic")
+    print(f"[TierProbe] Active tier: {active.upper()} | "
+          f"OpenRouter={or_ok}({or_model}) | Bedrock={bd_ok}")
 
 def is_cooling_down(child_id: str) -> bool:
     if child_id in quota_cooldowns:
@@ -757,17 +860,44 @@ async def _evaluate_via_bedrock(data: "AdaptationRequest") -> dict | None:
     return None
 
 
+# ─── STARTUP TIER PROBE ──────────────────────────────────────────
+
+@app.on_event("startup")
+async def startup_tier_probe():
+    """Probe all AI tiers at boot so the first real request knows which tier is live."""
+    print("[Startup] Running AI tier health probe...")
+    await _refresh_tier_health()
+    active = ("gemini" if _tier_health["gemini"] else
+              "openrouter" if _tier_health["openrouter"] else
+              "bedrock"    if _tier_health["bedrock"] else
+              "heuristic")
+    print(f"[Startup] ✅ Active AI tier on boot: {active.upper()}")
+
+
 # ─── ENDPOINTS ───────────────────────────────────────────────────
 
 @app.post("/evaluate-session")
 async def evaluate_session(data: AdaptationRequest):
     """
-    Sovereign Benchmarking: Orchestrates session evaluation using either 
+    Sovereign Benchmarking: Orchestrates session evaluation using either
     Agentic flow or Baseline flow (FixedRuleEngine).
+    Tier health is probed at startup and refreshed every 3 min so the
+    endpoint skips known-down tiers instantly.
     """
     user_id = data.child_id
 
-    # 1. Baseline Mode, Quota Cooldown, or Rate Limit
+    # Refresh tier health (non-blocking; returns immediately if cache still fresh)
+    await _refresh_tier_health()
+
+    # Active tier label — reported in every response for the agent trace panel
+    active_tier = (
+        "T1:Gemini"     if _tier_health["gemini"] and not is_cooling_down(user_id) else
+        "T2:OpenRouter" if _tier_health["openrouter"] else
+        "T3:Bedrock"    if _tier_health["bedrock"]    else
+        "T4:Heuristic"
+    )
+
+    # 1. Baseline Mode, Quota Cooldown, or Rate Limit — skip all AI tiers
     if data.mode == "baseline" or is_cooling_down(user_id) or is_rate_limited(user_id):
         reason = (
             "Forced Baseline" if data.mode == "baseline"
@@ -775,7 +905,27 @@ async def evaluate_session(data: AdaptationRequest):
             else "Rate Limited"
         )
         print(f"[ACTION] Using FixedRuleEngine ({reason})")
-        return FixedRuleEngine.get_adaptation(data)
+        res = FixedRuleEngine.get_adaptation(data)
+        res["active_tier"] = "T4:Heuristic"
+        res["tier_reason"] = reason
+        return res
+
+    # 2. If Gemini is known-down, skip straight to the best live tier
+    gemini_healthy = _tier_health["gemini"] and not is_cooling_down(user_id)
+    if not gemini_healthy:
+        print(f"[TierSkip] Gemini known-down — routing directly to {active_tier}")
+        t2 = await _evaluate_via_openrouter(data)
+        if t2:
+            t2["active_tier"] = "T2:OpenRouter"
+            return t2
+        t3 = await _evaluate_via_bedrock(data)
+        if t3:
+            t3["active_tier"] = "T3:Bedrock"
+            return t3
+        res = FixedRuleEngine.get_adaptation(data)
+        res["mode"] = "baseline_fallback"
+        res["active_tier"] = "T4:Heuristic"
+        return res
 
     # 2. Agentic Flow
     prompt = f"""
@@ -821,30 +971,37 @@ async def evaluate_session(data: AdaptationRequest):
         exc_str = str(e).upper()
         is_quota = any(q in exc_str for q in ["429", "RESOURCE_EXHAUSTED", "QUOTA"])
         if is_quota:
+            _tier_health["gemini"] = False  # Mark Gemini down in health cache
             trigger_cooldown(user_id)
-            print(f"[QUOTA] Gemini quota hit for {user_id} — trying OpenRouter (T2) then Bedrock (T3)")
+            print(f"[QUOTA] Gemini quota hit for {user_id} — marking T1 down, trying T2→T3")
         else:
             print(f"[ERROR] Gemini agent error for {user_id}: {e} — trying fallback tiers")
 
         # ── Tier 2: OpenRouter ──────────────────────────────────────
         t2 = await _evaluate_via_openrouter(data)
         if t2:
+            t2["active_tier"] = "T2:OpenRouter"
             return t2
 
         # ── Tier 3: Amazon Bedrock Claude Haiku ────────────────────
         t3 = await _evaluate_via_bedrock(data)
         if t3:
+            t3["active_tier"] = "T3:Bedrock"
             return t3
 
         # ── Tier 4: Local FixedRuleEngine (always succeeds) ────────
         res = FixedRuleEngine.get_adaptation(data)
         res["mode"] = "baseline_fallback"
+        res["active_tier"] = "T4:Heuristic"
         res["reasoning"] = "𝐓2/𝐓3 𝐔𝐍𝐀𝐕𝐀𝐈𝐋𝐀𝐁𝐋𝐄. " + res["reasoning"]
         return res
 
+    # Gemini succeeded — restore health flag and return with tier label
+    _tier_health["gemini"] = True
     return {
         "mode": "agentic",
         "agent": "therapy_director",
+        "active_tier": "T1:Gemini",
         "reasoning": response_text,
         "actions": tool_calls,
         "session_id": session_id
@@ -1140,12 +1297,23 @@ async def root():
 
 @app.get("/health")
 async def health():
+    active_tier = (
+        "T1:Gemini"     if _tier_health["gemini"]     else
+        "T2:OpenRouter" if _tier_health["openrouter"] else
+        "T3:Bedrock"    if _tier_health["bedrock"]    else
+        "T4:Heuristic"
+    )
     return {
-        "status": "running",
-        "agents": ["therapy_director", "story_weaver", "progress_guardian"],
-        "model": "gemini-2.0-flash",
-        "backend": "Google ADK",
-        "version": "1.0.0"
+        "status": "ok",
+        "active_tier": active_tier,
+        "tier_health": {
+            "gemini":           _tier_health["gemini"],
+            "openrouter":       _tier_health["openrouter"],
+            "openrouter_model": _tier_health["openrouter_model"],
+            "bedrock":          _tier_health["bedrock"],
+            "last_probed":      _tier_health["last_probed"].isoformat()
+                                if _tier_health["last_probed"] else None,
+        },
     }
 
 
