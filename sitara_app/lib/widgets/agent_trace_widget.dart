@@ -333,7 +333,9 @@ class _AgentFlowDiagramState extends State<_AgentFlowDiagram>
     if (agent.contains('Therapy Director')) return _ActiveNode.therapyDirector;
     // Fallback tiers still mean therapy director ran (or failed)
     if (agent.contains('Sovereign') || agent.contains('Heuristic') ||
-        reasoning.contains('BASELINE')) return _ActiveNode.therapyDirector;
+        reasoning.contains('BASELINE')) {
+      return _ActiveNode.therapyDirector;
+    }
     return _ActiveNode.none;
   }
 

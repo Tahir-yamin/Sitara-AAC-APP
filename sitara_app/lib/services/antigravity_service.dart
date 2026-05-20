@@ -324,7 +324,7 @@ class AntigravityService extends ChangeNotifier {
       act3Desc = "Gather toys that make distinct sounds (a ringing bell, a squeaking toy, a rolling car). Hide them under a cloth, make the sound, and ask $childName to reach under the cloth and retrieve the correct sounding toy, connecting auditory feedback to physical objects.";
     }
 
-    final double dummyTapSpeed = 2.1;
+    const double dummyTapSpeed = 2.1;
 
     return """# 🌟 Assalamu Alaikum! Weekly Therapeutic Overview
 Assalamu Alaikum! We are honored to present this comprehensive, clinical-grade CBT & SLP Progress Report for **$childName**. Masha'Allah, $childName's active engagement with Sitara's agentic AAC engine represents a highly significant step forward in expressive communication and emotional self-regulation. Over the course of these sessions, $childName demonstrated beautiful focus, bravery, and therapeutic courage. We deeply appreciate your family's incredible dedication; your daily support at home is the true foundation of this progress. Together, we are helping $childName unlock a world of self-expression.

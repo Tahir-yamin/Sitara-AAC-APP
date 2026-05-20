@@ -74,7 +74,11 @@ class TtsService {
     await _tts.setVolume(1.0);
     await _tts.setSpeechRate(0.45);
     await _tts.setPitch(1.1);
-    _tts.setErrorHandler((msg) => debugPrint('TtsService error: $msg'));
+    _tts.setErrorHandler((msg) {
+      if (msg != 'interrupted') {
+        debugPrint('TtsService error: $msg');
+      }
+    });
 
     // Check ur-PK on ALL platforms — web browsers (Chrome/Firefox/Edge) support
     // ur-PK via the Web Speech API. No kIsWeb guard needed.
@@ -670,7 +674,11 @@ class TtsService {
     _tts.setCompletionHandler(c.complete);
     _tts.setErrorHandler((_) => c.complete());
     await c.future.timeout(const Duration(seconds: 4), onTimeout: () {});
-    _tts.setErrorHandler((msg) => debugPrint('TtsService error: $msg'));
+    _tts.setErrorHandler((msg) {
+      if (msg != 'interrupted') {
+        debugPrint('TtsService error: $msg');
+      }
+    });
   }
 }
 

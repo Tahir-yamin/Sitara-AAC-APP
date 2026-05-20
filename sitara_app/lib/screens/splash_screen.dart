@@ -154,14 +154,14 @@ class _SplashScreenState extends State<SplashScreen>
                                 )
                               ],
                             ),
-                            child: Row(
+                            child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.touch_app_rounded, color: Colors.amberAccent, size: 20),
-                                const SizedBox(width: 8),
+                                Icon(Icons.touch_app_rounded, color: Colors.amberAccent, size: 20),
+                                SizedBox(width: 8),
                                 Text(
                                   'Tap to Enter  ·  ٹیپ کریں',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,

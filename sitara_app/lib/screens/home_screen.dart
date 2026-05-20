@@ -292,12 +292,12 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 8),
-                        Text(
+                        const Text(
                           'ستارہ آپ کے لیے ایک خوبصورت کہانی بنا رہی ہے…',
                           style: TextStyle(fontFamily: 'NotoNastaliqUrdu', 
                             fontSize: 16,
                             height: 2.0,
-                            color: const Color(0xFF6C63FF),
+                            color: Color(0xFF6C63FF),
                           ),
                           textAlign: TextAlign.center,
                         ),

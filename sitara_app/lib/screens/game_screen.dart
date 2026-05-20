@@ -525,10 +525,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       Text(
                         _targetCard!.nameUrdu,
                         textDirection: TextDirection.rtl,
-                        style: TextStyle(fontFamily: 'NotoNastaliqUrdu', 
+                        style: const TextStyle(fontFamily: 'NotoNastaliqUrdu', 
                           fontSize: 26,
                           fontWeight: FontWeight.w900,
-                          color: const Color(0xFF6C63FF),
+                          color: Color(0xFF6C63FF),
                           height: 1.3,
                         ),
                       ),
@@ -722,7 +722,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 child: Text(
                   _rewardText!,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontFamily: 'NotoNastaliqUrdu', 
+                  style: const TextStyle(fontFamily: 'NotoNastaliqUrdu', 
                     fontSize: 26,
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -847,7 +847,7 @@ class _BreakOverlayState extends State<_BreakOverlay>
               ),
             ),
             const SizedBox(height: 40),
-            Text(
+            const Text(
               'وقفہ کریں',
               textDirection: TextDirection.rtl,
               style: TextStyle(fontFamily: 'NotoNastaliqUrdu', fontSize: 32, color: Colors.white, fontWeight: FontWeight.bold),

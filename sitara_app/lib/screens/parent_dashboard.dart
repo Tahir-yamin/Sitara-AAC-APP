@@ -1896,7 +1896,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
           Text(
             'Progress Guardian is compiling ${_tracker.childName}\'s clinical report…',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: Color(0xFF1A1040),
