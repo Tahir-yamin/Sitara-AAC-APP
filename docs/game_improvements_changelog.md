@@ -604,3 +604,87 @@ This is NOT a crash. It is the intentional fallback: the Therapy Director is byp
 - Calls `LocalDbService.instance.saveActiveChild(childId, childName)` on completion
 - Calls `TtsService().stopIntroMusic()` before pushing to `/home`
 - On next app launch, splash screen reads `getActiveChild()` and skips onboarding directly to home
+
+---
+
+## Backend AI Tier Health System (Date: 2026-05-20, Commit: 422b7f4)
+
+> **Trigger:** User reported "Sovereign Trace exhausted" — Gemini quota hitting 429 on evaluate-session with no immediate fallback
+> **Previous state:** Fallback chain existed but tried all tiers sequentially on every failure, wasting latency
+
+### Problem
+
+OpenRouter was using `:free` tier models with very low rate limits. Even with a paid API key, the model list started with free models. No startup probe existed — every request re-tried Gemini even when it was already known to be quota-exhausted.
+
+### Solution: Startup Tier Health Probe + Smart Routing
+
+**Three new components added to `adk_backend/agent.py`:**
+
+#### 1. `_tier_health` Global Cache
+```python
+_tier_health = {
+    "gemini": True,           # Set False on 429; restored on success
+    "openrouter": None,       # Probed at startup
+    "openrouter_model": None, # Best working model found at probe
+    "bedrock": None,          # Probed at startup
+    "last_probed": None,      # datetime — refreshed every 3 min
+}
+```
+
+#### 2. Startup Probe (`@app.on_event("startup")`)
+On every `uvicorn` boot, probes OpenRouter and Bedrock with a 1-token ping (`max_tokens=5`). Logs active tier:
+```
+[Startup] ✅ Active AI tier on boot: T2:OPENROUTER
+```
+
+#### 3. Smart Tier Routing in `/evaluate-session`
+- Checks `_tier_health` cache (refreshed every 3 min)
+- If Gemini is known-down → **skips straight to T2/T3**, no wasted timeout
+- On Gemini 429 → `_tier_health["gemini"] = False` immediately
+- On Gemini success → `_tier_health["gemini"] = True` restored
+- Every response now includes `"active_tier"` field visible in Flutter trace panel
+
+#### 4. OpenRouter Model Priority Fixed
+Free-tier models replaced with paid-first order:
+```
+1. google/gemini-2.0-flash-001     (paid, fastest)
+2. anthropic/claude-haiku-4-5      (paid, cheapest)
+3. meta-llama/llama-3.3-70b        (paid, high quality)
+4. meta-llama/llama-3.3-70b:free   (free fallback)
+5. google/gemma-2-9b-it:free       (free fallback)
+6. openrouter/auto                  (last resort)
+```
+
+### Full Fallback Chain (Final State)
+
+| Tier | Service | Trigger | Response field |
+|---|---|---|---|
+| T1 | Gemini 2.0 Flash (ADK) | Always first | `active_tier: "T1:Gemini"` |
+| T2 | OpenRouter (paid → free) | Gemini 429 or known-down | `active_tier: "T2:OpenRouter"` |
+| T3 | Amazon Bedrock Claude Haiku | T2 fails | `active_tier: "T3:Bedrock"` |
+| T4 | FixedRuleEngine (local) | All AI tiers fail | `active_tier: "T4:Heuristic"` |
+
+### `/health` Endpoint Updated
+Now returns full tier health status:
+```json
+{
+  "status": "ok",
+  "active_tier": "T2:OpenRouter",
+  "tier_health": {
+    "gemini": false,
+    "openrouter": true,
+    "openrouter_model": "google/gemini-2.0-flash-001",
+    "bedrock": true,
+    "last_probed": "2026-05-20T..."
+  }
+}
+```
+
+### Agentic Orchestration Visibility
+Every `/evaluate-session` response carries `active_tier` — Flutter's **Agent Trace Panel** shows which tier handled each adaptation. Judges can see the resilience architecture live: `T1:Gemini → T2:OpenRouter → T3:Bedrock → T4:Heuristic`.
+
+| Files Changed | Change |
+|---|---|
+| `adk_backend/agent.py` | `_tier_health`, `_probe_openrouter()`, `_probe_bedrock()`, `_refresh_tier_health()`, `startup_tier_probe()`, smart routing in `/evaluate-session`, updated `/health` |
+| `adk_backend/requirements.txt` | Added `boto3>=1.34.0`, `httpx>=0.25.0` |
+| `adk_backend/deploy_cloud_run.sh` + `.ps1` | Added `OPENROUTER_API_KEY`, `AWS_BEARER_TOKEN_BEDROCK`, `AWS_DEFAULT_REGION` to `--set-secrets` |

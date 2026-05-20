@@ -295,4 +295,34 @@
 
 ---
 
+#### ⏰ 2026-05-20 (UTC+5) — Tier Health Probe + OpenRouter Key Fix (Commits `9098a92`, `422b7f4`)
+
+**Trigger:** User reported Sovereign Trace still exhausting. Root cause: OpenRouter model list started with `:free` models (low rate limits) even with a paid key. No startup probe — Gemini 429 caused sequential retry waste on every request.
+
+**Fix 1 — OpenRouter model priority** (`9098a92`):
+* Model list reordered: paid models first (`gemini-2.0-flash-001`, `claude-haiku-4-5`, `llama-3.3-70b`), free models only as last-resort fallbacks.
+* New OpenRouter key written to `.env` (gitignored). Not committed.
+
+**Fix 2 — Startup tier health probe + smart routing** (`422b7f4`):
+* `_tier_health` global dict caches live status of all 3 AI tiers.
+* `@app.on_event("startup")` calls `_refresh_tier_health()` — probes OpenRouter + Bedrock with 1-token pings before serving first request.
+* Cache refreshes every 3 minutes during runtime.
+* `/evaluate-session` now checks cache: if Gemini known-down, skips to T2/T3 immediately (no wasted timeout).
+* On Gemini 429: `_tier_health["gemini"] = False` set immediately.
+* On Gemini success: flag restored to `True`.
+* Every response includes `"active_tier"` field (T1:Gemini / T2:OpenRouter / T3:Bedrock / T4:Heuristic).
+* Flutter Agent Trace Panel now shows which tier served each adaptation.
+* `/health` endpoint updated to expose full `tier_health` dict for monitoring.
+* Removed unused imports: `Optional`, `HTTPException`, `_ResourceExhaustedError`, `ClientError`.
+
+**Startup log example:**
+```
+[Startup] Running AI tier health probe...
+[TierProbe] OpenRouter ✅ — model: google/gemini-2.0-flash-001
+[TierProbe] Bedrock ✅ — HTTP 200
+[Startup] ✅ Active AI tier on boot: T2:OPENROUTER
+```
+
+---
+
 *Ledger updated by Claude Code on 2026-05-20T (UTC+5).*
