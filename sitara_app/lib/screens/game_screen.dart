@@ -37,6 +37,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   bool _showTracePanel = false;  // Toggle for judges
   Timer? _agentCheckTimer;
 
+  // ── Agent banner (visible on game screen so judges see AI working live) ──
+  String? _agentBannerText;
+  Color _agentBannerColor = const Color(0xFFFFD700);
+  bool _agentBannerVisible = false;
+  bool _agentBannerLoading = false; // true = spinner, false = checkmark
+  Timer? _agentBannerTimer;
+
   // Session score & streak — shown in real-time (Gameplay Engagement criterion)
   int _sessionScore = 0;
   int _currentStreak = 0;
@@ -134,11 +141,37 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
+  // Show the agent banner at the top of the game screen.
+  // [loading] = true → spinner (thinking), false → checkmark (done).
+  // Auto-dismisses after [durationMs] milliseconds.
+  void _showAgentBanner(String text, Color color,
+      {int durationMs = 3500, bool loading = false}) {
+    _agentBannerTimer?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _agentBannerText = text;
+      _agentBannerColor = color;
+      _agentBannerVisible = true;
+      _agentBannerLoading = loading;
+    });
+    _agentBannerTimer = Timer(Duration(milliseconds: durationMs), () {
+      if (mounted) setState(() => _agentBannerVisible = false);
+    });
+  }
+
   /// Agent evaluation every 30 seconds
   void _startAgentCheck() {
     _agentCheckTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
       final recentEvents = _tracker.getRecentEvents(seconds: 60);
       if (recentEvents.isEmpty) return;
+
+      final tierLabel = _agentService.useHeuristic ? 'Rules' : 'T1:Gemini';
+      _showAgentBanner(
+        '🧠 Therapy Director · $tierLabel',
+        const Color(0xFFFFD700),
+        durationMs: 8000,
+        loading: true,
+      );
 
       try {
         final actions = await _agentService.evaluateSession(
@@ -150,6 +183,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           type: GameEventType.agentSessionEval,
           properties: {'actions_count': actions.length, 'mode': _agentService.useHeuristic ? 'heuristic' : 'agentic'},
         );
+
+        // Show what the agent decided
+        if (actions.isNotEmpty && mounted) {
+          final label = actions.first.type.replaceAll('_', ' ');
+          _showAgentBanner('✅ $label', const Color(0xFF00C853), durationMs: 2500);
+        } else if (mounted) {
+          setState(() => _agentBannerVisible = false);
+        }
+
         for (final action in actions) {
           _applyAction(action);
         }
@@ -157,6 +199,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         if (mounted) setState(() {});
       } catch (e) {
         if (mounted) {
+          setState(() => _agentBannerVisible = false);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Agent check failed — continuing in offline mode'),
@@ -213,8 +256,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Future<void> _handleSimulation(String type) async {
     switch (type) {
       case 'success':
-        // Simulate high success streak
-        final mockEvents = List<SessionEvent>.generate(5, (_) => SessionEvent(
+        final mockEventsSuccess = List<SessionEvent>.generate(5, (_) => SessionEvent(
           childId: _tracker.childId,
           eventType: 'card_success',
           timestamp: DateTime.now(),
@@ -228,28 +270,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           _currentStreak = 5;
           if (_currentStreak > _bestStreak) _bestStreak = _currentStreak;
         });
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Simulating Success: Triggering Therapy Director...'),
-              duration: Duration(seconds: 1),
-            ),
-          );
-        }
-
-        final actions = await _agentService.evaluateSession(
+        _showAgentBanner('🧠 Therapy Director · simulating success', const Color(0xFFFFD700), durationMs: 6000, loading: true);
+        final actionsSuccess = await _agentService.evaluateSession(
           childId: _tracker.childId,
-          recentEvents: mockEvents,
+          recentEvents: mockEventsSuccess,
         );
-        for (final action in actions) {
-          _applyAction(action);
+        if (actionsSuccess.isNotEmpty && mounted) {
+          _showAgentBanner('✅ ${actionsSuccess.first.type.replaceAll('_', ' ')}', const Color(0xFF00C853), durationMs: 2500);
         }
+        for (final action in actionsSuccess) { _applyAction(action); }
         break;
 
       case 'frustration':
-        // Simulate consecutive failure frustration
-        final mockEvents = List<SessionEvent>.generate(3, (_) => SessionEvent(
+        final mockEventsFail = List<SessionEvent>.generate(3, (_) => SessionEvent(
           childId: _tracker.childId,
           eventType: 'card_fail',
           timestamp: DateTime.now(),
@@ -258,38 +291,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           isSuccess: false,
           tapSpeed: 4.5,
         ));
-        setState(() {
-          _currentStreak = 0;
-        });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Simulating Frustration: Reducing complexity...'),
-              duration: Duration(seconds: 1),
-            ),
-          );
-        }
-        
-        final actions = await _agentService.evaluateSession(
+        setState(() => _currentStreak = 0);
+        _showAgentBanner('🧠 Therapy Director · frustration detected', const Color(0xFFFF6B35), durationMs: 6000, loading: true);
+        final actionsFail = await _agentService.evaluateSession(
           childId: _tracker.childId,
-          recentEvents: mockEvents,
+          recentEvents: mockEventsFail,
         );
-        for (final action in actions) {
-          _applyAction(action);
+        if (actionsFail.isNotEmpty && mounted) {
+          _showAgentBanner('✅ ${actionsFail.first.type.replaceAll('_', ' ')}', const Color(0xFF00C853), durationMs: 2500);
         }
+        for (final action in actionsFail) { _applyAction(action); }
         break;
 
       case 'quest':
-        // Simulate Story Weaver delegation
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Story Weaver: Initiating personalized quest...'),
-              duration: Duration(seconds: 1),
-            ),
-          );
-        }
+        _showAgentBanner('🧠 → 📖  A2A: Story Weaver generating quest', const Color(0xFF00BFFF), durationMs: 8000, loading: true);
         final questData = await _agentService.generateQuest(
           childId: _tracker.childId,
           preferredCategory: _currentCategory,
@@ -297,12 +312,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           difficulty: 'adaptive',
         );
         if (mounted) {
+          _showAgentBanner('✅ Quest ready · Story Weaver', const Color(0xFF00C853), durationMs: 2000);
           Navigator.pushNamed(context, '/quest', arguments: questData);
         }
         break;
 
       case 'evaluate':
-        // Immediate evaluation of actual gameplay events
         final recentEvents = _tracker.getRecentEvents(seconds: 60);
         if (recentEvents.isEmpty) {
           if (mounted) {
@@ -315,21 +330,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           }
           return;
         }
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Evaluating active session logs...'),
-              duration: Duration(seconds: 1),
-            ),
-          );
-        }
-        final actions = await _agentService.evaluateSession(
+        _showAgentBanner('🧠 Therapy Director · evaluating session', const Color(0xFFFFD700), durationMs: 8000, loading: true);
+        final actionsEval = await _agentService.evaluateSession(
           childId: _tracker.childId,
           recentEvents: recentEvents,
         );
-        for (final action in actions) {
-          _applyAction(action);
+        if (actionsEval.isNotEmpty && mounted) {
+          _showAgentBanner('✅ ${actionsEval.first.type.replaceAll('_', ' ')}', const Color(0xFF00C853), durationMs: 2500);
         }
+        for (final action in actionsEval) { _applyAction(action); }
         break;
     }
     if (mounted) setState(() {});
@@ -378,18 +387,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (isCorrect) {
       final phrase = PhrasePool.pickPraise(streak: _currentStreak);
       _showReward(phrase.displayText);
-      
-      // Play speech in the background so it doesn't block the screen pop or transition
-      _speakPraiseUrdu(phrase);
-      
-      await Future.delayed(const Duration(milliseconds: 1800));
+
+      // Await praise so speakCard() in _loadCards() doesn't kill it mid-play.
+      // 3-second timeout ensures the game never hangs if TTS/audio stalls.
+      await _speakPraiseUrdu(phrase)
+          .timeout(const Duration(seconds: 3), onTimeout: () {});
+
       if (mounted) {
         setState(() => _feedbackCardId = null);
         _loadCards();
         _processingTap = false;
       }
     } else {
-      // Play speech in the background so wrong tap feedback clears quickly and user can try again
+      // Wrong tap — play gentle sound cue then clear feedback quickly
       _speakPraiseUrdu(PhrasePool.tryAgain);
       
       await Future.delayed(const Duration(milliseconds: 600));
@@ -604,7 +614,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           icon: const Icon(Icons.home_rounded),
           tooltip: 'Back to Home',
           onPressed: () {
-            _tts.stop();
+            _agentBannerTimer?.cancel();
+            _tts.stopSync(); // synchronous — ensures audio stops before route pops
             Navigator.of(context).pop();
           },
         ),
@@ -698,6 +709,62 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       body: Stack(
         children: [
           _buildGameBody(),
+
+          // ── Agent live banner — slides down from top when AI is working ──
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOutCubic,
+            top: _agentBannerVisible ? 8 : -64,
+            left: 12,
+            right: 12,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 250),
+              opacity: _agentBannerVisible ? 1.0 : 0.0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                decoration: BoxDecoration(
+                  color: _agentBannerColor.withValues(alpha: 0.96),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _agentBannerColor.withValues(alpha: 0.35),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    )
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_agentBannerLoading)
+                      const SizedBox(
+                        width: 12, height: 12,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    else
+                      const Icon(Icons.check_circle_rounded, color: Colors.white, size: 14),
+                    const SizedBox(width: 9),
+                    Flexible(
+                      child: Text(
+                        _agentBannerText ?? '',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Courier',
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
           Align(
             alignment: Alignment.topCenter,
             child: ConfettiWidget(
@@ -782,6 +849,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _agentCheckTimer?.cancel();
     _roundTimer?.cancel();
     _sessionMinuteTimer?.cancel();
+    _agentBannerTimer?.cancel();
     _confettiController.dispose();
     // Cancel both audio player and TTS immediately on exit —
     // prevents card-name speech leaking into the HomeScreen.

@@ -18,9 +18,13 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   @override
   void initState() {
     super.initState();
-    // First load: stop any stale audio and start welcoming music.
-    TtsService().stop();
-    TtsService().playIntroMusic();
+    // Defer to next frame so route animation completes before audio starts.
+    // stopSync() is synchronous — guarantees any in-flight card TTS is dead
+    // before playIntroMusic() tries to claim the audio focus.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      TtsService().stopSync();
+      TtsService().playIntroMusic();
+    });
   }
 
   @override
@@ -35,8 +39,9 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
   /// Called when the user pops back to this screen from any child route.
   @override
   void didPopNext() {
-    // Stop any in-flight card TTS from the previous screen immediately.
-    TtsService().stop();
+    // stopSync() is synchronous — kills in-flight card TTS immediately so
+    // the tail of a card-name audio clip cannot bleed into the home screen.
+    TtsService().stopSync();
     // Resume welcoming music for the home context.
     TtsService().playIntroMusic();
   }
