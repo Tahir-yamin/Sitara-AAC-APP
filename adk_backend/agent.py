@@ -300,6 +300,50 @@ def log_insight(child_id: str, insight_type: str, description: str, evidence: st
         "evidence": evidence
     }
 
+def _build_trace_steps(active_tier: str, tool_calls: list, reasoning: str = "") -> list:
+    """Build structured trace steps from agent execution for demo_trace.py and Flutter trace panel."""
+    steps = []
+    n = 1
+
+    steps.append({"step": n, "phase": "TIER_ROUTE", "icon": "📡",
+                  "detail": f"Routing to {active_tier} — tier health verified"})
+    n += 1
+
+    for tc in tool_calls:
+        tool = tc.get("tool", "unknown")
+        args = tc.get("args", {})
+        if tool == "get_session_state":
+            steps.append({"step": n, "phase": "OBSERVE", "icon": "👁️",
+                          "detail": f"get_session_state(child_id='{args.get('child_id','...')}')"})
+        elif tool == "generate_quest_via_story_weaver":
+            ch  = args.get("child_name", "child")
+            cat = args.get("preferred_category", "?")
+            dif = args.get("difficulty", "easy")
+            steps.append({"step": n, "phase": "A2A_DELEGATE", "icon": "🔄",
+                          "detail": f"→ Story Weaver: child={ch}, cat={cat}, diff={dif}"})
+        elif tool == "log_insight":
+            steps.append({"step": n, "phase": "LOG", "icon": "📝",
+                          "detail": str(args.get("description", "insight logged"))[:70]})
+        else:
+            summary = ", ".join(f"{k}={v!r}" for k, v in list(args.items())[:2])
+            steps.append({"step": n, "phase": "ACT", "icon": "⚡",
+                          "detail": f"{tool}({summary})"})
+        n += 1
+
+    if reasoning and len(reasoning.strip()) > 5:
+        infer = {"step": 0, "phase": "INFER", "icon": "🧠",
+                 "detail": reasoning.replace("\n", " ")[:90].strip() +
+                            ("…" if len(reasoning) > 90 else "")}
+        obs_idx = next((i for i, s in enumerate(steps) if s["phase"] == "OBSERVE"), None)
+        if obs_idx is not None:
+            steps.insert(obs_idx + 1, infer)
+        else:
+            steps.append(infer)
+        for i, s in enumerate(steps):
+            s["step"] = i + 1
+
+    return steps
+
 # ─── AGENT 1: THERAPY DIRECTOR ────────────────────────────────────
 
 THERAPY_DIRECTOR_PROMPT = """
@@ -917,14 +961,17 @@ async def evaluate_session(data: AdaptationRequest):
         t2 = await _evaluate_via_openrouter(data)
         if t2:
             t2["active_tier"] = "T2:OpenRouter"
+            t2["trace_steps"] = _build_trace_steps("T2:OpenRouter", t2.get("actions", []), t2.get("reasoning", ""))
             return t2
         t3 = await _evaluate_via_bedrock(data)
         if t3:
             t3["active_tier"] = "T3:Bedrock"
+            t3["trace_steps"] = _build_trace_steps("T3:Bedrock", t3.get("actions", []), t3.get("reasoning", ""))
             return t3
         res = FixedRuleEngine.get_adaptation(data)
         res["mode"] = "baseline_fallback"
         res["active_tier"] = "T4:Heuristic"
+        res["trace_steps"] = _build_trace_steps("T4:Heuristic", res.get("actions", []), res.get("reasoning", ""))
         return res
 
     # 2. Agentic Flow
@@ -981,12 +1028,14 @@ async def evaluate_session(data: AdaptationRequest):
         t2 = await _evaluate_via_openrouter(data)
         if t2:
             t2["active_tier"] = "T2:OpenRouter"
+            t2["trace_steps"] = _build_trace_steps("T2:OpenRouter", t2.get("actions", []), t2.get("reasoning", ""))
             return t2
 
         # ── Tier 3: Amazon Bedrock Claude Haiku ────────────────────
         t3 = await _evaluate_via_bedrock(data)
         if t3:
             t3["active_tier"] = "T3:Bedrock"
+            t3["trace_steps"] = _build_trace_steps("T3:Bedrock", t3.get("actions", []), t3.get("reasoning", ""))
             return t3
 
         # ── Tier 4: Local FixedRuleEngine (always succeeds) ────────
@@ -1004,7 +1053,8 @@ async def evaluate_session(data: AdaptationRequest):
         "active_tier": "T1:Gemini",
         "reasoning": response_text,
         "actions": tool_calls,
-        "session_id": session_id
+        "session_id": session_id,
+        "trace_steps": _build_trace_steps("T1:Gemini", tool_calls, response_text),
     }
 
 
@@ -1304,8 +1354,10 @@ async def health():
         "T4:Heuristic"
     )
     return {
-        "status": "ok",
+        "status": "running",
         "active_tier": active_tier,
+        "agents": ["therapy_director", "story_weaver", "progress_guardian"],
+        "model": "gemini-2.0-flash",
         "tier_health": {
             "gemini":           _tier_health["gemini"],
             "openrouter":       _tier_health["openrouter"],
