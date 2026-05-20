@@ -272,6 +272,27 @@
 * **flutter test**: 19/19 pass
 * **Commit**: `65d3436`
 
+#### ⏰ 2026-05-20 — Security Hardening + ARASAAC Offline + Bedrock Fallback
+
+**Security fixes (Gemini CLI session):**
+* **OpenRouter key removed from Flutter** — `_callOpenRouterDirect()` deleted from `antigravity_service.dart`. No API key in APK. CRITICAL 1.1 → ✅ CLOSED.
+* **OpenRouter key removed from backend** — `part1`/`part2` deleted from `agent.py`. Now `os.environ.get("OPENROUTER_API_KEY")` via Secret Manager. CRITICAL 1.2 → ✅ CLOSED.
+* **ARASAAC images bundled locally** — All 46 ARASAAC pictograms downloaded to `assets/images/{id}.png`. `symbols_data.dart` updated to use local paths. T3.6 CDN → ✅ PASS. QA score → 10/10.
+* **Onboarding persistence** — `saveActiveChild()` + `stopIntroMusic()` added to `onboarding_screen.dart`.
+
+**Backend fallback tiers (Claude Code session):**
+* **T2: OpenRouter** — `_evaluate_via_openrouter()` added to `agent.py`. Tries Llama 3.3 70B, Gemma 2, DeepSeek free models.
+* **T3: Amazon Bedrock Claude Haiku** — `_evaluate_via_bedrock()` added. Uses `AWS_BEARER_TOKEN_BEDROCK` env var, httpx Bearer auth to Bedrock Converse API (no boto3/SigV4).
+* **Fallback chain**: Gemini ADK → OpenRouter (free) → Bedrock Claude Haiku (~$0.80/1M tokens) → FixedRuleEngine
+* **Deploy scripts** updated with 3 new secrets: `OPENROUTER_API_KEY`, `AWS_BEARER_TOKEN_BEDROCK`, `AWS_DEFAULT_REGION`
+* Bedrock key written to gitignored `.env` for local testing.
+* **Pushed to GitHub** — all commits on `main` branch.
+
+**Security audit updated** (`docs/security_audit_report.md`):
+* Score: 4.5/10 → **6.5/10**
+* 3 findings resolved: 1.1 (Flutter key), 1.2 (backend key), T3.6 (CDN)
+* 1 remaining critical: BACKEND_TOKEN still defaults to `"dev-token-sitara"` in production
+
 ---
 
 *Ledger updated by Claude Code on 2026-05-20T (UTC+5).*

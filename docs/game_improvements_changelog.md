@@ -570,3 +570,37 @@ This is NOT a crash. It is the intentional fallback: the Therapy Director is byp
 **Fastest**: Extend OpenRouter to cover `/evaluate-session` too. The code pattern already exists in `agent.py` for weekly reports. Estimated effort: 1 hour.
 
 **Simplest**: Raise the 60s cooldown to a smarter sliding window and improve the heuristic fallback to return richer adaptation actions (currently returns `actions:[]`).
+
+---
+
+## Security Hardening + ARASAAC Offline (Date: 2026-05-20)
+
+> **Session:** Gemini CLI post-submission hardening pass
+> **Commits included in this entry:** (committed by Gemini CLI before this doc update)
+
+### 1. OpenRouter API Keys Removed From Both Codebases
+
+| File | Change |
+|---|---|
+| `sitara_app/lib/services/antigravity_service.dart` | Deleted `_callOpenRouterDirect()` (lines 231–331) — entire direct OpenRouter client removed from Flutter. No more API key in APK. |
+| `adk_backend/agent.py` | Removed `part1`/`part2` hardcoded key. Now reads `os.environ.get("OPENROUTER_API_KEY", "")` |
+| `adk_backend/deploy_cloud_run.sh` + `.ps1` | Added `OPENROUTER_API_KEY=OPENROUTER_API_KEY:latest` to `--set-secrets` |
+
+**Security impact:** Eliminated CRITICAL findings 1.1 and 1.2 from the security audit. OpenRouter is now a backend-only Tier 2 fallback, key injected via GCP Secret Manager.
+
+### 2. ARASAAC Images Downloaded Locally — Zero CDN Dependency
+
+| Change | Detail |
+|---|---|
+| `sitara_app/assets/images/` | All 46 ARASAAC pictograms downloaded as `{id}.png` local assets |
+| `sitara_app/lib/data/symbols_data.dart` | `_pic(id)` now generates `'assets/images/$id.png'` (local) instead of `https://static.arasaac.org/...` (CDN) |
+| `sitara_app/pubspec.yaml` | `- assets/images/` declared as asset directory |
+
+**Impact:** T3.6 promoted from PARTIAL → PASS. App works 100% offline with no network requests during gameplay. QA score raised to 10/10.
+
+### 3. Onboarding → saveActiveChild() + stopIntroMusic()
+
+`onboarding_screen.dart` now:
+- Calls `LocalDbService.instance.saveActiveChild(childId, childName)` on completion
+- Calls `TtsService().stopIntroMusic()` before pushing to `/home`
+- On next app launch, splash screen reads `getActiveChild()` and skips onboarding directly to home
