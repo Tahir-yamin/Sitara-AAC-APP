@@ -436,8 +436,8 @@ $therapistRecommendations
       }).toList();
 
       final reasoning = heuristicActions.isEmpty
-          ? '[𝐎𝐅𝐅𝐋𝐈𝐍𝐄 𝐌𝐎𝐃𝐄] No internet — preserving current category'
-          : '[𝐎𝐅𝐅𝐋𝐈𝐍𝐄 𝐌𝐎𝐃𝐄] No internet — running heuristic client-side adaptation';
+          ? '[OFFLINE MODE] No internet — preserving current category'
+          : '[OFFLINE MODE] No internet — running heuristic client-side adaptation';
 
       return {
         'mode': 'baseline_fallback',
