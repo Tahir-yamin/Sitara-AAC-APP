@@ -59,7 +59,7 @@ def _validate_quest(quest: dict, child_id: str = "") -> tuple[bool, str]:
 
 # ─── ENVIRONMENT & QUOTA ──────────────────────────────────────────
 # Get your Gemini key from environment variables (recommended: Cloud Run Secrets)
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY", "")
+GOOGLE_API_KEY = (os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY", "")).strip()
 
 if not GOOGLE_API_KEY:
     raise RuntimeError(
@@ -90,7 +90,7 @@ TIER_RECHECK_SECONDS = 180  # Re-probe every 3 minutes
 async def _probe_openrouter() -> tuple[bool, str | None]:
     """Send a 1-token ping to OpenRouter. Returns (success, best_model)."""
     import httpx
-    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     if not api_key:
         return False, None
     headers = {
@@ -359,7 +359,7 @@ OUTPUT SCHEMA:
 
 story_weaver = LlmAgent(
     name="story_weaver",
-    model="gemini-2.0-flash-lite",
+    model="gemini-2.5-flash",
     instruction=STORY_WEAVER_PROMPT,
     description="Generates personalised Urdu-English mini-quests for the game"
 )
@@ -414,7 +414,7 @@ Here is the exact 7-section report format you must generate:
 
 progress_guardian = LlmAgent(
     name="progress_guardian",
-    model="gemini-2.0-flash-lite",
+    model="gemini-2.5-flash",
     instruction=PROGRESS_GUARDIAN_PROMPT,
     description="Generates warm, structured weekly progress reports for parents"
 )
@@ -518,7 +518,7 @@ async def generate_quest_via_story_weaver(
 # Step 4: Therapy Director — includes A2A tool so it can delegate to Story Weaver
 therapy_director = LlmAgent(
     name="therapy_director",
-    model="gemini-2.0-flash-lite",
+    model="gemini-2.5-flash",
     instruction=THERAPY_DIRECTOR_PROMPT,
     tools=[
         get_session_state,
@@ -783,7 +783,7 @@ def _build_eval_prompt(data: "AdaptationRequest") -> str:
 async def _evaluate_via_openrouter(data: "AdaptationRequest") -> dict | None:
     """Tier 3 fallback: OpenRouter free models only. Returns parsed actions dict or None."""
     import httpx
-    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     if not api_key:
         print("[Fallback-T3] OPENROUTER_API_KEY not set - skipping OpenRouter tier.")
         return None
@@ -1225,7 +1225,7 @@ async def generate_report(data: ReportRequest):
     ]
     
     url = "https://openrouter.ai/api/v1/chat/completions"
-    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     if not api_key:
         print("[WARNING] OPENROUTER_API_KEY not configured. Falling back to structured local report.")
         trigger_cooldown(user_id)
@@ -1296,7 +1296,7 @@ async def health():
         "status": "running",
         "active_tier": active_tier,
         "agents": ["therapy_director", "story_weaver", "progress_guardian"],
-        "model": "gemini-2.0-flash-lite",
+        "model": "gemini-2.5-flash",
         "tier_health": {
             "gemini":           _tier_health["gemini"],
             "openrouter":       _tier_health["openrouter"],
