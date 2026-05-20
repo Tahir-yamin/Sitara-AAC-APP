@@ -22,7 +22,11 @@ def test_generate_quest():
     
     for i in range(3):
         print(f"Attempt {i+1}...")
-        response = client.post("/generate-quest", json=data)
+        response = client.post(
+            "/generate-quest",
+            json=data,
+            headers={"X-Sitara-Token": "dev-token-sitara"}
+        )
         print(f"Status: {response.status_code}")
         
         try:
