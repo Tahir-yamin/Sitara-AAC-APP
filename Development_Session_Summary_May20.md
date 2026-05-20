@@ -167,6 +167,113 @@ GOOGLE_API_KEY = (os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API
 
 ---
 
+## 6. Fixed "Sovereign Baseline" Showing in AI Mode (Flutter Timeout)
+**Symptom (physical device, new APK):** Even with AGENTIC toggle ON, SOVEREIGN TRACE showed "SOVEREIGN BASELINE" entries and T4:Heuristic badge. Mode Comparison showed 0 Antigravity Agent sessions.
+
+**Root Cause 1 — Flutter HTTP timeout too short (10 seconds):**
+`AntigravityService._post()` used `.timeout(const Duration(seconds: 10))`. Cloud Run cold start + `gemini-2.5-flash` inference consistently takes 20–25 seconds. Every single `evaluate-session` call silently timed out and fell into `_localFallback()` which returns `mode: 'baseline_fallback'` → shows as "Sovereign Baseline" in the trace.
+
+**Fix:** Increased timeout to 30 seconds:
+```dart
+.timeout(const Duration(seconds: 30));
+// Cloud Run cold start + gemini-2.5-flash inference can take 20-25s.
+```
+
+**Root Cause 2 — `generate-quest` reading `mode` from wrong JSON level:**
+`_post()` wraps successful quest responses as `{'quest': data}`. But `generateQuest()` read `response['mode']` — which is always `null` on the wrapper level, defaulting to `'agentic'`. So the trace always showed "Story Weaver [QC: ...]" even when the backend returned a fallback quest. Meanwhile the real `mode` was inside `questMap` (the `data` object).
+
+**Fix:**
+```dart
+// BEFORE (always null, defaults to 'agentic'):
+final mode = response['mode'] as String? ?? 'agentic';
+
+// AFTER (reads actual mode from quest data):
+final mode = questMap['mode'] as String? ?? 'agentic';
+```
+
+**Root Cause 3 — Quest generation not counted in Mode Comparison:**
+`generateQuest()` never incremented `agentSessions` or `baselineSessions`, so Mode Comparison always showed "Antigravity Agent: 0 sessions".
+
+**Fix:** Added counter increment after every `generateQuest()` call.
+
+**Root Cause 4 — Offline fallback quest was empty:**
+When `generate-quest` timed out, `_localFallback()` returned `{'reasoning': 'Offline mode', 'actions': []}` with no quest fields, causing the game to start with no quest content.
+
+**Fix:** `_localFallback` for generate-quest now returns a complete minimal quest:
+```dart
+return {
+  'mode': 'baseline_fallback',
+  'quest_title': 'Aaj Ka Safar',
+  'story_text': 'Chalo, aaj hum nayi cheezein seekhein! ...',
+  'target_category': body['preferred_category'] ?? 'animals',
+  ...
+};
+```
+
+**Status: ✅ FIXED — commit `3a58b2d`.**
+
+---
+
+## 7. Fixed Gemini Permanently Locked Out After One 429 (RPM Quota Bug)
+**Symptom:** After any quota hit, the SOVEREIGN TRACE showed T4:Heuristic for all subsequent sessions, even after waiting several minutes. The `/health` endpoint showed `"gemini": false` indefinitely.
+
+**Root Cause (Critical backend bug):**
+The `gemini-2.5-flash` free tier enforces **5 requests per minute (RPM)** per project — not a daily limit. When a 429 hit, the backend set `_tier_health["gemini"] = False` and never reset it back to `True`.
+
+`_refresh_tier_health()` only probes OpenRouter — it never re-probes Gemini. Once `gemini=False`, it stayed `False` for the entire process lifetime (until Cloud Run restarted). This meant a single burst of Judge Sandbox button presses (Simulate Wins → Simulate Fails → Eval Now in rapid succession) would lock out Gemini for hours.
+
+The 429 error itself contains the exact recovery time:
+```
+Please retry in 56.125539665s
+```
+The backend was ignoring this entirely.
+
+**Fix (`agent.py` — commit `8652926`):**
+
+Added `_gemini_quota_reset_at` datetime and two helper functions:
+```python
+def _mark_gemini_quota_hit(retry_delay_seconds: float = 65.0):
+    """Mark Gemini quota-exhausted; schedule auto-recovery after retryDelay."""
+    global _gemini_quota_reset_at
+    _tier_health["gemini"] = False
+    _gemini_quota_reset_at = datetime.now() + timedelta(seconds=retry_delay_seconds)
+
+def _check_gemini_quota_recovery():
+    """Restore Gemini health flag when the retry window has passed."""
+    global _gemini_quota_reset_at
+    if _gemini_quota_reset_at and datetime.now() >= _gemini_quota_reset_at:
+        _tier_health["gemini"] = True
+        _gemini_quota_reset_at = None
+        print("[QUOTA] Gemini quota window expired — T1:Gemini restored")
+```
+
+The 429 handler now parses the exact retryDelay from the error:
+```python
+retry_match = re.search(r"retry\s+in\s+([\d.]+)s", str(e), re.IGNORECASE)
+retry_delay = float(retry_match.group(1)) + 5 if retry_match else 65.0
+_mark_gemini_quota_hit(retry_delay)
+```
+
+`_check_gemini_quota_recovery()` is called on every `evaluate-session` request and on `/health` — so Gemini is automatically restored the moment the retry window expires, with no process restart needed.
+
+Also reduced `TIER_RECHECK_SECONDS` from 180 → 65 seconds.
+
+**Stress test confirmation:**
+```
+Call 1 → T3:Heuristic  (quota hit)
+Call 2 → T3:Heuristic  (cooling down, retryDelay ~60s)
+Call 3 → T3:Heuristic  (cooling down)
+Call 4 → T1:Gemini ✅  (auto-recovered after window expired)
+Call 5 → T1:Gemini ✅  (fully live)
+Call 6 → T3:Heuristic  (new quota hit after 5 calls in new window)
+```
+
+**Status: ✅ FIXED — revision `sitara-backend-00035-spm`.**
+
+**Demo note:** For normal gameplay (1 `evaluate-session` every 30s = 2 RPM), the 5 RPM limit is never reached. Only rapid-fire Judge Sandbox button presses exhaust it — and the system now auto-recovers in ~65 seconds.
+
+---
+
 ## 🧑‍💻 Commits in This Session
 
 | Hash | Description |
@@ -175,6 +282,9 @@ GOOGLE_API_KEY = (os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API
 | `85fb9f4` | fix: apply _sanitize_reasoning to Gemini T1 response path |
 | `b617d7d` | fix: switch agents to gemini-2.0-flash-lite (was gemini-2.0-flash) |
 | `f202032` | fix: switch to gemini-2.5-flash and strip API key whitespace |
+| `3a58b2d` | fix: increase HTTP timeout 10s→30s and fix generate-quest mode tracking |
+| `8652926` | fix: auto-recover Gemini after RPM quota window expires |
+| `a085d1e` | docs: add May 20 session summary |
 
 ---
 
@@ -184,7 +294,8 @@ GOOGLE_API_KEY = (os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API
 |----------|--------|--------|
 | `sitara-backend-00031-mmj` | New GOOGLE_API_KEY (version 4) | 403 fixed → 429 appeared |
 | `sitara-backend-00033-d2q` | Switch to `gemini-2.0-flash-lite` | 429 still, same quota pool |
-| `sitara-backend-00034-sgc` | Switch to `gemini-2.5-flash` + `.strip()` all keys | ✅ T1:Gemini LIVE |
+| `sitara-backend-00034-sgc` | Switch to `gemini-2.5-flash` + `.strip()` all keys | T1:Gemini LIVE |
+| `sitara-backend-00035-spm` | Gemini auto-recovery + TIER_RECHECK 65s | ✅ Final — auto-recovers from RPM hits |
 
 **Final live URL:** `https://sitara-backend-178558547254.asia-south1.run.app`
 
@@ -197,17 +308,28 @@ GOOGLE_API_KEY = (os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API
 2. **AI Studio keys can have GCP API restrictions.** If you created the key in Google Cloud Console (not AI Studio), check "API restrictions" and ensure `generativelanguage.googleapis.com` is allowed, or set to "Don't restrict key".
 3. **Quota is per model-family, per project.** Exhausting `gemini-2.0-flash` quota also exhausts `gemini-2.0-flash-lite`. Switch to a newer generation (`gemini-2.5-flash`) for a fresh bucket.
 
+### Flutter HTTP / Timeout
+4. **Always set HTTP timeout > server processing time + cold start.** Cloud Run cold start is 10–20s, Gemini inference 5–10s — total can reach 25s. A 10s Flutter timeout silently falls to local fallback with no error shown to the user.
+5. **JSON wrapper levels matter for nested key reads.** If `_post()` wraps a response as `{'quest': data}`, reading `response['mode']` returns null — the `mode` is inside `data`. Always trace exactly which object you're reading from.
+6. **Count every API path in your metrics.** If `generateQuest()` calls the backend but doesn't increment `agentSessions`, the Mode Comparison panel never shows AI wins — even when the agent IS working.
+
 ### Flutter Audio Architecture
-4. **Three separate `AudioPlayer` instances is intentional.** `_audioPlayer` (card TTS), `_praisePlayer` (praise/shabash), `_bgPlayer` (intro music) must remain isolated. If praise uses the TTS engine (`_tts.speak()`), it WILL be interrupted by the next `speakCard()` call which calls `_tts.stop()`.
-5. **Outer `.timeout()` must be longer than inner await.** If `speakPraise` internally times out at 4s, the caller's `await speakPraise().timeout(3s)` fires first and abandons — but the audio keeps playing. Always add 1–2s of buffer to outer timeouts.
+7. **Three separate `AudioPlayer` instances is intentional.** `_audioPlayer` (card TTS), `_praisePlayer` (praise/shabash), `_bgPlayer` (intro music) must remain isolated. If praise uses the TTS engine (`_tts.speak()`), it WILL be interrupted by the next `speakCard()` call which calls `_tts.stop()`.
+8. **Outer `.timeout()` must be longer than inner await.** If `speakPraise` internally times out at 4s, the caller's `await speakPraise().timeout(3s)` fires first and abandons — but the audio keeps playing. Always add 1–2s of buffer to outer timeouts.
 
 ### Unicode / LLM Output
-6. **LLMs emit Unicode Mathematical Bold (U+1D400–U+1D7FF) for emphasis.** These are surrogate pairs in UTF-16. Android fonts without these codepoints render them as "U" + "block". Always sanitize LLM `reasoning` text before showing it in a Flutter Text widget.
-7. **The sanitizer must run server-side, not client-side.** The Flutter app receives JSON — by the time it renders, the damage is done. Strip in Python before serializing.
+9. **LLMs emit Unicode Mathematical Bold (U+1D400–U+1D7FF) for emphasis.** These are surrogate pairs in UTF-16. Android fonts without these codepoints render them as "U" + "block". Always sanitize LLM `reasoning` text before showing it in a Flutter Text widget.
+10. **The sanitizer must run server-side, not client-side.** The Flutter app receives JSON — by the time it renders, the damage is done. Strip in Python before serializing.
+
+### Gemini Quota & Rate Limiting
+11. **Gemini 2.5-flash free tier = 5 RPM (requests per minute), not requests per day.** This is a sliding 60-second window. 2 calls/minute (one every 30s) is safe. Rapid-fire testing exhausts it in seconds.
+12. **Never use a global boolean flag to track quota health without a reset mechanism.** `_tier_health["gemini"] = False` is permanent until process restart unless you explicitly reset it. Always pair a quota-down flag with a timer-based recovery.
+13. **Parse `retryDelay` from 429 errors for precise recovery.** The Gemini API returns `"Please retry in 56.125539665s"` in the error body. Use this exact value instead of a hardcoded 60s cooldown — it's more accurate and faster to recover.
+14. **Call recovery checks on every hot path, not just a background timer.** Checking `_check_gemini_quota_recovery()` at the start of every `evaluate-session` and `/health` call ensures instant recovery the moment the window expires.
 
 ### Gemini Model Lifecycle
-8. **`gemini-1.5-flash` was removed from the `v1beta` API endpoint** (returns 404 as of May 2026). Do not use it. The available models at this date are `gemini-2.0-flash`, `gemini-2.0-flash-lite`, `gemini-2.5-flash`, and `gemini-2.5-flash-lite`.
-9. **`gemini-2.5-flash` is currently the best free-tier option** — higher capability than 2.0 variants, separate quota pool, available in `v1beta`.
+15. **`gemini-1.5-flash` was removed from the `v1beta` API endpoint** (returns 404 as of May 2026). Available models: `gemini-2.0-flash`, `gemini-2.0-flash-lite`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`.
+16. **`gemini-2.5-flash` is currently the best free-tier option** — higher capability than 2.0 variants, separate quota pool, available in `v1beta`.
 
 ---
 
@@ -218,11 +340,14 @@ GOOGLE_API_KEY = (os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API
 | `/health` → `active_tier: T1:Gemini` | ✅ |
 | `/evaluate-session` → `mode: agentic`, real tool calls | ✅ |
 | `/generate-quest` → `mode: agentic`, `qc_status: passed` | ✅ |
-| No "Ublock" flood in trace panel | ✅ (sanitizer deployed) |
-| No "Illegal header value" in Cloud Run logs | ✅ (`.strip()` deployed) |
+| T1:Gemini auto-recovers after RPM quota hit (~65s) | ✅ Stress-tested and confirmed |
+| No "Ublock" flood in trace panel | ✅ (`_sanitize_reasoning()` deployed) |
+| No "Illegal header value" in Cloud Run logs | ✅ (`.strip()` on all API keys) |
 | Praise audio completes before next card | ✅ (5s timeout + praisePlayer fallback) |
-| Cloud Run revision live | ✅ `sitara-backend-00034-sgc` |
-| Git pushed to `main` | ✅ commit `f202032` |
+| "Sovereign Baseline" no longer shown in AI Mode | ✅ (30s timeout + correct mode key) |
+| Mode Comparison counts AI sessions | ✅ (`generateQuest` increments counter) |
+| Cloud Run revision live | ✅ `sitara-backend-00035-spm` |
+| Git pushed to `main` | ✅ commit `8652926` |
 
 ---
 
@@ -230,9 +355,9 @@ GOOGLE_API_KEY = (os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API
 
 | Issue | Priority | Notes |
 |-------|----------|-------|
-| Firestore database not provisioned in `sitara-v1-495117` | Low | Non-blocking; sessions fall back to SQLite. Firestore 404 appears in logs but does not affect gameplay. |
-| T2:OpenRouter `openrouter_model: null` | Low | The OpenRouter key works (header fix applied) but free model probe returned no working model at startup. T1:Gemini is now live so T2 is only a backup. |
-| APK CI build verification on physical device | Medium | CI builds `f202032` APK via GitHub Actions. Download and install on device to confirm all audio + trace panel fixes together. |
+| Firestore database not provisioned in `sitara-v1-495117` | Low | Non-blocking; sessions fall back to SQLite. Firestore 404 in logs but does not affect gameplay. |
+| T2:OpenRouter `openrouter_model: null` | Low | Key is clean (header fix applied) but free model probe returned no working model. T1:Gemini is live so T2 is backup only. |
+| Judge Sandbox rapid-fire exhausts 5 RPM limit | Low | By design. System recovers in ~65s. Normal gameplay never hits this limit. Document in demo script. |
 
 ---
 
@@ -240,11 +365,14 @@ GOOGLE_API_KEY = (os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API
 
 | Deliverable | Status |
 |-------------|--------|
-| Working APK | ✅ Built by GitHub Actions CI on `main` |
-| Backend live on Cloud Run | ✅ `sitara-backend-00034-sgc` |
-| T1:Gemini agentic (for judges) | ✅ `gemini-2.5-flash` fully operational |
+| Working APK | ✅ Built by GitHub Actions CI — commit `3a58b2d` |
+| Backend live on Cloud Run | ✅ `sitara-backend-00035-spm` |
+| T1:Gemini agentic (for judges) | ✅ `gemini-2.5-flash` + auto-recovery |
 | SOVEREIGN TRACE panel (no Ublock) | ✅ `_sanitize_reasoning()` deployed |
+| "Sovereign Baseline" in AI Mode fixed | ✅ 30s timeout + correct mode key |
+| Mode Comparison shows AI sessions | ✅ `generateQuest` counter fixed |
 | Praise audio completes | ✅ 5s timeout + praisePlayer fallback |
 | Demo video (~3 min) | See `demo_script_readme.md` |
 | Architecture README | See `Project_Architecture_Blueprint.md` |
 | Baseline comparison (agentic vs heuristic) | ✅ `FixedRuleEngine` + `_useHeuristic` toggle |
+| Robustness evidence | ✅ Quota hit → T3 fallback → T1 auto-recovery (stress-tested) |
