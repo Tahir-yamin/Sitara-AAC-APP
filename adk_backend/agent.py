@@ -84,7 +84,30 @@ _tier_health: Dict[str, object] = {
     "openrouter_model": None,  # Best working model found at probe
     "last_probed":     None,   # datetime of last probe run
 }
-TIER_RECHECK_SECONDS = 180  # Re-probe every 3 minutes
+TIER_RECHECK_SECONDS = 65   # Re-probe OpenRouter every 65s (down from 180)
+
+# Gemini quota recovery: tracks when the RPM window expires so T1 auto-recovers.
+# The free-tier gemini-2.5-flash allows 5 RPM. When a 429 hits we parse the
+# retryDelay from the error and restore gemini=True after that window.
+_gemini_quota_reset_at: datetime | None = None
+
+
+def _mark_gemini_quota_hit(retry_delay_seconds: float = 65.0):
+    """Mark Gemini as quota-exhausted; schedule auto-recovery after retryDelay."""
+    global _gemini_quota_reset_at
+    _tier_health["gemini"] = False
+    _gemini_quota_reset_at = datetime.now() + timedelta(seconds=retry_delay_seconds)
+    print(f"[QUOTA] Gemini marked down — auto-recovery in {retry_delay_seconds:.0f}s "
+          f"at {_gemini_quota_reset_at.strftime('%H:%M:%S')}")
+
+
+def _check_gemini_quota_recovery():
+    """Restore Gemini health flag when the retry window has passed."""
+    global _gemini_quota_reset_at
+    if _gemini_quota_reset_at and datetime.now() >= _gemini_quota_reset_at:
+        _tier_health["gemini"] = True
+        _gemini_quota_reset_at = None
+        print("[QUOTA] Gemini quota window expired — T1:Gemini restored")
 
 
 async def _probe_openrouter() -> tuple[bool, str | None]:
@@ -876,6 +899,8 @@ async def evaluate_session(data: AdaptationRequest):
 
     # Refresh tier health (non-blocking; returns immediately if cache still fresh)
     await _refresh_tier_health()
+    # Restore Gemini if its RPM quota window has expired since the last 429
+    _check_gemini_quota_recovery()
 
     # Active tier label — reported in every response for the agent trace panel
     active_tier = (
@@ -956,9 +981,13 @@ async def evaluate_session(data: AdaptationRequest):
         exc_str = str(e).upper()
         is_quota = any(q in exc_str for q in ["429", "RESOURCE_EXHAUSTED", "QUOTA"])
         if is_quota:
-            _tier_health["gemini"] = False  # Mark Gemini down in health cache
+            # Parse retryDelay from the 429 error body for precise auto-recovery.
+            # Error contains: "Please retry in 56.125539665s"
+            retry_match = re.search(r"retry\s+in\s+([\d.]+)s", str(e), re.IGNORECASE)
+            retry_delay = float(retry_match.group(1)) + 5 if retry_match else 65.0
+            _mark_gemini_quota_hit(retry_delay)
             trigger_cooldown(user_id)
-            print(f"[QUOTA] Gemini quota hit for {user_id} - marking T1 down, trying T2")
+            print(f"[QUOTA] Gemini 429 for {user_id} - retryDelay={retry_delay:.0f}s")
         else:
             print(f"[ERROR] Gemini agent error for {user_id}: {e} - trying fallback tiers")
 
@@ -1287,6 +1316,7 @@ async def root():
 
 @app.get("/health")
 async def health():
+    _check_gemini_quota_recovery()  # Restore T1 if RPM window has expired
     active_tier = (
         "T1:Gemini"     if _tier_health["gemini"]     else
         "T2:OpenRouter" if _tier_health["openrouter"] else
