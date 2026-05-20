@@ -101,10 +101,10 @@ async def _probe_openrouter() -> tuple[bool, str | None]:
         "X-Title": "Sitara Tier Probe",
     }
     probe_models = [
-        "google/gemini-2.0-flash-001",
-        "anthropic/claude-haiku-4-5",
-        "meta-llama/llama-3.3-70b-instruct",
         "meta-llama/llama-3.3-70b-instruct:free",
+        "google/gemma-2-9b-it:free",
+        "mistralai/mistral-7b-instruct:free",
+        "nousresearch/hermes-3-llama-3.1-405b:free",
     ]
     payload_base = {
         "messages": [{"role": "user", "content": "Reply with just: OK"}],
@@ -746,8 +746,8 @@ class ReportRequest(BaseModel):
 
 
 # ─── LLM FALLBACK FUNCTIONS ──────────────────────────────────────
-# Tier 2: OpenRouter  (free models — Llama 3.3 70B, Gemma 2, etc.)
-# Tier 3: Amazon Bedrock  (Claude Haiku — ~$0.80/1M tokens, $50 covers ~60M tokens)
+# Tier 2: Amazon Bedrock  (Claude Haiku — Bearer token auth)
+# Tier 3: OpenRouter  (free models only — Llama 3.3, Gemma 2, Mistral)
 
 _EVAL_SYSTEM_PROMPT = """You are Sitara's Therapy Director — an AI that adapts a symbol-card game for non-verbal autistic children.
 
@@ -777,22 +777,19 @@ def _build_eval_prompt(data: "AdaptationRequest") -> str:
 
 
 async def _evaluate_via_openrouter(data: "AdaptationRequest") -> dict | None:
-    """Tier 2 fallback: OpenRouter free models. Returns parsed actions dict or None."""
+    """Tier 3 fallback: OpenRouter free models only. Returns parsed actions dict or None."""
     import httpx
     api_key = os.environ.get("OPENROUTER_API_KEY", "")
     if not api_key:
-        print("[Fallback-T2] OPENROUTER_API_KEY not set — skipping OpenRouter tier.")
+        print("[Fallback-T3] OPENROUTER_API_KEY not set — skipping OpenRouter tier.")
         return None
 
-    # Paid models first (fast, reliable with a valid API key),
-    # then free-tier fallbacks for resilience.
+    # Free models only — no paid credits required.
     models = [
-        "google/gemini-2.0-flash-001",          # Gemini Flash via OpenRouter (paid, fast)
-        "anthropic/claude-haiku-4-5",            # Claude Haiku via OpenRouter (paid, cheap)
-        "meta-llama/llama-3.3-70b-instruct",     # Llama 70B (paid tier, high quality)
-        "meta-llama/llama-3.3-70b-instruct:free",# Llama 70B free fallback
-        "google/gemma-2-9b-it:free",             # Gemma 2 free fallback
-        "openrouter/auto",                        # OpenRouter auto-select last resort
+        "meta-llama/llama-3.3-70b-instruct:free",
+        "google/gemma-2-9b-it:free",
+        "mistralai/mistral-7b-instruct:free",
+        "nousresearch/hermes-3-llama-3.1-405b:free",
     ]
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -819,7 +816,7 @@ async def _evaluate_via_openrouter(data: "AdaptationRequest") -> dict | None:
                     json=payload,
                 )
                 if resp.status_code != 200:
-                    print(f"[Fallback-T2] OpenRouter {model}: HTTP {resp.status_code}")
+                    print(f"[Fallback-T3] OpenRouter {model}: HTTP {resp.status_code}")
                     continue
                 text = resp.json()["choices"][0]["message"]["content"].strip()
                 # Strip markdown fences if present
@@ -827,7 +824,7 @@ async def _evaluate_via_openrouter(data: "AdaptationRequest") -> dict | None:
                 parsed = json.loads(text)
                 actions = parsed.get("actions", [])
                 reasoning = parsed.get("reasoning", f"OpenRouter/{model} adaptation")
-                print(f"[Fallback-T2] OpenRouter {model} succeeded — {len(actions)} action(s)")
+                print(f"[Fallback-T3] OpenRouter {model} succeeded — {len(actions)} action(s)")
                 return {
                     "mode": "agentic_openrouter",
                     "agent": f"therapy_director_via_openrouter/{model}",
@@ -835,11 +832,11 @@ async def _evaluate_via_openrouter(data: "AdaptationRequest") -> dict | None:
                     "actions": actions,
                 }
             except json.JSONDecodeError as je:
-                print(f"[Fallback-T2] OpenRouter {model} — JSON parse error: {je}")
+                print(f"[Fallback-T3] OpenRouter {model} — JSON parse error: {je}")
             except Exception as e:
-                print(f"[Fallback-T2] OpenRouter {model} — error: {e}")
+                print(f"[Fallback-T3] OpenRouter {model} — error: {e}")
 
-    print("[Fallback-T2] All OpenRouter models failed.")
+    print("[Fallback-T3] All OpenRouter free models failed.")
     return None
 
 
@@ -936,8 +933,8 @@ async def evaluate_session(data: AdaptationRequest):
     # Active tier label — reported in every response for the agent trace panel
     active_tier = (
         "T1:Gemini"     if _tier_health["gemini"] and not is_cooling_down(user_id) else
-        "T2:OpenRouter" if _tier_health["openrouter"] else
-        "T3:Bedrock"    if _tier_health["bedrock"]    else
+        "T2:Bedrock"    if _tier_health["bedrock"]    else
+        "T3:OpenRouter" if _tier_health["openrouter"] else
         "T4:Heuristic"
     )
 
@@ -958,15 +955,15 @@ async def evaluate_session(data: AdaptationRequest):
     gemini_healthy = _tier_health["gemini"] and not is_cooling_down(user_id)
     if not gemini_healthy:
         print(f"[TierSkip] Gemini known-down — routing directly to {active_tier}")
-        t2 = await _evaluate_via_openrouter(data)
+        t2 = await _evaluate_via_bedrock(data)
         if t2:
-            t2["active_tier"] = "T2:OpenRouter"
-            t2["trace_steps"] = _build_trace_steps("T2:OpenRouter", t2.get("actions", []), t2.get("reasoning", ""))
+            t2["active_tier"] = "T2:Bedrock"
+            t2["trace_steps"] = _build_trace_steps("T2:Bedrock", t2.get("actions", []), t2.get("reasoning", ""))
             return t2
-        t3 = await _evaluate_via_bedrock(data)
+        t3 = await _evaluate_via_openrouter(data)
         if t3:
-            t3["active_tier"] = "T3:Bedrock"
-            t3["trace_steps"] = _build_trace_steps("T3:Bedrock", t3.get("actions", []), t3.get("reasoning", ""))
+            t3["active_tier"] = "T3:OpenRouter"
+            t3["trace_steps"] = _build_trace_steps("T3:OpenRouter", t3.get("actions", []), t3.get("reasoning", ""))
             return t3
         res = FixedRuleEngine.get_adaptation(data)
         res["mode"] = "baseline_fallback"
@@ -1024,18 +1021,18 @@ async def evaluate_session(data: AdaptationRequest):
         else:
             print(f"[ERROR] Gemini agent error for {user_id}: {e} — trying fallback tiers")
 
-        # ── Tier 2: OpenRouter ──────────────────────────────────────
-        t2 = await _evaluate_via_openrouter(data)
+        # ── Tier 2: Amazon Bedrock Claude Haiku ────────────────────
+        t2 = await _evaluate_via_bedrock(data)
         if t2:
-            t2["active_tier"] = "T2:OpenRouter"
-            t2["trace_steps"] = _build_trace_steps("T2:OpenRouter", t2.get("actions", []), t2.get("reasoning", ""))
+            t2["active_tier"] = "T2:Bedrock"
+            t2["trace_steps"] = _build_trace_steps("T2:Bedrock", t2.get("actions", []), t2.get("reasoning", ""))
             return t2
 
-        # ── Tier 3: Amazon Bedrock Claude Haiku ────────────────────
-        t3 = await _evaluate_via_bedrock(data)
+        # ── Tier 3: OpenRouter free models ─────────────────────────
+        t3 = await _evaluate_via_openrouter(data)
         if t3:
-            t3["active_tier"] = "T3:Bedrock"
-            t3["trace_steps"] = _build_trace_steps("T3:Bedrock", t3.get("actions", []), t3.get("reasoning", ""))
+            t3["active_tier"] = "T3:OpenRouter"
+            t3["trace_steps"] = _build_trace_steps("T3:OpenRouter", t3.get("actions", []), t3.get("reasoning", ""))
             return t3
 
         # ── Tier 4: Local FixedRuleEngine (always succeeds) ────────
@@ -1349,8 +1346,8 @@ async def root():
 async def health():
     active_tier = (
         "T1:Gemini"     if _tier_health["gemini"]     else
-        "T2:OpenRouter" if _tier_health["openrouter"] else
-        "T3:Bedrock"    if _tier_health["bedrock"]    else
+        "T2:Bedrock"    if _tier_health["bedrock"]    else
+        "T3:OpenRouter" if _tier_health["openrouter"] else
         "T4:Heuristic"
     )
     return {

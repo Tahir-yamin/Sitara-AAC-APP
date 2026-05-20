@@ -454,8 +454,8 @@ class _AgentFlowDiagramState extends State<_AgentFlowDiagram>
     };
     const labels = {
       'T1': 'T1\nGemini',
-      'T2': 'T2\nOpenRouter',
-      'T3': 'T3\nBedrock',
+      'T2': 'T2\nBedrock',
+      'T3': 'T3\nOpenRouter',
       'T4': 'T4\nHeuristic',
     };
     final color = (colors[tier] ?? Colors.orangeAccent) as Color;

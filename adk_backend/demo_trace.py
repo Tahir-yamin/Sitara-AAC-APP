@@ -173,10 +173,10 @@ def show_tier_health(url: str, headers: dict) -> str:
     rows = [
         ("T1: Gemini 2.0 Flash", th.get("gemini"),
          "google/gemini-2.0-flash  (Google ADK)", "T1:Gemini"),
-        ("T2: OpenRouter",       th.get("openrouter"),
-         th.get("openrouter_model") or "— key not set", "T2:OpenRouter"),
-        ("T3: Amazon Bedrock",   th.get("bedrock"),
-         "anthropic.claude-haiku-4-5  (Bearer auth)", "T3:Bedrock"),
+        ("T2: Amazon Bedrock",   th.get("bedrock"),
+         "anthropic.claude-haiku-4-5  (Bearer auth)", "T2:Bedrock"),
+        ("T3: OpenRouter (free)", th.get("openrouter"),
+         th.get("openrouter_model") or "llama/gemma/mistral free models", "T3:OpenRouter"),
         ("T4: Heuristic",        True,
          "FixedRuleEngine  (always live)", "T4:Heuristic"),
     ]
