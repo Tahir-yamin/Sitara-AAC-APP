@@ -637,11 +637,15 @@ async def _evaluate_via_openrouter(data: "AdaptationRequest") -> dict | None:
         print("[Fallback-T2] OPENROUTER_API_KEY not set — skipping OpenRouter tier.")
         return None
 
+    # Paid models first (fast, reliable with a valid API key),
+    # then free-tier fallbacks for resilience.
     models = [
-        "meta-llama/llama-3.3-70b-instruct:free",
-        "google/gemma-2-9b-it:free",
-        "deepseek/deepseek-v4-flash:free",
-        "openrouter/auto",
+        "google/gemini-2.0-flash-001",          # Gemini Flash via OpenRouter (paid, fast)
+        "anthropic/claude-haiku-4-5",            # Claude Haiku via OpenRouter (paid, cheap)
+        "meta-llama/llama-3.3-70b-instruct",     # Llama 70B (paid tier, high quality)
+        "meta-llama/llama-3.3-70b-instruct:free",# Llama 70B free fallback
+        "google/gemma-2-9b-it:free",             # Gemma 2 free fallback
+        "openrouter/auto",                        # OpenRouter auto-select last resort
     ]
     headers = {
         "Authorization": f"Bearer {api_key}",
