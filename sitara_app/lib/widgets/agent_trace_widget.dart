@@ -36,7 +36,7 @@ class AgentTraceWidget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  "𝐒𝐎𝐕𝐄𝐑𝐄𝐈𝐆𝐍 𝐓𝐑𝐀𝐂𝐄",
+                  "SOVEREIGN TRACE",
                   style: TextStyle(
                     color: Colors.cyanAccent,
                     fontSize: 12,
@@ -93,11 +93,11 @@ class AgentTraceWidget extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildStatColumn("𝐀𝐆𝐄𝐍𝐓 𝐀𝐕𝐆", service.agentAvgSuccess, const Color(0xFF00FF88),
+                _buildStatColumn("AGENT AVG", service.agentAvgSuccess, const Color(0xFF00FF88),
                     noData: service.agentSessions == 0),
-                _buildStatColumn("𝐁𝐀𝐒𝐄𝐋𝐈𝐍𝐄 𝐀𝐕𝐆", service.baselineAvgSuccess, Colors.orangeAccent,
+                _buildStatColumn("BASELINE AVG", service.baselineAvgSuccess, Colors.orangeAccent,
                     noData: service.baselineSessions == 0),
-                _buildStatColumn("𝐒𝐄𝐒𝐒𝐈𝐎𝐍𝐒", (service.agentSessions + service.baselineSessions).toDouble(), Colors.cyanAccent, isInt: true),
+                _buildStatColumn("SESSIONS", (service.agentSessions + service.baselineSessions).toDouble(), Colors.cyanAccent, isInt: true),
               ],
             ),
           ),
@@ -114,7 +114,7 @@ class AgentTraceWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "𝐉𝐔𝐃𝐆𝐄 𝐒𝐀𝐍𝐃𝐁𝐎𝐗: 𝐓𝐑𝐈𝐆𝐆𝐄𝐑 𝐎𝐑𝐂𝐇𝐄𝐒𝐓𝐑𝐀𝐓𝐈𝐎𝐍",
+                  "JUDGE SANDBOX: TRIGGER ORCHESTRATION",
                   style: TextStyle(color: Colors.white54, fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 0.8),
                 ),
                 const SizedBox(height: 6),
@@ -340,13 +340,13 @@ class _AgentFlowDiagramState extends State<_AgentFlowDiagram>
   }
 
   String _activeTier() {
-    if (widget.traces.isEmpty) return 'T4';
+    if (widget.traces.isEmpty) return 'T3';
     final r = widget.traces.last.reasoning;
     final a = widget.traces.last.agent;
     if (a.contains('Therapy Director') && !r.contains('BASELINE')) return 'T1';
     if (r.contains('T2') || r.contains('OpenRouter')) return 'T2';
-    if (r.contains('T3') || r.contains('Bedrock'))    return 'T3';
-    return 'T4';
+    if (r.contains('T3') || r.contains('Heuristic'))  return 'T3';
+    return 'T3';
   }
 
   @override
@@ -451,17 +451,15 @@ class _AgentFlowDiagramState extends State<_AgentFlowDiagram>
     const colors = {
       'T1': Colors.cyanAccent,
       'T2': Colors.yellowAccent,
-      'T3': Colors.purpleAccent,
-      'T4': Colors.orangeAccent,
+      'T3': Colors.orangeAccent,
     };
     const labels = {
       'T1': 'T1\nGemini',
-      'T2': 'T2\nBedrock',
-      'T3': 'T3\nOpenRouter',
-      'T4': 'T4\nHeuristic',
+      'T2': 'T2\nOpenRouter',
+      'T3': 'T3\nHeuristic',
     };
     final color = (colors[tier] ?? Colors.orangeAccent) as Color;
-    final label = labels[tier] ?? 'T4\nHeuristic';
+    final label = labels[tier] ?? 'T3\nHeuristic';
     final brightness = _glow.value;
 
     return Column(

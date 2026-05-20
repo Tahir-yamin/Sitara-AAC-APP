@@ -48,7 +48,9 @@ class _SplashScreenState extends State<SplashScreen>
     // On web: first user interaction allows autoplay — start music here.
     // On native: music already playing from initState; this is a no-op if
     // _isIntroMusicPlaying is already true.
-    TtsService().playIntroMusic();
+    TtsService().warmUpPlayers().then((_) {
+      TtsService().playIntroMusic(force: true);
+    });
     
     // Fun visual pop animation on tap
     _controller.forward(from: 0.0);

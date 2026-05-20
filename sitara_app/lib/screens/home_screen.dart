@@ -343,7 +343,7 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '𝐒𝐈𝐓𝐀𝐑𝐀 𝐒𝐓𝐑𝐀𝐓𝐄𝐆𝐈𝐂 𝐑𝐎𝐀𝐃𝐌𝐀𝐏',
+                            'SITARA STRATEGIC ROADMAP',
                             style: GoogleFonts.outfit(
                               color: Colors.white,
                               fontSize: 16,
@@ -660,7 +660,7 @@ class _FuturePlanCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '𝐒𝐎𝐕𝐄𝐑𝐄𝐈𝐆𝐍 𝐑𝐎𝐀𝐃𝐌𝐀𝐏 𝟐𝟎𝟐𝟔-𝟐𝟎𝟑𝟎',
+                    'SOVEREIGN ROADMAP 2026-2030',
                     style: GoogleFonts.outfit(
                       color: Colors.amberAccent,
                       fontSize: 13,

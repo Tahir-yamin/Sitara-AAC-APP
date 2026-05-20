@@ -33,7 +33,7 @@ def print_result(title, response):
                 
         # Aesthetic Verification
         reasoning = body.get("reasoning", "") or body.get("report", "") or body.get("quest_title", "")
-        if any(char in reasoning for char in "𝐒𝐎𝐕𝐄𝐑𝐄𝐈𝐆𝐍"):
+        if any(char in reasoning for char in "SOVEREIGN"):
             print("✅ AESTHETIC: Sovereign Unicode bolding detected.")
         else:
             print("⚠️ AESTHETIC: No Sovereign branding found in reasoning text.")

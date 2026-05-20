@@ -274,6 +274,84 @@ Call 6 → T3:Heuristic  (new quota hit after 5 calls in new window)
 
 ---
 
+### 8. Fixed Gemini Daily Quota Exhaustion (AI Developer API 20 RPD Cap)
+**Symptom:** After the RPM fix was live, Gemini started 429-ing again shortly after deployment with a different error:
+```
+429 RESOURCE_EXHAUSTED
+GenerateRequestsPerDayPerProjectPerModel-FreeTier
+```
+`/health` showed `"gemini": false` and the RPM recovery timer (65s) had no effect — Gemini never came back.
+
+**Root Cause — Two completely separate quota limits:**
+
+The Gemini free tier enforces **two independent limits**:
+| Limit | Value | Scope |
+|-------|-------|-------|
+| `GenerateRequestsPerMinutePerProjectPerModel-FreeTier` | 5 RPM | Resets every ~60 seconds |
+| `GenerateRequestsPerDayPerProjectPerModel-FreeTier` | **20 RPD** | Resets at midnight Pacific |
+
+The 20 RPD cap applies to `generativelanguage.googleapis.com` (the AI Developer API). This cap is **completely independent of GCP billing** — adding billing credit to the GCP project does NOT increase or remove this limit. We confirmed this by linking the GCP project to a $5 billing account — the 429s continued unchanged.
+
+**Why billing didn't help:**
+- `generativelanguage.googleapis.com` = AI Studio / AI Developer API path. Has its own free-tier enforcement regardless of GCP billing.
+- `aiplatform.googleapis.com` = Vertex AI path. Uses GCP billing directly. No per-day free-tier cap.
+
+**Fix (Round 3 — Vertex AI switch):**
+
+1. **Switched SDK endpoint to Vertex AI** by setting env var `GOOGLE_GENAI_USE_VERTEXAI=1` in Cloud Run. The google-genai Python SDK automatically routes to `aiplatform.googleapis.com` when this is set — no code changes needed.
+2. **Created new GCP API key** (version 5 in Secret Manager) — the previous key (v4) was created for AI Developer API; Vertex AI uses Application Default Credentials (service account), not API keys.
+3. **Granted `roles/aiplatform.user`** to the Cloud Run service account `178558547254-compute@developer.gserviceaccount.com`:
+   ```powershell
+   gcloud projects add-iam-policy-binding sitara-v1-495117 `
+     --member="serviceAccount:178558547254-compute@developer.gserviceaccount.com" `
+     --role="roles/aiplatform.user"
+   ```
+4. **Deployed revision `sitara-backend-00039-t7g`** with new env vars:
+   ```
+   GOOGLE_GENAI_USE_VERTEXAI=1
+   GOOGLE_CLOUD_PROJECT=sitara-v1-495117
+   GOOGLE_CLOUD_LOCATION=us-central1
+   ```
+
+**Verification result:**
+```
+GET /health → {"active_tier": "T1:Gemini", "model": "gemini-2.5-flash"}
+POST /evaluate-session → {"mode": "agentic", "agent": "therapy_director"}
+```
+Vertex AI test returned `"OK"` instantly. Daily quota no longer a concern with GCP billing.
+
+**Status: ✅ FIXED — revision `sitara-backend-00039-t7g`, Vertex AI, no daily cap.**
+
+---
+
+### 9. Fixed PerDay Quota Detection (Wrong Recovery Timer)
+**Symptom:** After switching to Vertex AI, we added detection logic for the case where a future PerDay quota hit would use an appropriate recovery cooldown. Testing revealed the original code treated PerDay and PerMinute identically — parsing the `"retry in Xs"` value from the error message (which is only valid for RPM, not RPD).
+
+**Root Cause:**
+A `GenerateRequestsPerDayPerProjectPerModel-FreeTier` 429 does not carry a meaningful `retry in Xs` field — it's a daily reset, not a minute-level backoff. If the code parsed `retry_delay = 22s` from the error and set a 22-second cooldown, it would hammer the API every 22 seconds all day, burning any remaining quota on other models.
+
+**Fix (commit `09c16e9`):**
+```python
+is_daily = "PERDAY" in exc_str or "PER_DAY" in exc_str or "PER DAY" in exc_str
+if is_daily:
+    retry_delay = 7200.0  # 2 hours — daily quota won't reset sooner
+    print(f"[QUOTA] Gemini DAILY quota exhausted — marking T1 down for 2h.")
+else:
+    retry_match = re.search(r"retry\s+in\s+([\d.]+)s", str(e), re.IGNORECASE)
+    retry_delay = float(retry_match.group(1)) + 5 if retry_match else 65.0
+_mark_gemini_quota_hit(retry_delay)
+```
+Also updated OpenRouter probe/fallback model list to current working free models (several had gone offline since the original list was written):
+```python
+["mistralai/mistral-7b-instruct:free", "microsoft/phi-3-mini-128k-instruct:free",
+ "meta-llama/llama-3.2-3b-instruct:free", "google/gemma-3-4b-it:free",
+ "meta-llama/llama-3.3-70b-instruct:free"]
+```
+
+**Status: ✅ FIXED — commit `09c16e9`.**
+
+---
+
 ## 🧑‍💻 Commits in This Session
 
 | Hash | Description |
@@ -284,6 +362,7 @@ Call 6 → T3:Heuristic  (new quota hit after 5 calls in new window)
 | `f202032` | fix: switch to gemini-2.5-flash and strip API key whitespace |
 | `3a58b2d` | fix: increase HTTP timeout 10s→30s and fix generate-quest mode tracking |
 | `8652926` | fix: auto-recover Gemini after RPM quota window expires |
+| `09c16e9` | fix: detect PerDay vs PerMinute Gemini quota and update OpenRouter models |
 | `a085d1e` | docs: add May 20 session summary |
 
 ---
@@ -295,7 +374,10 @@ Call 6 → T3:Heuristic  (new quota hit after 5 calls in new window)
 | `sitara-backend-00031-mmj` | New GOOGLE_API_KEY (version 4) | 403 fixed → 429 appeared |
 | `sitara-backend-00033-d2q` | Switch to `gemini-2.0-flash-lite` | 429 still, same quota pool |
 | `sitara-backend-00034-sgc` | Switch to `gemini-2.5-flash` + `.strip()` all keys | T1:Gemini LIVE |
-| `sitara-backend-00035-spm` | Gemini auto-recovery + TIER_RECHECK 65s | ✅ Final — auto-recovers from RPM hits |
+| `sitara-backend-00035-spm` | Gemini auto-recovery + TIER_RECHECK 65s | RPM auto-recovery working |
+| `sitara-backend-00037-*` | Vertex AI env vars (first attempt) | Partial — IAM not yet granted |
+| `sitara-backend-00038-*` | `roles/aiplatform.user` granted to service account | Vertex AI calls OK |
+| `sitara-backend-00039-t7g` | Final Vertex AI deploy — `GOOGLE_GENAI_USE_VERTEXAI=1` + new API key v5 | ✅ **FINAL** — no daily cap, T1:Gemini fully operational |
 
 **Final live URL:** `https://sitara-backend-178558547254.asia-south1.run.app`
 
@@ -331,6 +413,13 @@ Call 6 → T3:Heuristic  (new quota hit after 5 calls in new window)
 15. **`gemini-1.5-flash` was removed from the `v1beta` API endpoint** (returns 404 as of May 2026). Available models: `gemini-2.0-flash`, `gemini-2.0-flash-lite`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`.
 16. **`gemini-2.5-flash` is currently the best free-tier option** — higher capability than 2.0 variants, separate quota pool, available in `v1beta`.
 
+### AI Developer API vs Vertex AI (Critical Architecture Decision)
+17. **The AI Developer API (`generativelanguage.googleapis.com`) has a hard 20 RPD cap that GCP billing cannot override.** Even after linking a billing account, the cap remains because it is enforced by a separate free-tier quota system at the AI Studio level. Many developers waste time trying to "upgrade" via billing — it doesn't work for this API path.
+18. **Vertex AI (`aiplatform.googleapis.com`) is the correct production path.** It uses GCP billing with no artificial per-day caps. Switch via `GOOGLE_GENAI_USE_VERTEXAI=1` — the google-genai SDK handles endpoint routing automatically with no code changes.
+19. **Cloud Run service account needs `roles/aiplatform.user` for Vertex AI.** The default Compute service account does NOT have this role. Grant it explicitly: `gcloud projects add-iam-policy-binding ... --role="roles/aiplatform.user"`.
+20. **Distinguish PerDay vs PerMinute in 429 error handling.** Daily quota errors contain `"PERDAY"` in the exception string. Use a 2-hour (7200s) cooldown for daily, and the API-provided `retry in Xs` value for per-minute. Never use a short cooldown for daily quota — it will spam the API all day.
+21. **Free model lists for OpenRouter rotate over time.** Models listed as available in March may return 404 or 503 by May. Always validate the probe/fallback model list before each hackathon submission. Current working free models (May 2026): `mistral-7b-instruct:free`, `phi-3-mini-128k-instruct:free`, `llama-3.2-3b-instruct:free`, `gemma-3-4b-it:free`, `llama-3.3-70b-instruct:free`.
+
 ---
 
 ## ✅ Final Verification Checklist (End of Session)
@@ -346,8 +435,13 @@ Call 6 → T3:Heuristic  (new quota hit after 5 calls in new window)
 | Praise audio completes before next card | ✅ (5s timeout + praisePlayer fallback) |
 | "Sovereign Baseline" no longer shown in AI Mode | ✅ (30s timeout + correct mode key) |
 | Mode Comparison counts AI sessions | ✅ (`generateQuest` increments counter) |
-| Cloud Run revision live | ✅ `sitara-backend-00035-spm` |
-| Git pushed to `main` | ✅ commit `8652926` |
+| Cloud Run on Vertex AI (no 20 RPD daily cap) | ✅ `GOOGLE_GENAI_USE_VERTEXAI=1` deployed |
+| Service account has `roles/aiplatform.user` | ✅ Granted to `178558547254-compute@` |
+| PerDay quota detection (2h cooldown) | ✅ `"PERDAY"` string detection in 429 handler |
+| `deploy_cloud_run.ps1` includes Vertex AI env vars | ✅ |
+| `deploy_cloud_run.sh` includes Vertex AI env vars | ✅ |
+| Cloud Run revision live | ✅ `sitara-backend-00039-t7g` |
+| Git pushed to `main` | ✅ commit `09c16e9` |
 
 ---
 
@@ -356,8 +450,8 @@ Call 6 → T3:Heuristic  (new quota hit after 5 calls in new window)
 | Issue | Priority | Notes |
 |-------|----------|-------|
 | Firestore database not provisioned in `sitara-v1-495117` | Low | Non-blocking; sessions fall back to SQLite. Firestore 404 in logs but does not affect gameplay. |
-| T2:OpenRouter `openrouter_model: null` | Low | Key is clean (header fix applied) but free model probe returned no working model. T1:Gemini is live so T2 is backup only. |
-| Judge Sandbox rapid-fire exhausts 5 RPM limit | Low | By design. System recovers in ~65s. Normal gameplay never hits this limit. Document in demo script. |
+| T2:OpenRouter `openrouter_model: null` | Low | Key is clean (header fix applied) but free model probe may return no working model at any given time. T1:Gemini via Vertex AI is live so T2 is backup only. |
+| Judge Sandbox rapid-fire exhausts 5 RPM limit | Low | By design. System recovers in ~65s. Normal gameplay (1 req/30s = 2 RPM) never hits this limit. Document in demo script. |
 
 ---
 
@@ -366,8 +460,8 @@ Call 6 → T3:Heuristic  (new quota hit after 5 calls in new window)
 | Deliverable | Status |
 |-------------|--------|
 | Working APK | ✅ Built by GitHub Actions CI — commit `3a58b2d` |
-| Backend live on Cloud Run | ✅ `sitara-backend-00035-spm` |
-| T1:Gemini agentic (for judges) | ✅ `gemini-2.5-flash` + auto-recovery |
+| Backend live on Cloud Run | ✅ `sitara-backend-00039-t7g` (Vertex AI) |
+| T1:Gemini agentic (for judges) | ✅ `gemini-2.5-flash` via Vertex AI — no daily cap |
 | SOVEREIGN TRACE panel (no Ublock) | ✅ `_sanitize_reasoning()` deployed |
 | "Sovereign Baseline" in AI Mode fixed | ✅ 30s timeout + correct mode key |
 | Mode Comparison shows AI sessions | ✅ `generateQuest` counter fixed |
@@ -376,3 +470,5 @@ Call 6 → T3:Heuristic  (new quota hit after 5 calls in new window)
 | Architecture README | See `Project_Architecture_Blueprint.md` |
 | Baseline comparison (agentic vs heuristic) | ✅ `FixedRuleEngine` + `_useHeuristic` toggle |
 | Robustness evidence | ✅ Quota hit → T3 fallback → T1 auto-recovery (stress-tested) |
+| Deploy scripts with Vertex AI env vars | ✅ `deploy_cloud_run.ps1` + `deploy_cloud_run.sh` updated |
+| CLAUDE.md updated with Vertex AI requirements | ✅ |

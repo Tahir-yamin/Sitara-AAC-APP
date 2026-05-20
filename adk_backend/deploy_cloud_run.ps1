@@ -15,7 +15,7 @@ gcloud run deploy $SERVICE_NAME `
     --project $PROJECT_ID `
     --region $REGION `
     --allow-unauthenticated `
-    --set-env-vars "ENV=production" `
+    --set-env-vars "ENV=production,GOOGLE_GENAI_USE_VERTEXAI=1,GOOGLE_CLOUD_PROJECT=$PROJECT_ID,GOOGLE_CLOUD_LOCATION=us-central1" `
     --set-secrets "GOOGLE_API_KEY=GOOGLE_API_KEY:latest,OPENROUTER_API_KEY=OPENROUTER_API_KEY:latest"
 
 if ($LASTEXITCODE -eq 0) {
