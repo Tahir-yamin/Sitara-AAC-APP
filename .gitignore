@@ -30,3 +30,19 @@ Thumbs.db
 
 # Claude worktree metadata
 .claude/
+
+# Node
+node_modules/
+OneClickLM/node_modules/
+OneClickLM/dist/
+package-lock.json
+
+# Presentation and Traces
+Sitara_Antigravity_Traces.zip
+Sitara_Hackathon_Pitch.pptx
+generate_pptx.js
+sitara_hackathon_pitch.html
+
+# Local builds
+dist/
+
