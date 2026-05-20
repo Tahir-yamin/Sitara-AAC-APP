@@ -149,7 +149,7 @@ def show_tier_health(url: str, headers: dict) -> str:
     console.print()
 
     try:
-        resp = httpx.get(f"{url}/health", headers=headers, timeout=6.0)
+        resp = httpx.get(f"{url}/health", headers=headers, timeout=30.0)
         data = resp.json()
     except Exception as e:
         console.print(f"[red]✗ Cannot reach backend at {url}[/]")
