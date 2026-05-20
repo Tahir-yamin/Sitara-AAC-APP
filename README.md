@@ -4,8 +4,10 @@
 
 [![Challenge](https://img.shields.io/badge/Challenge-4%3A%20Agentic%20Mobile%20Game-purple)](.)
 [![Platform](https://img.shields.io/badge/Platform-Android%20(Flutter)-blue)](.)
-[![AI](https://img.shields.io/badge/AI-Google%20ADK%20%2B%20Gemini%202.0%20Flash-orange)](.)
+[![AI](https://img.shields.io/badge/AI-Google%20ADK%20%2B%20Gemini%202.5%20Flash-orange)](.)
+[![Backend](https://img.shields.io/badge/Backend-Cloud%20Run%20%2B%20Vertex%20AI-blue)](.)
 [![Hackathon](https://img.shields.io/badge/Hackathon-%23AISeekho2026-green)](.)
+[![Live](https://img.shields.io/badge/Backend-Live%20on%20Cloud%20Run-brightgreen)](https://sitara-backend-178558547254.asia-south1.run.app/health)
 
 ---
 
@@ -175,13 +177,14 @@ No camera. No biometrics. Only tap behaviour:
 |-------|-----------|-------|
 | Mobile | Flutter 3.x (Android) | Provider state management |
 | AI Orchestration | Google ADK (Antigravity) | LlmAgent, Runner, A2A pattern |
-| Language Model | Gemini 2.0 Flash | Fast, low-latency, cost-effective |
-| Backend API | FastAPI + uvicorn | Cloud Run deployable |
-| Session DB | DatabaseSessionService (SQLite/aiosqlite) | InMemory fallback for local dev |
+| Language Model | **Gemini 2.5 Flash** | Via Vertex AI — no daily cap, billed per GCP project |
+| LLM Endpoint | **Vertex AI** (`aiplatform.googleapis.com`) | Switched from AI Developer API to remove 20 RPD free-tier limit |
+| Backend API | FastAPI + uvicorn | Cloud Run (asia-south1) |
+| Session DB | DatabaseSessionService (SQLite/aiosqlite) | Persists across Cloud Run restarts; InMemory fallback for local dev |
 | Local Storage | shared_preferences | Offline-first, no native deps |
 | Secure Storage | flutter_secure_storage | Child profiles in Android Keystore |
 | TTS | flutter_tts | ur-PK → Roman Urdu → en-US fallback chain |
-| HTTP | http ^1.2.0 | 10s timeout, local fallback on failure |
+| HTTP | http ^1.2.0 | **30s timeout** — accounts for Cloud Run cold start + Gemini inference |
 
 ---
 
@@ -225,9 +228,18 @@ flutter run --dart-define=BACKEND_URL=http://10.0.2.2:8000
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GOOGLE_API_KEY` | ✅ Yes | Gemini API key (fails at startup if missing) |
+| `GOOGLE_API_KEY` | ✅ Yes | Gemini API key from aistudio.google.com — no GCP API restrictions |
 | `GEMINI_API_KEY` | Fallback | Alternative key name |
+| `OPENROUTER_API_KEY` | Optional | T2 fallback LLM (OpenRouter free tier) |
 | `BACKEND_URL` | Optional | Override Cloud Run URL for local dev |
+
+**Cloud Run deployment requires these additional env vars** (set automatically by the deploy scripts):
+```
+GOOGLE_GENAI_USE_VERTEXAI=1              # routes SDK to Vertex AI — removes 20 RPD free-tier cap
+GOOGLE_CLOUD_PROJECT=sitara-v1-495117   # required by Vertex AI SDK
+GOOGLE_CLOUD_LOCATION=us-central1       # Vertex AI model region
+```
+The Cloud Run service account needs `roles/aiplatform.user` to call Vertex AI.
 
 ---
 
@@ -244,12 +256,14 @@ flutter run --dart-define=BACKEND_URL=http://10.0.2.2:8000
 
 ## 🛡️ Robustness & Edge Cases
 
-### Quota / 429 Handling
-- 60-second per-child cooldown on `ResourceExhausted` errors
-- Sliding-window rate limiter: max 3 `/evaluate-session` calls per child per 10 seconds
-- Both `/evaluate-session` and `/weekly-report` check cooldown before calling the LLM
-- `FixedRuleEngine` provides deterministic adaptation during cooldown
-- Flutter falls back to `_localFallback()` (client-side heuristics) on any API failure
+### Quota / 429 Handling — 3-Tier Fallback
+- **T1: Gemini 2.5 Flash** (via Vertex AI — primary, no daily cap)
+- **T2: OpenRouter** free-tier LLMs (fallback if Gemini quota hit)
+- **T3: FixedRuleEngine** (deterministic heuristics — always available, zero latency)
+
+Per-minute quota hits: auto-recovery using exact retry delay parsed from the 429 error (`"retry in 56s"` → 61s cooldown).  
+Per-day quota hits (AI Developer API): 2-hour cooldown with "PERDAY" string detection.  
+Flutter falls back to `_localFallback()` (client-side heuristics) on any network failure — child never sees an error.
 
 ### Story Weaver QC Gate
 - Every quest validated: non-empty title, ≥ 2 story sentences, valid category, valid difficulty
@@ -257,7 +271,7 @@ flutter run --dart-define=BACKEND_URL=http://10.0.2.2:8000
 - Parse errors log raw LLM response (first 200 chars) for debugging
 
 ### Network Failures
-- All Flutter API calls have 10-second timeout
+- All Flutter API calls have **30-second timeout** (Cloud Run cold start + Gemini 2.5 Flash inference = up to 25s)
 - `TimeoutException` and any HTTP error trigger `_localFallback()` silently
 - Child never sees an error — game continues with heuristic mode
 
@@ -265,8 +279,10 @@ flutter run --dart-define=BACKEND_URL=http://10.0.2.2:8000
 - `_get_or_create_session()` handles `AlreadyExistsError` on concurrent requests
 - `DatabaseSessionService` (SQLite) persists across Cloud Run restarts
 
-### Demonstrated Failure Scenario
-During development, Gemini 2.0 Flash returned 429 errors during burst testing. The quota cooldown + `FixedRuleEngine` fallback activated automatically — the Flutter app continued without interruption, showing "📏 Rules" mode in the trace panel. Cloud Run logs (`cloud_run_logs.txt`) contain real 429 recovery sequences.
+### Demonstrated Failure Scenarios
+1. **RPM quota hit (5 req/min):** Rapid-fire Judge Sandbox presses exhaust the per-minute quota. System detects the 429, parses exact retry delay, routes to T3:Heuristic, then auto-restores T1:Gemini after the cooldown window — confirmed with stress test (6 rapid calls → T3 fallback → T1 auto-recovery).
+2. **Daily quota exhaustion (20 RPD on AI Developer API):** Resolved by switching backend to **Vertex AI** endpoint, which has no per-day free-tier cap and scales with GCP billing.
+3. **Cloud Run cold start:** Flutter's 30s timeout absorbs the 20-25s cold start + inference window. Previous 10s timeout caused silent fallback to heuristics on every cold start.
 
 ---
 
@@ -288,7 +304,7 @@ During development, Gemini 2.0 Flash returned 429 errors during burst testing. T
 
 ## 💰 Cost & Scalability
 
-### Per-Session Cost (Gemini 2.0 Flash, May 2026)
+### Per-Session Cost (Gemini 2.5 Flash via Vertex AI, May 2026)
 
 | Item | Value |
 |------|-------|
@@ -298,7 +314,8 @@ During development, Gemini 2.0 Flash returned 429 errors during burst testing. T
 | Tokens per quest generation | ~800 input / 300 output |
 | **Cost per full session** | **~$0.002** |
 
-Pricing basis: Gemini 2.0 Flash ~$0.075/1M input, ~$0.30/1M output tokens.
+Pricing basis: Gemini 2.5 Flash (Vertex AI) ~$0.075/1M input, ~$0.30/1M output tokens.  
+> **Note:** Backend uses Vertex AI endpoint — no 20 RPD daily cap. Scales linearly with GCP billing.
 
 ### Scaling
 
@@ -310,9 +327,9 @@ Pricing basis: Gemini 2.0 Flash ~$0.075/1M input, ~$0.30/1M output tokens.
 | 1,000× (national) | 50,000 | $100.00 | Regional Cloud Run, Firestore, async report queue |
 
 ### Latency
-- Gemini 2.0 Flash p50 response: ~800ms
-- Flutter's 30-second evaluation window absorbs this with no visible latency to the child
-- Quest generation (Story Weaver): ~1.2s — triggered only on milestone, not every cycle
+- Gemini 2.5 Flash (Vertex AI) p50 response: ~1.2s warm, ~20-25s cold start (Cloud Run)
+- Flutter's 30-second evaluation window absorbs cold starts with zero impact on the child
+- Quest generation (Story Weaver): ~1.5s warm — triggered only on milestone (every 5 correct), not every cycle
 
 ---
 
@@ -409,7 +426,7 @@ Pricing basis: Gemini 2.0 Flash ~$0.075/1M input, ~$0.30/1M output tokens.
 | [flutter_tts](https://pub.dev/packages/flutter_tts) | MIT | Urdu + English TTS |
 | [flutter_secure_storage](https://pub.dev/packages/flutter_secure_storage) | MIT | Encrypted child profiles |
 | [Google ADK](https://google.github.io/adk-docs/) | Apache 2.0 | Agent orchestration framework |
-| [Gemini 2.0 Flash](https://deepmind.google/technologies/gemini/) | Commercial | Language model |
+| [Gemini 2.5 Flash](https://deepmind.google/technologies/gemini/) | Commercial | Language model (via Vertex AI) |
 
 ---
 
@@ -420,10 +437,11 @@ Pricing basis: Gemini 2.0 Flash ~$0.075/1M input, ~$0.30/1M output tokens.
 | Founder / Lead | Tahir Yamin | tahiryamin2050@gmail.com |
 
 **Hackathon:** #AISeekho2026 — Challenge 4: Agentic Mobile Game  
-**Submission deadline:** May 20, 2026
+**Submitted:** May 20, 2026  
+**Live backend:** https://sitara-backend-178558547254.asia-south1.run.app/health
 
 ---
 
 *"Sitara means 'star' in Urdu. Every child is one."*
 
-**Built with ❤️ for Pakistan | Powered by Google Antigravity + Gemini 2.0 Flash**
+**Built with ❤️ for Pakistan | Powered by Google Antigravity + Gemini 2.5 Flash + Vertex AI**
