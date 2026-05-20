@@ -29,10 +29,13 @@ class TtsService {
 
   final FlutterTts _tts = FlutterTts();
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final AudioPlayer _praisePlayer = AudioPlayer();
   final AudioPlayer _bgPlayer = AudioPlayer();
   final Completer<void> _initCompleter = Completer<void>();
   StreamSubscription<void>? _audioSubscription;
   Completer<void>? _audioPlayCompleter;
+  StreamSubscription<void>? _praiseSubscription;
+  Completer<void>? _praisePlayCompleter;
 
   bool _ready = false;
   bool _urduAvailable = false;
@@ -44,9 +47,45 @@ class TtsService {
 
   bool get isUrduAvailable => _urduAvailable;
 
-  Future<void> playIntroMusic() async {
+  /// Warm up and unlock all HTML5 Audio elements and Web Speech API on Web using the user gesture.
+  Future<void> warmUpPlayers() async {
+    try {
+      // 1. Warm up standard FlutterTts (Web Speech API)
+      await _tts.setVolume(0.0);
+      await _tts.speak('a');
+      await _tts.stop();
+      await _tts.setVolume(1.0);
+    } catch (e) {
+      debugPrint('TtsService.warmUpPlayers (TTS) error: $e');
+    }
+
+    try {
+      // 2. Warm up audioplayers (HTML5 Audio)
+      await _bgPlayer.setVolume(0.0);
+      await _audioPlayer.setVolume(0.0);
+      await _praisePlayer.setVolume(0.0);
+      
+      await _bgPlayer.play(AssetSource('audio/saib.mp3'));
+      await _audioPlayer.play(AssetSource('audio/saib.mp3'));
+      await _praisePlayer.play(AssetSource('audio/saib.mp3'));
+      
+      await Future.delayed(const Duration(milliseconds: 150));
+      
+      await _bgPlayer.stop();
+      await _audioPlayer.stop();
+      await _praisePlayer.stop();
+      
+      await _bgPlayer.setVolume(0.25);
+      await _audioPlayer.setVolume(1.0);
+      await _praisePlayer.setVolume(1.0);
+    } catch (e) {
+      debugPrint('TtsService.warmUpPlayers (AudioPlayers) error: $e');
+    }
+  }
+
+  Future<void> playIntroMusic({bool force = false}) async {
     // Idempotent: if already playing, don't restart.
-    if (_isIntroMusicPlaying) return;
+    if (_isIntroMusicPlaying && !force) return;
     _isIntroMusicPlaying = true;
     try {
       await _bgPlayer.setReleaseMode(ReleaseMode.loop);
@@ -262,8 +301,8 @@ class TtsService {
           _audioPlayCompleter = Completer<void>();
           await _audioPlayer.setVolume(1.0);
           if (currentSession != _speechSessionId) return;
-          await _audioPlayer.play(AssetSource(assetKey));
-          
+
+          // Register listener BEFORE calling play to avoid missing fast start/completion of cached sounds
           _audioSubscription = _audioPlayer.onPlayerComplete.listen(
             (_) {
               if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
@@ -281,6 +320,8 @@ class TtsService {
               }
             },
           );
+
+          await _audioPlayer.play(AssetSource(assetKey));
 
           await _audioPlayCompleter!.future.timeout(
             const Duration(seconds: 6),
@@ -370,13 +411,13 @@ class TtsService {
   Future<void> speakPraise(dynamic phrase) async {
     try {
       await _tts.stop();
-      await _audioPlayer.stop();
+      await _praisePlayer.stop();
       await _tts.setVolume(1.0);
-      await _audioPlayer.setVolume(1.0);
-      _audioSubscription?.cancel();
-      _audioSubscription = null;
-      if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
-        _audioPlayCompleter!.complete();
+      await _praisePlayer.setVolume(1.0);
+      _praiseSubscription?.cancel();
+      _praiseSubscription = null;
+      if (_praisePlayCompleter != null && !_praisePlayCompleter!.isCompleted) {
+        _praisePlayCompleter!.complete();
       }
 
       // All assets are now high-quality — play directly without bypass.
@@ -384,33 +425,35 @@ class TtsService {
         throw Exception('Bypassed low-quality audio asset');
       }
 
-      _audioPlayCompleter = Completer<void>();
-      await _audioPlayer.setVolume(1.0);
-      await _audioPlayer.play(AssetSource(phrase.audioAsset));
-      
-      _audioSubscription = _audioPlayer.onPlayerComplete.listen(
+      _praisePlayCompleter = Completer<void>();
+
+      // Register listener BEFORE calling play to avoid missing fast start/completion of cached sounds
+      _praiseSubscription = _praisePlayer.onPlayerComplete.listen(
         (_) {
-          if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
-            _audioPlayCompleter!.complete();
+          if (_praisePlayCompleter != null && !_praisePlayCompleter!.isCompleted) {
+            _praisePlayCompleter!.complete();
           }
         },
         onError: (_) {
-          if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
-            _audioPlayCompleter!.complete();
+          if (_praisePlayCompleter != null && !_praisePlayCompleter!.isCompleted) {
+            _praisePlayCompleter!.complete();
           }
         },
         onDone: () {
-          if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
-            _audioPlayCompleter!.complete();
+          if (_praisePlayCompleter != null && !_praisePlayCompleter!.isCompleted) {
+            _praisePlayCompleter!.complete();
           }
         },
       );
 
-      await _audioPlayCompleter!.future.timeout(
-        const Duration(seconds: 6),
+      await _praisePlayer.setVolume(1.0);
+      await _praisePlayer.play(AssetSource(phrase.audioAsset));
+
+      await _praisePlayCompleter!.future.timeout(
+        const Duration(seconds: 4), // 4 seconds is plenty for a short praise phrase
         onTimeout: () {
-          if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
-            _audioPlayCompleter!.complete();
+          if (_praisePlayCompleter != null && !_praisePlayCompleter!.isCompleted) {
+            _praisePlayCompleter!.complete();
           }
         },
       );
@@ -420,35 +463,71 @@ class TtsService {
         debugPrint('TtsService: Browser auto-play blocked praise. Awaiting user interaction.');
         return;
       }
-      debugPrint('TtsService.speakPraise error: $e');
-      // Fallback: live TTS — must be FEMALE and energetic.
-      //
-      // Strategy: only use ur-PK TTS when we confirmed a female Urdu voice
-      // during init. If _femaleUrduVoice is null the engine would use the
-      // default (often male) Urdu voice — in that case use the English female
-      // profile instead (which uses _femaleFallbackVoice if one was found).
+      debugPrint('TtsService.speakPraise error (${phrase.audioAsset}): $e — trying shabash fallback');
+
+      // ── Audio-file fallback: play shabash.mp3 on _praisePlayer ────────────
+      // IMPORTANT: we use _praisePlayer (not _tts) so that when speakCard() later
+      // calls _tts.stop() it cannot interrupt this praise audio. TTS fallback
+      // would be killed by the _tts.stop() inside speakCard(), causing the user
+      // to hear praise get cut off mid-word. Staying on _praisePlayer avoids that.
+      bool audioFallbackSucceeded = false;
       try {
-        if (_urduAvailable && _femaleUrduVoice != null) {
-          // Confirmed female ur-PK voice — use it with excitement settings.
-          await _setUrduProfile();
-          await _tts.setPitch(1.3);
-          await _tts.setSpeechRate(0.56);
-          await _tts.speak(phrase.urdu);
-          await _awaitCompletion();
-        } else {
-          // No confirmed female Urdu voice → English female profile.
-          // romanUrdu is already energetic mixed text (e.g. "Wow! Phir se!")
-          await _setEnglishProfile();
-          await _tts.setPitch(1.2);
-          await _tts.setSpeechRate(0.58);
-          await _tts.speak(phrase.romanUrdu);
-          await _awaitCompletion();
-        }
-      } catch (_) {}
+        _praisePlayCompleter = Completer<void>();
+        _praiseSubscription?.cancel();
+        _praiseSubscription = _praisePlayer.onPlayerComplete.listen(
+          (_) {
+            if (_praisePlayCompleter != null && !_praisePlayCompleter!.isCompleted) {
+              _praisePlayCompleter!.complete();
+            }
+          },
+          onError: (_) {
+            if (_praisePlayCompleter != null && !_praisePlayCompleter!.isCompleted) {
+              _praisePlayCompleter!.complete();
+            }
+          },
+          onDone: () {
+            if (_praisePlayCompleter != null && !_praisePlayCompleter!.isCompleted) {
+              _praisePlayCompleter!.complete();
+            }
+          },
+        );
+        await _praisePlayer.play(AssetSource('audio/shabash.mp3'));
+        await _praisePlayCompleter!.future.timeout(
+          const Duration(seconds: 4),
+          onTimeout: () {
+            if (_praisePlayCompleter != null && !_praisePlayCompleter!.isCompleted) {
+              _praisePlayCompleter!.complete();
+            }
+          },
+        );
+        audioFallbackSucceeded = true;
+      } catch (fe) {
+        debugPrint('TtsService.speakPraise shabash fallback also failed: $fe — falling back to TTS');
+      }
+
+      if (!audioFallbackSucceeded) {
+        // Last resort: live TTS — only reached if all MP3 files are broken.
+        // Note: speakCard() calls _tts.stop() which CAN interrupt this, but
+        // that is acceptable since it only happens in a true asset failure scenario.
+        try {
+          if (_urduAvailable && _femaleUrduVoice != null) {
+            await _setUrduProfile();
+            await _tts.setPitch(1.3);
+            await _tts.setSpeechRate(0.56);
+            await _tts.speak(phrase.urdu);
+            await _awaitCompletion();
+          } else {
+            await _setEnglishProfile();
+            await _tts.setPitch(1.2);
+            await _tts.setSpeechRate(0.58);
+            await _tts.speak(phrase.romanUrdu);
+            await _awaitCompletion();
+          }
+        } catch (_) {}
+      }
     }
   }
 
-  /// Synchronous best-effort stop — safe to call from dispose() without await.
   /// Increments _speechSessionId to cancel any in-flight speakCard/speakPraise.
   void stopSync() {
     _speechSessionId++;
@@ -457,9 +536,15 @@ class TtsService {
     if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
       _audioPlayCompleter!.complete();
     }
+    _praiseSubscription?.cancel();
+    _praiseSubscription = null;
+    if (_praisePlayCompleter != null && !_praisePlayCompleter!.isCompleted) {
+      _praisePlayCompleter!.complete();
+    }
     // Fire-and-forget — dispose() cannot await
     _tts.stop().catchError((_) {});
     _audioPlayer.stop().catchError((_) {});
+    _praisePlayer.stop().catchError((_) {});
   }
 
   /// Speak a story page or narrator line slowly and soothingly.
@@ -515,10 +600,16 @@ class TtsService {
     try {
       await _tts.stop();
       await _audioPlayer.stop();
+      await _praisePlayer.stop();
       _audioSubscription?.cancel();
       _audioSubscription = null;
       if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
         _audioPlayCompleter!.complete();
+      }
+      _praiseSubscription?.cancel();
+      _praiseSubscription = null;
+      if (_praisePlayCompleter != null && !_praisePlayCompleter!.isCompleted) {
+        _praisePlayCompleter!.complete();
       }
     } catch (_) {}
   }
@@ -586,8 +677,8 @@ class TtsService {
           
           _audioPlayCompleter = Completer<void>();
           await _audioPlayer.setVolume(1.0);
-          await _audioPlayer.play(AssetSource(assetKey));
-          
+
+          // Register listener BEFORE calling play to avoid missing fast start/completion of cached sounds
           _audioSubscription = _audioPlayer.onPlayerComplete.listen(
             (_) {
               if (_audioPlayCompleter != null && !_audioPlayCompleter!.isCompleted) {
@@ -605,6 +696,8 @@ class TtsService {
               }
             },
           );
+
+          await _audioPlayer.play(AssetSource(assetKey));
           
           await _audioPlayCompleter!.future;
           return; // Completed successfully!

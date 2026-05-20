@@ -389,9 +389,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       _showReward(phrase.displayText);
 
       // Await praise so speakCard() in _loadCards() doesn't kill it mid-play.
-      // 3-second timeout ensures the game never hangs if TTS/audio stalls.
+      // 5-second timeout: praise MP3s can be up to ~4s; TTS fallback needs ~4s.
+      // Must be longer than speakPraise's internal 4s timeout so the outer
+      // await never fires first and races with the inner completion.
       await _speakPraiseUrdu(phrase)
-          .timeout(const Duration(seconds: 3), onTimeout: () {});
+          .timeout(const Duration(seconds: 5), onTimeout: () {});
 
       if (mounted) {
         setState(() => _feedbackCardId = null);
@@ -605,8 +607,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0EEFF),
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        _tts.stopSync();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF0EEFF),
       appBar: AppBar(
         backgroundColor: const Color(0xFF6C63FF),
         foregroundColor: Colors.white,
@@ -841,7 +848,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ),
         ],
       ),
-    );
+    ));
   }
 
   @override

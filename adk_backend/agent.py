@@ -668,6 +668,19 @@ def _sanitize_id(val: str, max_len: int = 32) -> str:
     cleaned = re.sub(r"[^\w-]", "_", val)
     return cleaned[:max_len].strip()
 
+def _sanitize_reasoning(text: str) -> str:
+    """Strip Unicode Mathematical Bold/Italic chars (U+1D400–U+1D7FF).
+
+    LLMs (Gemini, OpenRouter) sometimes emit these for emphasis (bold text).
+    In Flutter's Courier font on Android each char renders as a surrogate-pair
+    artifact — two visible replacement glyphs that look like "U" + "block".
+    A long reasoning response therefore floods the trace panel with
+    "Ublock Ublock Ublock ...". Stripping them gives clean ASCII output.
+    """
+    if not text:
+        return text
+    return "".join(c for c in text if not (0x1D400 <= ord(c) <= 0x1D7FF))
+
 
 # ─── REQUEST MODELS ───────────────────────────────────────────────
 
@@ -814,7 +827,7 @@ async def _evaluate_via_openrouter(data: "AdaptationRequest") -> dict | None:
                 text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.DOTALL).strip()
                 parsed = json.loads(text)
                 actions = parsed.get("actions", [])
-                reasoning = parsed.get("reasoning", f"OpenRouter/{model} adaptation")
+                reasoning = _sanitize_reasoning(parsed.get("reasoning", f"OpenRouter/{model} adaptation"))
                 print(f"[Fallback-T3] OpenRouter {model} succeeded - {len(actions)} action(s)")
                 return {
                     "mode": "agentic_openrouter",
@@ -965,14 +978,15 @@ async def evaluate_session(data: AdaptationRequest):
 
     # Gemini succeeded — restore health flag and return with tier label
     _tier_health["gemini"] = True
+    clean_reasoning = _sanitize_reasoning(response_text)
     return {
         "mode": "agentic",
         "agent": "therapy_director",
         "active_tier": "T1:Gemini",
-        "reasoning": response_text,
+        "reasoning": clean_reasoning,
         "actions": tool_calls,
         "session_id": session_id,
-        "trace_steps": _build_trace_steps("T1:Gemini", tool_calls, response_text),
+        "trace_steps": _build_trace_steps("T1:Gemini", tool_calls, clean_reasoning),
     }
 
 
