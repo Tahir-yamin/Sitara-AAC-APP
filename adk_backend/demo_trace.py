@@ -399,6 +399,32 @@ def _build_synthetic_trace(active_tier: str, data: dict) -> list:
     return steps
 
 
+PROD_URL = "https://sitara-backend-178558547254.asia-south1.run.app"
+
+
+# ── Argument parser ────────────────────────────────────────────────
+def parse_args():
+    p = argparse.ArgumentParser(
+        description="Sitara Agentic Workflow Demo Trace",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  python demo_trace.py                     # local backend\n"
+            "  python demo_trace.py --prod              # live Cloud Run backend\n"
+            "  python demo_trace.py --prod --all        # all 3 scenarios on live\n"
+            "  python demo_trace.py --scenario thriving # specific scenario\n"
+        ),
+    )
+    p.add_argument("--url", default="http://localhost:8000", help="Backend base URL")
+    p.add_argument("--prod", action="store_true",
+                   help=f"Use live Cloud Run backend ({PROD_URL})")
+    p.add_argument("--token", default="dev-token-sitara", help="X-Sitara-Token header")
+    p.add_argument("--scenario", default="frustrated",
+                   choices=list(SCENARIOS.keys()), help="Test scenario to run")
+    p.add_argument("--all", action="store_true", help="Run all 3 scenarios")
+    return p.parse_args()
+
+
 # ── Entry point ────────────────────────────────────────────────────
 def main():
     args    = parse_args()
