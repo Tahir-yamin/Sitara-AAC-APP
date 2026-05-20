@@ -160,13 +160,24 @@ class AntigravityService extends ChangeNotifier {
     // /generate-quest returns quest fields at top-level (see _post wrapper)
     final questMap = response['quest'] as Map<String, dynamic>? ?? response;
 
-    final mode = response['mode'] as String? ?? 'agentic';
+    // mode lives inside questMap (the actual backend data), not at the
+    // response wrapper level — reading response['mode'] always returns null.
+    final mode = questMap['mode'] as String? ?? 'agentic';
     final qcStatus = questMap['qc_status'] as String? ?? '?';
+    final displayName = childName.trim().isEmpty ? 'child' : childName.trim();
     _addTrace(
       agent: mode == 'agentic' ? 'Story Weaver [QC: $qcStatus]' : 'Sovereign Baseline',
-      reasoning: 'Generated personalised quest for $childName',
+      reasoning: 'Generated personalised quest for $displayName',
       actions: [AdaptationAction(type: 'quest_generated', data: questMap)],
     );
+
+    // Count quest generation toward the mode comparison metrics
+    if (mode == 'agentic') {
+      agentSessions++;
+    } else {
+      baselineSessions++;
+    }
+    notifyListeners();
 
     return questMap;
   }
@@ -399,7 +410,9 @@ $therapistRecommendations
             },
             body: jsonEncode(body),
           )
-          .timeout(const Duration(seconds: 10));
+          // Cloud Run cold start + gemini-2.5-flash inference can take 20-25s.
+          // 10s was causing every call to timeout and fall to local heuristic.
+          .timeout(const Duration(seconds: 30));
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as Map<String, dynamic>;
@@ -445,7 +458,17 @@ $therapistRecommendations
         'actions': rawActions,
       };
     }
-    return {'reasoning': 'Offline mode', 'actions': []};
+    // generate-quest fallback: return a minimal quest so the game still starts
+    return {
+      'mode': 'baseline_fallback',
+      'quest_title': 'Aaj Ka Safar',
+      'story_text': 'Chalo, aaj hum nayi cheezein seekhein! Let\'s learn together.',
+      'target_category': (body['preferred_category'] as String?) ?? 'animals',
+      'character': 'star',
+      'urdu_hook': 'Chalo seekhein!',
+      'difficulty': (body['difficulty'] as String?) ?? 'easy',
+      'qc_status': 'offline',
+    };
   }
 
   Map<String, dynamic> _summariseEvents(List<SessionEvent> events) {
