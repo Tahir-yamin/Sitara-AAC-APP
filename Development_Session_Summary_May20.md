@@ -80,7 +80,7 @@ The original GOOGLE_API_KEY stored in Cloud Run Secret Manager (versions 1–3) 
 **Fix:**
 User provided a fresh, unrestricted key from https://aistudio.google.com. Stored as version 4 in Secret Manager:
 ```powershell
-echo "AIzaSyC7nA_HMYIX7GauEPDnpGsLy_xlZIFszfI" | `
+echo "<REDACTED — revoke this key in GCP Console>" | `
   gcloud secrets versions add GOOGLE_API_KEY --data-file=- --project=sitara-v1-495117
 ```
 Redeployed → revision `sitara-backend-00031-mmj`. The 403 was gone but a new issue appeared (quota exhaustion — see below).
