@@ -123,9 +123,10 @@ async def _probe_openrouter() -> tuple[bool, str | None]:
         "X-Title": "Sitara Tier Probe",
     }
     probe_models = [
-        "google/gemma-4-26b-a4b-it:free",
-        "liquid/lfm-2.5-1.2b-instruct:free",
-        "google/gemma-4-31b-it:free",
+        "mistralai/mistral-7b-instruct:free",
+        "microsoft/phi-3-mini-128k-instruct:free",
+        "meta-llama/llama-3.2-3b-instruct:free",
+        "google/gemma-3-4b-it:free",
         "meta-llama/llama-3.3-70b-instruct:free",
     ]
     payload_base = {
@@ -811,11 +812,12 @@ async def _evaluate_via_openrouter(data: "AdaptationRequest") -> dict | None:
         print("[Fallback-T3] OPENROUTER_API_KEY not set - skipping OpenRouter tier.")
         return None
 
-    # Free models only — no paid credits required.
+    # Free models — updated May 2026 to models confirmed available on OpenRouter.
     models = [
-        "google/gemma-4-26b-a4b-it:free",
-        "liquid/lfm-2.5-1.2b-instruct:free",
-        "google/gemma-4-31b-it:free",
+        "mistralai/mistral-7b-instruct:free",
+        "microsoft/phi-3-mini-128k-instruct:free",
+        "meta-llama/llama-3.2-3b-instruct:free",
+        "google/gemma-3-4b-it:free",
         "meta-llama/llama-3.3-70b-instruct:free",
     ]
     headers = {
@@ -981,13 +983,22 @@ async def evaluate_session(data: AdaptationRequest):
         exc_str = str(e).upper()
         is_quota = any(q in exc_str for q in ["429", "RESOURCE_EXHAUSTED", "QUOTA"])
         if is_quota:
-            # Parse retryDelay from the 429 error body for precise auto-recovery.
-            # Error contains: "Please retry in 56.125539665s"
-            retry_match = re.search(r"retry\s+in\s+([\d.]+)s", str(e), re.IGNORECASE)
-            retry_delay = float(retry_match.group(1)) + 5 if retry_match else 65.0
+            # Distinguish PerDay (daily limit exhausted) vs PerMinute (RPM burst).
+            # PerDay quota won't reset for hours — don't keep retrying every 20s.
+            is_daily = "PERDAY" in exc_str or "PER_DAY" in exc_str or "PER DAY" in exc_str
+            if is_daily:
+                # Mark down for 2 hours — daily quota won't recover before then.
+                # When billing is enabled this path won't be hit at all.
+                retry_delay = 7200.0
+                print(f"[QUOTA] Gemini DAILY quota exhausted for {user_id} "
+                      f"— marking T1 down for 2h. Enable GCP billing to fix.")
+            else:
+                # RPM burst: parse exact retryDelay from error, add 5s buffer.
+                retry_match = re.search(r"retry\s+in\s+([\d.]+)s", str(e), re.IGNORECASE)
+                retry_delay = float(retry_match.group(1)) + 5 if retry_match else 65.0
+                print(f"[QUOTA] Gemini RPM quota hit for {user_id} - retryDelay={retry_delay:.0f}s")
             _mark_gemini_quota_hit(retry_delay)
             trigger_cooldown(user_id)
-            print(f"[QUOTA] Gemini 429 for {user_id} - retryDelay={retry_delay:.0f}s")
         else:
             print(f"[ERROR] Gemini agent error for {user_id}: {e} - trying fallback tiers")
 
