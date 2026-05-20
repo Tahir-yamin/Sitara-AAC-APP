@@ -359,7 +359,7 @@ OUTPUT SCHEMA:
 
 story_weaver = LlmAgent(
     name="story_weaver",
-    model="gemini-2.0-flash",
+    model="gemini-1.5-flash",
     instruction=STORY_WEAVER_PROMPT,
     description="Generates personalised Urdu-English mini-quests for the game"
 )
@@ -518,7 +518,7 @@ async def generate_quest_via_story_weaver(
 # Step 4: Therapy Director — includes A2A tool so it can delegate to Story Weaver
 therapy_director = LlmAgent(
     name="therapy_director",
-    model="gemini-2.0-flash",
+    model="gemini-1.5-flash",
     instruction=THERAPY_DIRECTOR_PROMPT,
     tools=[
         get_session_state,
@@ -1296,7 +1296,7 @@ async def health():
         "status": "running",
         "active_tier": active_tier,
         "agents": ["therapy_director", "story_weaver", "progress_guardian"],
-        "model": "gemini-2.0-flash",
+        "model": "gemini-1.5-flash",
         "tier_health": {
             "gemini":           _tier_health["gemini"],
             "openrouter":       _tier_health["openrouter"],
