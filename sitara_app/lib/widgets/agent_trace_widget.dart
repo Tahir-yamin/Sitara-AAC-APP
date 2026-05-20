@@ -6,22 +6,21 @@ import '../services/antigravity_service.dart';
 class AgentTraceWidget extends StatelessWidget {
   final List<TraceEntry> traces;
   final Function(String)? onSimulate;
-  
+
   const AgentTraceWidget({
     super.key,
     required this.traces,
     this.onSimulate,
   });
 
-
   @override
   Widget build(BuildContext context) {
     final service = context.watch<AntigravityService>();
-    
+
     return Container(
-      height: 310, // Increased height to comfortably fit sandbox buttons
+      height: 400, // Extended to fit new flow diagram section
       decoration: const BoxDecoration(
-        color: Color(0xFF1A1A2E), // Dark terminal look
+        color: Color(0xFF1A1A2E),
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
@@ -72,13 +71,13 @@ class AgentTraceWidget extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Sub-header for Mode status
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              service.useHeuristic 
-                ? 'MODE: SOVEREIGN BASELINE (HEURISTIC)' 
+              service.useHeuristic
+                ? 'MODE: SOVEREIGN BASELINE (HEURISTIC)'
                 : 'MODE: ANTIGRAVITY AGENTIC (ORCHESTRATED)',
               style: TextStyle(
                 color: service.useHeuristic ? Colors.orange : const Color(0xFF00FF88),
@@ -87,7 +86,7 @@ class AgentTraceWidget extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // Benchmark Stats
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -100,6 +99,10 @@ class AgentTraceWidget extends StatelessWidget {
               ],
             ),
           ),
+          const Divider(color: Colors.white10, height: 4),
+
+          // ── Animated Flow Diagram ──────────────────────────────────
+          _AgentFlowDiagram(traces: traces),
           const Divider(color: Colors.white10, height: 4),
 
           // Judge Sandbox Controls
@@ -156,7 +159,7 @@ class AgentTraceWidget extends StatelessWidget {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              reverse: true, // Latest at bottom
+              reverse: true,
               itemCount: traces.length,
               itemBuilder: (ctx, i) {
                 final trace = traces[traces.length - 1 - i];
@@ -251,16 +254,12 @@ class AgentTraceWidget extends StatelessWidget {
   }
 
   Color _agentColor(String agent) {
-    switch (agent) {
-      case 'Therapy Director':
-        return const Color(0xFFFFD700); // Gold
-      case 'Story Weaver':
-        return const Color(0xFF00BFFF); // Sky blue
-      case 'Progress Guardian':
-        return const Color(0xFFFF69B4); // Pink
-      default:
-        return Colors.white;
-    }
+    if (agent.contains('Therapy Director')) return const Color(0xFFFFD700);
+    if (agent.contains('Story Weaver'))     return const Color(0xFF00BFFF);
+    if (agent.contains('Progress Guardian')) return const Color(0xFFFF69B4);
+    if (agent.contains('Sovereign'))        return Colors.orangeAccent;
+    if (agent.contains('Heuristic'))        return Colors.orange;
+    return Colors.white70;
   }
 
   Widget _buildStatColumn(String label, double value, Color color, {bool isInt = false}) {
@@ -279,3 +278,221 @@ class AgentTraceWidget extends StatelessWidget {
   String _formatTime(DateTime dt) =>
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}:${dt.second.toString().padLeft(2, '0')}';
 }
+
+
+// ── Animated Flow Diagram ─────────────────────────────────────────
+// Shows the live agent orchestration flow with pulsing active nodes.
+
+class _AgentFlowDiagram extends StatefulWidget {
+  final List<TraceEntry> traces;
+  const _AgentFlowDiagram({required this.traces});
+
+  @override
+  State<_AgentFlowDiagram> createState() => _AgentFlowDiagramState();
+}
+
+class _AgentFlowDiagramState extends State<_AgentFlowDiagram>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulse;
+  late Animation<double> _glow;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+        duration: const Duration(milliseconds: 850), vsync: this)
+      ..repeat(reverse: true);
+    _glow = CurvedAnimation(parent: _pulse, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  // Determine which node is active from the latest trace entry
+  _ActiveNode _activeNode() {
+    if (widget.traces.isEmpty) return _ActiveNode.none;
+    final agent = widget.traces.last.agent;
+    final reasoning = widget.traces.last.reasoning;
+    if (agent.contains('Story Weaver')) return _ActiveNode.storyWeaver;
+    if (agent.contains('Progress Guardian')) return _ActiveNode.guardian;
+    if (agent.contains('Therapy Director')) return _ActiveNode.therapyDirector;
+    // Fallback tiers still mean therapy director ran (or failed)
+    if (agent.contains('Sovereign') || agent.contains('Heuristic') ||
+        reasoning.contains('BASELINE')) return _ActiveNode.therapyDirector;
+    return _ActiveNode.none;
+  }
+
+  String _activeTier() {
+    if (widget.traces.isEmpty) return 'T4';
+    final r = widget.traces.last.reasoning;
+    final a = widget.traces.last.agent;
+    if (a.contains('Therapy Director') && !r.contains('BASELINE')) return 'T1';
+    if (r.contains('T2') || r.contains('OpenRouter')) return 'T2';
+    if (r.contains('T3') || r.contains('Bedrock'))    return 'T3';
+    return 'T4';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final active = _activeNode();
+    final tier   = _activeTier();
+
+    return AnimatedBuilder(
+      animation: _glow,
+      builder: (ctx, _) {
+        return SizedBox(
+          height: 78,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Flutter app node (always dim — it's the sender)
+                _flowNode('📱', 'Flutter\nApp', Colors.white54, false),
+
+                _flowArrow('30s\nPOST'),
+
+                // Therapy Director — lights up on most events
+                _flowNode('🧠', 'Therapy\nDirector', const Color(0xFFFFD700),
+                    active == _ActiveNode.therapyDirector),
+
+                _flowArrow('A2A'),
+
+                // Story Weaver — lights up only on quest/A2A events
+                _flowNode('📖', 'Story\nWeaver', const Color(0xFF00BFFF),
+                    active == _ActiveNode.storyWeaver),
+
+                _flowArrow('→'),
+
+                // Active Tier badge
+                _tierBadge(tier),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _flowNode(String emoji, String label, Color color, bool active) {
+    final brightness = active ? _glow.value : 0.0;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color.withValues(alpha: active ? 0.18 + 0.12 * brightness : 0.06),
+            border: Border.all(
+              color: color.withValues(alpha: active ? 0.5 + 0.5 * brightness : 0.25),
+              width: active ? 1.8 : 1.0,
+            ),
+            boxShadow: active
+                ? [BoxShadow(
+                    color: color.withValues(alpha: 0.35 * brightness),
+                    blurRadius: 10,
+                    spreadRadius: 2)]
+                : [],
+          ),
+          child: Center(child: Text(emoji, style: const TextStyle(fontSize: 15))),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: color.withValues(alpha: active ? 0.9 : 0.35),
+            fontSize: 7,
+            fontFamily: 'Courier',
+            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+            height: 1.2,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _flowArrow(String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text('→', style: TextStyle(color: Colors.white24, fontSize: 13)),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.white24, fontSize: 6, fontFamily: 'Courier', height: 1.1),
+        ),
+      ],
+    );
+  }
+
+  Widget _tierBadge(String tier) {
+    const colors = {
+      'T1': Colors.cyanAccent,
+      'T2': Colors.yellowAccent,
+      'T3': Colors.purpleAccent,
+      'T4': Colors.orangeAccent,
+    };
+    const labels = {
+      'T1': 'T1\nGemini',
+      'T2': 'T2\nOpenRouter',
+      'T3': 'T3\nBedrock',
+      'T4': 'T4\nHeuristic',
+    };
+    final color = (colors[tier] ?? Colors.orangeAccent) as Color;
+    final label = labels[tier] ?? 'T4\nHeuristic';
+    final brightness = _glow.value;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(5),
+            color: color.withValues(alpha: 0.12 + 0.08 * brightness),
+            border: Border.all(
+              color: color.withValues(alpha: 0.45 + 0.35 * brightness),
+              width: 1.2,
+            ),
+            boxShadow: [BoxShadow(
+              color: color.withValues(alpha: 0.2 * brightness),
+              blurRadius: 6,
+            )],
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: color,
+              fontSize: 7,
+              fontFamily: 'Courier',
+              fontWeight: FontWeight.bold,
+              height: 1.3,
+            ),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'ACTIVE TIER',
+          style: TextStyle(
+            color: color.withValues(alpha: 0.5),
+            fontSize: 6,
+            fontFamily: 'Courier',
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+enum _ActiveNode { none, therapyDirector, storyWeaver, guardian }
