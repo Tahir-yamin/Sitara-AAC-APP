@@ -41,8 +41,7 @@ console = Console()
 TIER_COLORS = {
     "T1:Gemini":     "bright_cyan",
     "T2:OpenRouter": "bright_yellow",
-    "T3:Bedrock":    "bright_magenta",
-    "T4:Heuristic":  "bright_red",
+    "T3:Heuristic":  "bright_red",
 }
 
 PHASE_COLORS = {
@@ -173,12 +172,10 @@ def show_tier_health(url: str, headers: dict) -> str:
     rows = [
         ("T1: Gemini 2.0 Flash", th.get("gemini"),
          "google/gemini-2.0-flash  (Google ADK)", "T1:Gemini"),
-        ("T2: Amazon Bedrock",   th.get("bedrock"),
-         "anthropic.claude-haiku-4-5  (Bearer auth)", "T2:Bedrock"),
-        ("T3: OpenRouter (free)", th.get("openrouter"),
-         th.get("openrouter_model") or "llama/gemma/mistral free models", "T3:OpenRouter"),
-        ("T4: Heuristic",        True,
-         "FixedRuleEngine  (always live)", "T4:Heuristic"),
+        ("T2: OpenRouter (free)", th.get("openrouter"),
+         th.get("openrouter_model") or "llama/gemma/mistral free models", "T2:OpenRouter"),
+        ("T3: Heuristic",        True,
+         "FixedRuleEngine  (always live)", "T3:Heuristic"),
     ]
 
     for name, live, note, key in rows:

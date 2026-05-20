@@ -16,8 +16,7 @@ gcloud run deploy $SERVICE_NAME `
     --region $REGION `
     --allow-unauthenticated `
     --set-env-vars "ENV=production" `
-    --set-secrets "GOOGLE_API_KEY=GOOGLE_API_KEY:latest,OPENROUTER_API_KEY=OPENROUTER_API_KEY:latest,AWS_BEARER_TOKEN_BEDROCK=AWS_BEARER_TOKEN_BEDROCK:latest" `
-    --set-env-vars "AWS_DEFAULT_REGION=us-east-1"
+    --set-secrets "GOOGLE_API_KEY=GOOGLE_API_KEY:latest,OPENROUTER_API_KEY=OPENROUTER_API_KEY:latest"
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ Deployment successful!" -ForegroundColor Green
