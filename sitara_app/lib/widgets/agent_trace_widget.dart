@@ -93,8 +93,10 @@ class AgentTraceWidget extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildStatColumn("𝐀𝐆𝐄𝐍𝐓 𝐀𝐕𝐆", service.agentAvgSuccess, const Color(0xFF00FF88)),
-                _buildStatColumn("𝐁𝐀𝐒𝐄𝐋𝐈𝐍𝐄 𝐀𝐕𝐆", service.baselineAvgSuccess, Colors.orangeAccent),
+                _buildStatColumn("𝐀𝐆𝐄𝐍𝐓 𝐀𝐕𝐆", service.agentAvgSuccess, const Color(0xFF00FF88),
+                    noData: service.agentSessions == 0),
+                _buildStatColumn("𝐁𝐀𝐒𝐄𝐋𝐈𝐍𝐄 𝐀𝐕𝐆", service.baselineAvgSuccess, Colors.orangeAccent,
+                    noData: service.baselineSessions == 0),
                 _buildStatColumn("𝐒𝐄𝐒𝐒𝐈𝐎𝐍𝐒", (service.agentSessions + service.baselineSessions).toDouble(), Colors.cyanAccent, isInt: true),
               ],
             ),
@@ -262,14 +264,24 @@ class AgentTraceWidget extends StatelessWidget {
     return Colors.white70;
   }
 
-  Widget _buildStatColumn(String label, double value, Color color, {bool isInt = false}) {
+  Widget _buildStatColumn(String label, double value, Color color,
+      {bool isInt = false, bool noData = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(color: Colors.white38, fontSize: 8, fontWeight: FontWeight.bold)),
         Text(
-          isInt ? value.toInt().toString() : "${(value * 100).toStringAsFixed(1)}%",
-          style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w900, fontFamily: 'Courier'),
+          noData
+              ? 'N/A'
+              : isInt
+                  ? value.toInt().toString()
+                  : "${(value * 100).toStringAsFixed(1)}%",
+          style: TextStyle(
+            color: noData ? Colors.white24 : color,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            fontFamily: 'Courier',
+          ),
         ),
       ],
     );
